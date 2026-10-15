@@ -7,7 +7,7 @@ help:
 	@echo "make install      Install dependencies"
 	@echo "make download     Download source datasets into data/raw/ (skips existing; FORCE=1 to refresh)"
 	@echo "make schema       Create Neo4j constraints and indexes (needs Neo4j running)"
-	@echo "make ingest       Load downloaded data into Neo4j (ATT&CK; needs Neo4j running)"
+	@echo "make ingest       Load downloaded data into Neo4j (ATT&CK, KEV, NVD; needs Neo4j running)"
 	@echo "make run          Run the API locally with auto-reload (port 8000)"
 	@echo "make docker-run   Build and start neo4j, api and nginx (http://localhost:8080)"
 	@echo "make docker-down  Stop the stack (keeps the Neo4j volume)"
@@ -28,6 +28,7 @@ schema:
 
 ingest: schema
 	$(PYTHON) -m scripts.ingest_attack
+	$(PYTHON) -m scripts.ingest_kev_nvd
 
 run:
 	$(PYTHON) -m uvicorn app.main:app --reload
