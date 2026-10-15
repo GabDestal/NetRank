@@ -1,13 +1,14 @@
 PYTHON ?= python
 SRC := app scripts tests
 
-.PHONY: help install download schema ingest test-integration run docker-run docker-down lint test coverage clean
+.PHONY: help install download schema ingest analytics test-integration run docker-run docker-down lint test coverage clean
 
 help:
 	@echo "make install      Install dependencies"
 	@echo "make download     Download source datasets into data/raw/ (skips existing; FORCE=1 to refresh)"
 	@echo "make schema       Create Neo4j constraints and indexes (needs Neo4j running)"
 	@echo "make ingest       Load downloaded data into Neo4j (ATT&CK, KEV, NVD, CTID; needs Neo4j running)"
+	@echo "make analytics    Compute technique centrality and communities with GDS (run by make ingest)"
 	@echo "make run          Run the API locally with auto-reload (port 8000)"
 	@echo "make docker-run   Build and start neo4j, api and nginx (http://localhost:8080)"
 	@echo "make docker-down  Stop the stack (keeps the Neo4j volume)"
@@ -31,6 +32,10 @@ ingest: schema
 	$(PYTHON) -m scripts.ingest_attack
 	$(PYTHON) -m scripts.ingest_kev_nvd
 	$(PYTHON) -m scripts.ingest_ctid
+	$(MAKE) analytics
+
+analytics:
+	$(PYTHON) -m scripts.analytics
 
 run:
 	$(PYTHON) -m uvicorn app.main:app --reload
