@@ -62,11 +62,17 @@ make docker-run   # neo4j + api + nginx
 make docker-down  # stop the stack, keep the Neo4j volume
 ```
 
+Once Neo4j is up, create the constraints and indexes (safe to re-run):
+
+```bash
+make schema
+```
+
 The Docker stack needs `.env` with `NEO4J_PASSWORD` set (letters and digits only). The first start downloads the APOC and GDS plugins, which can take a few minutes.
 
 | Service | URL | Notes |
 |---------|-----|-------|
-| nginx → api | http://localhost:8080 | `GET /health` returns `{"status": "ok"}` |
+| nginx → api | http://localhost:8080 | `GET /health` → `{"status": "ok"}`; `GET /health/db` → Neo4j version, or 503 if unreachable |
 | Neo4j Browser | http://localhost:7474 | user `neo4j`, password from `.env` |
 | Neo4j Bolt | bolt://localhost:7687 | |
 
