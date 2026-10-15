@@ -283,6 +283,12 @@ never as "group G exploits CVE C".
 
 ## Final schema
 
+![ThreatGraph final schema](schema.png)
+
+The reference diagram is [`schema.drawio`](schema.drawio) (open it in draw.io or diagrams.net),
+exported to [`schema.png`](schema.png) and [`schema.svg`](schema.svg). The Mermaid version below
+renders inline on GitHub and must stay in sync with it.
+
 ```mermaid
 graph LR
   Group -->|USES| Technique
