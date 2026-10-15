@@ -33,6 +33,27 @@ make install
 cp .env.example .env
 ```
 
+## Data
+
+```bash
+make download           # fetch every source into data/raw/ (skips files already there)
+make download FORCE=1   # re-download everything
+python -m scripts.download --only kev nvd   # selected sources
+```
+
+| Source | Version | File |
+|--------|---------|------|
+| MITRE ATT&CK Enterprise (STIX 2.1) | 20.0, pinned | `data/raw/attack/enterprise-attack-20.0.json` |
+| CISA KEV catalog | latest (version recorded) | `data/raw/kev/known_exploited_vulnerabilities.json` |
+| CTID Mappings Explorer, KEV → ATT&CK | 16.1, file `kev-07.28.2025` | `data/raw/ctid/kev-07.28.2025_attack-16.1-enterprise.json` |
+| NVD API 2.0, every CVE in KEV | retrieval date | `data/raw/nvd/nvd_kev_cves.json` |
+
+NVD records come from the API's `hasKev` filter (4 paged requests); any KEV CVE it misses is fetched
+individually. Set `NVD_API_KEY` in `.env` to raise the rate limit
+([request a key](https://nvd.nist.gov/developers/request-an-api-key)).
+Each download is validated (expected version, expected structure) before it is kept, and recorded in
+`data/raw/manifest.json` with its URL, version, SHA-256, size and download time.
+
 ## Running
 
 ```bash
