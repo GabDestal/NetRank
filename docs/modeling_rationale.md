@@ -153,6 +153,21 @@ v20, and the tactics have been restructured.
 
 **Decision (2026-10-15):** **B**. Load ATT&CK v20 for current data, and remap the 6 stale CTID mappings through `revoked-by`, logging each remap. Mappings with no clean successor are dropped and listed in the import log. `attack_version` is stored in the import metadata.
 
+**Outcome (CTID load, 2026-10-15):** the 3 stale technique ids were all *revoked* in v20 (none
+deprecated), each with a live successor, so all 6 mappings were remapped and none dropped. Each
+remapped relationship keeps the original id in `remapped_from`, and the list is stored in
+`:ImportMeta {source: 'ctid'}.remap_log`.
+
+| CVE | Mapping | CTID id (ATT&CK 16.1) | v20 successor |
+|---|---|---|---|
+| CVE-2025-31201, CVE-2023-0386, CVE-2025-31200 | `SECONDARY_IMPACT` | T1562 Impair Defenses | T1685 Disable or Modify Tools |
+| CVE-2023-22952, CVE-2020-5902 | `SECONDARY_IMPACT` | T1562.001 Disable or Modify Tools | T1685 Disable or Modify Tools |
+| CVE-2023-36884 | `SECONDARY_IMPACT` | T1070.001 Clear Windows Event Logs | T1685.005 Clear Windows Event Logs |
+
+These come from v20 splitting *Defense Evasion* into *Stealth* and *Defense Impairment*. The
+T1562 → T1685 remap narrows "Impair Defenses" to "Disable or Modify Tools", which is MITRE's own
+`revoked-by` choice rather than ours.
+
 ## D3. Techniques vs sub-techniques
 
 | Option | For | Against |
