@@ -23,6 +23,7 @@ not chosen is listed, with its reason, under [Rejected alternatives](#rejected-a
 | D10 | Vendors and products (KEV, CPE)                | B      | Decided | 2026-10-15 |
 | D11 | The CVE ↔ ATT&CK bridge                        | B      | Decided | 2026-10-15 |
 | D12 | Verified vs LLM-inferred links                 | B      | Decided | 2026-10-15 |
+| D13 | Ingestion write strategy                       | A      | Decided | 2026-10-15 |
 
 ---
 
@@ -279,6 +280,28 @@ never as "group G exploits CVE C".
 
 **Decision (2026-10-15):** **B**. A structural guardrail: verified queries cannot pick up inferred links. Question 3 is answered only as a shared-technique path, never as "group exploits CVE".
 
+## D13. Ingestion write strategy
+
+How the import scripts write each source into the graph.
+
+| Option | For | Against |
+|---|---|---|
+| **A. `UNWIND` batches + `MERGE` on the unique key** | Re-runs update in place with no duplicates; the graph stays complete while a source is reloaded; links made by other sources survive | Each row costs an index seek before the write |
+| **B. Delete the source's data, then `CREATE`** | Simpler queries; slightly faster on a first load | The graph is incomplete during a reload, and relationships other sources attached to the deleted nodes (CTID → technique, for example) are lost |
+
+**Cost (A):** rows go to Neo4j as one list parameter per batch of 1,000, so one round trip per
+batch, not per row. Each `MERGE` finds an existing node through its uniqueness constraint's index,
+O(log n), so a batch of b rows costs O(b log n) and a full source O(N log N). Measured on ATT&CK
+v20 (1,842 nodes, 21,838 relationships): 9.2 s for the first load, 3.2 s for a re-run that
+changes nothing.
+
+**Known limit (A):** an object that disappears from a newer source release is not deleted by a
+re-run. With every source version pinned and recorded in `:ImportMeta`, an upgrade is a
+deliberate step that can clear the old version first.
+
+**Decision (2026-10-15):** **A**. Re-runs are safe and leave no duplicates, the graph never goes
+half-empty during a reload, and links added by later sources are preserved.
+
 ---
 
 ## Final schema
@@ -389,3 +412,4 @@ All rejected on 2026-10-15.
 | D11 | C. An intermediate `:Mapping` node | Every bridge query and every GDS projection over the bridge would need two hops instead of one. |
 | D12 | A. Same relationship types, with `source: 'llm'` | One forgotten `WHERE r.source <> 'llm'` would silently mix inferred links into verified answers. |
 | D12 | C. Never store inferred links | Answers would not be reproducible, since the inference would be redone on every question. |
+| D13 | B. Delete the source's data, then `CREATE` | The graph would be incomplete during a reload, and relationships other sources attached to the deleted nodes would be lost. |
