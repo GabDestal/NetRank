@@ -22,6 +22,7 @@ jobs:
         run: >
           python -m pytest
           --cov=app
+          --cov=scripts
           --cov-report=term-missing
           --cov-report=xml
           --cov-fail-under=80
