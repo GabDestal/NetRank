@@ -68,6 +68,12 @@ Once Neo4j is up, create the constraints and indexes (safe to re-run):
 make schema
 ```
 
+Then load the downloaded data (creates the schema first; re-runs update in place):
+
+```bash
+make ingest     # ATT&CK so far: 1,842 nodes, 21,838 relationships, counts verified after loading
+```
+
 The Docker stack needs `.env` with `NEO4J_PASSWORD` set (letters and digits only). The first start downloads the APOC and GDS plugins, which can take a few minutes.
 
 | Service | URL | Notes |
