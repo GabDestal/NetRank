@@ -73,7 +73,11 @@ Then load the downloaded data (creates the schema first; re-runs update in place
 ```bash
 make ingest     # ATT&CK, KEV + NVD, CTID, then make analytics; every count is verified after loading
 make analytics  # GDS: technique degree, betweenness and Louvain communities, stored as properties
+make predict    # link prediction CVE → technique; stores suggestions only if it beats the baseline
 ```
+
+`make predict` currently stores nothing: on a CVE-disjoint, date-based split the model does not beat
+"suggest the most common techniques". See [`docs/link_prediction.md`](docs/link_prediction.md).
 
 | Source | Loads | Counts (2026-10-15) |
 |--------|-------|---------------------|
