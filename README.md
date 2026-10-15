@@ -29,14 +29,14 @@ cp .env.example .env
 ## Development
 
 ```bash
-make lint       # pylint
+make lint       # pylint (fails under 9.5/10)
 make test       # pytest + coverage (fails under 80%)
 make coverage   # HTML report in htmlcov/
 ```
 
 CI runs the same checks on every push to `main` and on every pull request:
 
-- `lint.yml`: pylint
+- `lint.yml`: pylint, minimum score 9.5
 - `test.yml`: pytest with coverage
 
 ## Contributing
@@ -47,4 +47,7 @@ Commit messages use a type prefix:
 
 - `feat:` new functionality
 - `fix:` bug fixes
+- `test:` tests only
 - `docs:` documentation only
+- `refactor:` code changes with no behavior change
+- `chore:` tooling, dependencies, housekeeping
