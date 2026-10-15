@@ -71,7 +71,8 @@ make schema
 Then load the downloaded data (creates the schema first; re-runs update in place):
 
 ```bash
-make ingest     # ATT&CK, then KEV + NVD; every count is verified after loading
+make ingest     # ATT&CK, KEV + NVD, CTID, then make analytics; every count is verified after loading
+make analytics  # GDS: technique degree, betweenness and Louvain communities, stored as properties
 ```
 
 | Source | Loads | Counts (2026-10-15) |
@@ -99,8 +100,16 @@ parameterized Cypher.
 | 2. KEV CVEs exploited via a technique (ransomware filter) | `GET /techniques/{technique_id}/cves` | `/techniques/T1190/cves?ransomware=true` |
 | 3. Groups sharing a technique with a CVE (association only) | `GET /cves/{cve_id}/groups` | `/cves/CVE-2021-44228/groups?limit=10` |
 | 4. Most exploited vendors / products, by weakness | `GET /vendors/top`, `GET /products/top` | `/vendors/top?limit=10&cwe_limit=3` |
+| 5. Mitigation plan: greedy weighted cover, with the uncoverable techniques listed | `GET /mitigations/plan` | `/mitigations/plan?since=2025-01-01&max_picks=5` |
+| 6. Central techniques: most used, connectors (betweenness), communities | `GET /techniques/central` | `/techniques/central?by=betweenness` |
 | 7. A product's full exposure | `GET /products/exposure` | `/products/exposure?product=fortinet:fortios` |
+| Groups with similar technique profiles (GDS node similarity, live) | `GET /groups/{group_id}/similar` | `/groups/G0016/similar?limit=5` |
 | (helper) Find a product key | `GET /products` | `/products?search=fortios` |
+
+Graph algorithms: `/groups/{id}/similar` runs GDS node similarity (Jaccard) on request, on a
+projection created and dropped per call (D17). `/techniques/central` serves degree, betweenness and
+Louvain results computed by GDS in `make analytics` (D15, D16). `/mitigations/plan` is a greedy
+weighted maximum-coverage optimization (D14).
 
 Errors: `404` for an unknown id, `422` for a malformed one (e.g. `G0016`, `T1059.001` and
 `CVE-2021-44228` formats are enforced), `503` when Neo4j is unavailable. Answers that link groups
