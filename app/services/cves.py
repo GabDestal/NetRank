@@ -29,13 +29,33 @@ RETURN c {.cve_id, .name, .cvss_score, .cvss_source_type, .known_ransomware_use}
        } AS groups
 """
 
+# Model suggestions (D18), read in a separate query so they can never mix with the verified techniques
+# above. The CVE's INFERRED_MAPS_TO relationships (at most 3) plus the last prediction run's status.
+SUGGESTIONS_QUERY = """
+MATCH (c:CVE {cve_id: $cve_id})
+OPTIONAL MATCH (m:ImportMeta {source: 'predict'})
+RETURN m.status AS status,
+       COLLECT {
+         MATCH (c)-[r:INFERRED_MAPS_TO]->(t:Technique)
+         RETURN t {.attack_id, .name, confidence: r.confidence, model: r.model, model_version: r.model_version,
+                   top_features: coalesce(r.top_features, []), rationale: coalesce(r.rationale, '')}
+         ORDER BY r.confidence DESC, t.attack_id
+       } AS suggestions
+"""
+
 
 def cve_groups(driver: Driver, cve_id: str, *, limit: int = 25) -> CveGroupsResponse | None:
-    """Return the CVE's mapped techniques and the groups sharing them, or None if the CVE is not in KEV."""
+    """Return the CVE's mapped techniques and the groups sharing them, or None if the CVE is not in KEV.
+
+    Model suggestions are attached in their own field, labelled as model-generated.
+    """
     records, _, _ = driver.execute_query(CVE_GROUPS_QUERY, {"cve_id": cve_id, "limit": limit},
                                          routing_=RoutingControl.READ)
     if not records:
         return None
     record = records[0]
+    suggestions, _, _ = driver.execute_query(SUGGESTIONS_QUERY, {"cve_id": cve_id}, routing_=RoutingControl.READ)
+    suggested = suggestions[0] if suggestions else {"status": None, "suggestions": []}
     return CveGroupsResponse(cve=record["cve"], note=SHARED_TECHNIQUE_NOTE, techniques=record["techniques"],
-                             group_count=record["group_count"], groups=record["groups"])
+                             group_count=record["group_count"], groups=record["groups"],
+                             suggested_techniques=suggested["suggestions"], suggestions_status=suggested["status"])

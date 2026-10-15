@@ -25,8 +25,24 @@ class AssociatedGroup(BaseModel):
     shared_techniques: list[str]
 
 
+class SuggestedTechnique(BaseModel):
+    """A technique suggested by the link prediction model (D18). Never a verified mapping."""
+
+    attack_id: str
+    name: str
+    confidence: float
+    model: str
+    model_version: str
+    top_features: list[str] = []
+    rationale: str = ""
+
+
 class CveGroupsResponse(BaseModel):
-    """Body of GET /cves/{cve_id}/groups."""
+    """Body of GET /cves/{cve_id}/groups.
+
+    `techniques` and `groups` come only from verified CTID mappings. Model output is kept apart in
+    `suggested_techniques` and is never used to find groups.
+    """
 
     cve: CveSummary
     association: Literal["shared_technique"] = "shared_technique"
@@ -34,3 +50,6 @@ class CveGroupsResponse(BaseModel):
     techniques: list[MappedTechnique]
     group_count: int
     groups: list[AssociatedGroup]
+    suggested_techniques: list[SuggestedTechnique] = []
+    suggestions_label: Literal["model-generated, not verified"] = "model-generated, not verified"
+    suggestions_status: str | None = None
