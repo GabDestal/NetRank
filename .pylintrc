@@ -1,0 +1,21 @@
+[MAIN]
+py-version=3.12
+jobs=0
+ignore=.venv,venv,build,dist
+
+[FORMAT]
+max-line-length=100
+
+[MESSAGES CONTROL]
+disable=
+    too-few-public-methods,
+
+[BASIC]
+good-names=i,j,k,df,_
+
+[DESIGN]
+max-args=6
+
+[REPORTS]
+output-format=colorized
+score=yes
