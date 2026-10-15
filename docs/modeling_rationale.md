@@ -28,6 +28,7 @@ not chosen is listed, with its reason, under [Rejected alternatives](#rejected-a
 | D15 | Question 6: technique centrality               | C      | Decided | 2026-10-15 |
 | D16 | Where algorithm results live                   | B      | Decided | 2026-10-15 |
 | D17 | Group similarity, computed live                | A      | Decided | 2026-10-15 |
+| D18 | Link prediction                                | –      | Open    |            |
 
 ---
 
@@ -451,6 +452,67 @@ warms up.
 **Decision (2026-10-15):** **A**. On a graph this small, projecting per request costs about 50 ms,
 and it buys freshness, no shared state between requests and nothing to invalidate. The projection
 name carries a random suffix, and the projection is dropped even when the algorithm fails.
+
+## D18. Link prediction
+
+The idea is to use the GDS link prediction pipeline to suggest links that are missing from the
+data. I looked at two possible targets:
+
+1. **CVE → Technique.** 1,326 of the 1,745 KEV CVEs (76%) have no CTID mapping, so questions 3, 5
+   and 7 can't see them at all. A model could suggest techniques for them. These suggestions would
+   go into `INFERRED_MAPS_TO`, which the schema already has for this (D12), never into the CTID
+   relationship types.
+2. **Group → Technique.** Suggest techniques a group probably uses but that ATT&CK doesn't list.
+
+**Trial setup** (same for both): FastRP embeddings (64 dimensions, seed 42), the Hadamard product
+of the two embeddings as the link feature, 20% of links held out for testing, 3-fold validation,
+one negative example per positive, logistic regression vs random forest (50 trees), scored with
+AUCPR. For CVE → Technique the embeddings also use each CVE's CWEs and products. Without them, an
+unmapped CVE would have no neighbours and the model would know nothing about it.
+
+**Results** (2026-10-15):
+
+| | CVE → Technique | Group → Technique |
+|---|---|---|
+| Graph used | 5,701 nodes, 29,114 relationships | 884 nodes, 9,630 relationships |
+| Validation AUCPR, logistic regression / random forest | 0.74 / 0.78 | 0.80 / 0.82 |
+| Test AUCPR (random forest) | 0.75 | 0.84 |
+| Train AUCPR | 0.97 | 0.96 |
+| Training time | 1.8 s | 5.7 s |
+
+What I noticed:
+
+- Both models overfit: train AUCPR is much higher than test, especially for CVEs (0.97 vs 0.75).
+- The CVE model leans towards common techniques. Out of 899 suggestions above 0.5, T1059
+  (Command and Scripting Interpreter) comes up 144 times, and T1059 is already the most mapped
+  technique in CTID (170 CVEs). So the real comparison should be against a simple "always suggest
+  the most common techniques" baseline, not just the AUCPR number.
+- AUCPR here uses one negative per positive, which makes it look better than it would on real
+  data, where almost every CVE–technique pair is a non-link.
+- With a 0.5 threshold, 439 of the 1,326 unmapped CVEs get at least one suggestion.
+- Some suggestions look unlikely when checked by hand. For example, CVE-2025-20362 (a Cisco
+  firewall bug) gets T1011 (Exfiltration Over Other Network Medium). So these have to stay clearly
+  labelled as guesses.
+
+| Option | For | Against |
+|---|---|---|
+| **A. CVE → Technique** | Fills the biggest gap in the graph; fits `INFERRED_MAPS_TO`, which is already designed and kept apart from verified links | Weaker score; biased towards common techniques |
+| **B. Group → Technique** | Better score; simple graph | No question in section 1 needs it; would need a new inferred relationship type |
+| **C. Both** | Shows the pipeline on two problems | Twice the work to evaluate and explain, for a second model nobody uses |
+
+If A is chosen, the other choices I'd make:
+
+- **Model:** random forest, since it won on validation for both targets.
+- **What gets stored:** only suggestions with probability ≥ 0.7, at most 3 per CVE, as
+  `INFERRED_MAPS_TO {mapping_type: 'predicted', confidence, model, created_at, rationale}`.
+- **Where it runs:** a `make predict` step that trains and predicts in one run. GDS Community
+  Edition doesn't keep trained models after a restart, so storing the model isn't an option anyway.
+- **Evaluation:** report test AUCPR next to the popularity baseline, and hand-check a sample of
+  suggestions.
+
+*Lean:* **A**, because it is the one that actually improves the answers to the questions.
+
+**Decision:** *open*
 
 ---
 
