@@ -78,6 +78,7 @@ make ingest     # ATT&CK, then KEV + NVD; every count is verified after loading
 |--------|-------|---------------------|
 | ATT&CK v20 | groups, campaigns, software, techniques, tactics, mitigations and their relationships | 1,842 nodes, 21,838 relationships |
 | KEV + NVD | CVEs, CWEs, products, vendors; `HAS_WEAKNESS`, `AFFECTS`, `MADE_BY` | 1,745 CVEs, 203 CWEs, 3,599 products, 393 vendors; 37,040 relationships |
+| CTID (ATT&CK 16.1) | CVE → technique bridge: `EXPLOITS_VIA`, `PRIMARY_IMPACT`, `SECONDARY_IMPACT` | 1,183 relationships covering 419 CVEs; 6 remapped to v20 successors |
 
 The Docker stack needs `.env` with `NEO4J_PASSWORD` set (letters and digits only). The first start downloads the APOC and GDS plugins, which can take a few minutes.
 
