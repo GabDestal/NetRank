@@ -5,6 +5,11 @@
 
 A knowledge graph for cyber threat intelligence (CTI).
 
+![ThreatGraph schema](docs/schema.png)
+
+Schema decisions and rejected alternatives: [`docs/modeling_rationale.md`](docs/modeling_rationale.md).
+Diagram source: [`docs/schema.drawio`](docs/schema.drawio).
+
 ## Layout
 
 ```
@@ -12,6 +17,7 @@ app/            Python package (application code)
 scripts/        One-off and maintenance scripts
 tests/          pytest suite
 nginx/          Reverse proxy config for the Docker stack
+docs/           Schema diagram (draw.io) and modeling rationale
 demo.ipynb      Walkthrough notebook
 .env.example    Template for local settings
 ```
