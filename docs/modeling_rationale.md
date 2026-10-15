@@ -24,6 +24,9 @@ not chosen is listed, with its reason, under [Rejected alternatives](#rejected-a
 | D11 | The CVE ↔ ATT&CK bridge                        | B      | Decided | 2026-10-15 |
 | D12 | Verified vs LLM-inferred links                 | B      | Decided | 2026-10-15 |
 | D13 | Ingestion write strategy                       | A      | Decided | 2026-10-15 |
+| D14 | Question 5: ranking mitigations                | –      | Open    |            |
+| D15 | Question 6: technique centrality               | –      | Open    |            |
+| D16 | Where algorithm results live                   | –      | Open    |            |
 
 ---
 
@@ -330,6 +333,86 @@ deliberate step that can clear the old version first.
 
 **Decision (2026-10-15):** **A**. Re-runs are safe and leave no duplicates, the graph never goes
 half-empty during a reload, and links added by later sources are preserved.
+
+## D14. Question 5: ranking mitigations
+
+*Which mitigations would cover the most techniques reachable from currently exploited CVEs?*
+
+**What the graph holds (measured 2026-10-15):** the 419 CTID-mapped KEV CVEs reach **154
+techniques**. Weighting each technique by the number of exploited CVEs that reach it gives a total
+weight of 1,177. **20 of those techniques (weight 69, 5.9%) have no ATT&CK mitigation at all**, so
+no ranking can cover them. The 1,326 unmapped KEV CVEs reach no technique (D12), so every option
+below only sees the mapped 24%.
+
+| Option | How it ranks | Top 3 on the real graph | For | Against |
+|---|---|---|---|---|
+| **A. Count of reachable techniques covered** (Cypher) | Distinct reachable techniques per mitigation | M1018 User Account Mgmt (38), M1026 Privileged Account Mgmt (36), M1047 Audit (30) | Simplest to read: "covers 38 techniques" | A technique reached by 1 CVE counts as much as one reached by 100; overlapping mitigations are each credited with the same techniques |
+| **B. Weighted by exploited CVEs** (Cypher) | Sum over covered techniques of the number of CVEs reaching each | M1026 (497), M1038 Execution Prevention (357), M1051 Update Software (346) | Reflects how much exploited CVE activity each mitigation addresses | Still credits overlapping mitigations twice; a list, not a plan |
+| **C. Greedy weighted cover** (Cypher + a short loop) | Pick the mitigation covering the most *still uncovered* weight, repeat | M1026 → 42.2%, + M1038 → 57.1%, + M1031 Network Intrusion Prevention → 66.9%; 5 picks → 78.8%; 17 picks reach the 94.1% maximum | Answers "which set of mitigations covers the most" directly; shows diminishing returns; deterministic; greedy is the standard algorithm for weighted maximum coverage, and its first k picks always cover at least 63% (1 − 1/e) of what the best possible k mitigations could | Order-dependent by design, so a mitigation can rank low only because an earlier pick already covered its techniques; slightly more to explain |
+| **D. GDS personalized PageRank** seeded on mapped CVEs over CVE–Technique–Mitigation | Random-walk score of each mitigation | M1026 (3.50), M1018 (3.47), M1047 (3.02) | Uses GDS; picks up indirect structure | Ranking is almost A's (degree-like); a score cannot be read as "covers N"; needs an in-memory projection (196 ms) and seeds limited to mapped CVEs |
+
+All four answer in under 0.4 s on this graph.
+
+**Time scope (applies to every option):** "currently exploited" can mean all of KEV, or only CVEs
+added since a date. A `since` parameter (optional, default all of KEV) keeps both readings.
+
+*Lean:* **C**, with B's weights and an optional `since` filter: it is the only option that answers
+"which mitigations *would cover* the most" as a plan rather than a list. Note that this makes
+question 5 a Cypher-and-greedy answer rather than a GDS one; GDS is still used for question 6.
+
+**Decision:** *open*
+
+## D15. Question 6: technique centrality
+
+*Which techniques are most central in the group–technique graph?*
+
+Three ways to build the graph the algorithm runs on, measured 2026-10-15:
+
+| Projection | Size | Note |
+|---|---|---|
+| **P1. Bipartite** Group–Technique, `USES` undirected | 884 nodes, 9,630 relationships | The graph as stored |
+| **P2. Dense co-usage**: techniques linked when a group uses both, weight = shared groups | 515 nodes, 91,728 relationships | **69% of all possible pairs are linked**: hub techniques connect to almost everything |
+| **P3. Sparse similarity**: each technique keeps its 10 most similar techniques (Jaccard over the groups using them, ≥ 0.1, techniques used by ≥ 2 groups) | 396 techniques compared, 3,935 relationships | GDS `nodeSimilarity`, 30–160 ms |
+
+What each algorithm gives on the real graph:
+
+| Algorithm | Top results | Behaviour |
+|---|---|---|
+| **Degree** (groups using the technique, Cypher) | T1105 Ingress Tool Transfer (90), T1204.002 Malicious File (87), T1059.001 PowerShell (86) | Baseline: "most used" |
+| **PageRank on P1** | Same top 10 as degree, in nearly the same order | Adds nothing over degree on this graph |
+| **Betweenness on P2** | T1588.002 Tool, T1059.001 PowerShell, T1105, … T1078 Valid Accounts, T1190 Exploit Public-Facing Application | 6 of its top 10 are in degree's top 10; brings out *connectors* used across otherwise different toolkits; 287 ms |
+| **Betweenness on P3** | T1583.001 Domains, T1087.002 Domain Account, T1070.006 Timestomp, … | Niche bridges between technique clusters; harder to interpret as "central" |
+| **Louvain on P2** | 4–5 communities, modularity 0.08 | Too dense to have structure; community count varies between runs; 13 s |
+| **Louvain on P3** | 317 communities (most are singletons: techniques used by fewer than 2 groups), modularity 0.566; 6 communities of 31–115 techniques | Real, stable structure (identical across runs); about 0.1–0.2 s; communities read as technique "playbooks" |
+
+| Option | Answer to question 6 | For | Against |
+|---|---|---|---|
+| **A. Degree only** | Most-used techniques | Trivial to explain; no GDS needed | Only one notion of "central"; leaves GDS unused for question 6 |
+| **B. Degree + betweenness on P2** | Most used, and the connectors between toolkits | Two complementary notions, each easy to explain; both fast | P2 must be built per run from a co-usage query (582 ms) |
+| **C. B + Louvain communities on P3** | B, plus which cluster each technique belongs to | Adds structure an analyst can use ("techniques used together"); stable and fast on P3 | Two projections to maintain; community labels need describing (largest members) to be meaningful |
+| **D. PageRank on P1** | Random-walk importance | The textbook choice | Identical top 10 to degree here, so it adds complexity without new information |
+
+*Lean:* **C**: degree for "most used", betweenness for "connectors", Louvain on P3 for "used
+together". Each says something different and each is measured above. D is the one to rule out,
+with the identical-top-10 result as the reason.
+
+**Decision:** *open*
+
+## D16. Where algorithm results live
+
+| Option | For | Against |
+|---|---|---|
+| **A. Compute on request** (`gds.*.stream` per API call) | Always consistent with the graph | Each call builds an in-memory projection (30–600 ms) before the algorithm runs; concurrent calls need unique projection names and share GDS memory; the API would need write-like procedure access |
+| **B. Precompute after ingestion** (`make analytics` writes results as node properties, e.g. `t.used_by_groups`, `t.betweenness`, `t.community`, plus `:ImportMeta {source: 'analytics'}` with parameters and time) | API reads plain properties in milliseconds with read-only Cypher; results are reproducible and citable ("computed on 2026-10-15 with …") | Results go stale if the graph changes, so `make analytics` must run after `make ingest` (the Makefile can chain them); adds properties to the schema |
+| **C. Keep projections in the GDS catalog** between requests | No re-projection per call | Lost on every Neo4j restart; still runs algorithms per request; memory held permanently |
+
+Question 5's options A–C are plain Cypher and take under 0.4 s, so they can be computed on request
+whatever is chosen here (that also keeps the `since` filter possible). This decision matters for
+question 6.
+
+*Lean:* **B** for question 6, with question 5 computed on request.
+
+**Decision:** *open*
 
 ---
 
