@@ -3,11 +3,13 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
+from neo4j.exceptions import DriverError, Neo4jError
 
 from app import __version__
 from app.database.connection import close_driver
-from app.routers import health
+from app.routers import cves, groups, health, products, techniques
 
 
 @asynccontextmanager
@@ -19,8 +21,18 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="ThreatGraph",
-    description="Cyber threat intelligence knowledge graph API.",
+    description="Cyber threat intelligence knowledge graph API: MITRE ATT&CK, CISA KEV, NVD and the CTID bridge.",
     version=__version__,
     lifespan=lifespan,
 )
-app.include_router(health.router)
+
+
+@app.exception_handler(DriverError)
+@app.exception_handler(Neo4jError)
+async def neo4j_unavailable(_request: Request, _exc: Exception) -> JSONResponse:
+    """Answer 503 whenever Neo4j is unreachable or rejects a query, without leaking driver details."""
+    return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"detail": "Neo4j is unavailable"})
+
+
+for router_module in (health, groups, techniques, cves, products):
+    app.include_router(router_module.router)
