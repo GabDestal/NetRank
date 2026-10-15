@@ -1,12 +1,13 @@
 PYTHON ?= python
 SRC := app scripts tests
 
-.PHONY: help install download schema run docker-run docker-down lint test coverage clean
+.PHONY: help install download schema ingest run docker-run docker-down lint test coverage clean
 
 help:
 	@echo "make install      Install dependencies"
 	@echo "make download     Download source datasets into data/raw/ (skips existing; FORCE=1 to refresh)"
 	@echo "make schema       Create Neo4j constraints and indexes (needs Neo4j running)"
+	@echo "make ingest       Load downloaded data into Neo4j (ATT&CK; needs Neo4j running)"
 	@echo "make run          Run the API locally with auto-reload (port 8000)"
 	@echo "make docker-run   Build and start neo4j, api and nginx (http://localhost:8080)"
 	@echo "make docker-down  Stop the stack (keeps the Neo4j volume)"
@@ -24,6 +25,9 @@ download:
 
 schema:
 	$(PYTHON) -m scripts.init_schema
+
+ingest: schema
+	$(PYTHON) -m scripts.ingest_attack
 
 run:
 	$(PYTHON) -m uvicorn app.main:app --reload
