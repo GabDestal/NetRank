@@ -1,7 +1,7 @@
 """Runtime settings loaded from environment variables (and an optional .env file)."""
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -13,6 +13,12 @@ class Settings:
 
     log_level: str
     data_dir: Path
+    nvd_api_key: str = field(default="", repr=False)
+
+    @property
+    def raw_dir(self) -> Path:
+        """Directory holding downloaded source datasets."""
+        return self.data_dir / "raw"
 
 
 def load_settings(env_file: str | None = ".env") -> Settings:
@@ -22,4 +28,5 @@ def load_settings(env_file: str | None = ".env") -> Settings:
     return Settings(
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
         data_dir=Path(os.getenv("DATA_DIR", "data")),
+        nvd_api_key=os.getenv("NVD_API_KEY", ""),
     )
