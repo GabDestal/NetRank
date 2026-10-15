@@ -26,7 +26,7 @@ from neo4j import Driver, RoutingControl
 
 from app.database.batch import run_batched
 from app.database.schema import apply_schema
-from scripts.common import run_with_driver, setup_logging
+from scripts.common import check_counts, read_manifest, record_import, run_with_driver, setup_logging
 from scripts.download import ATTACK, DownloadError, validate_attack
 
 LOGGER = logging.getLogger("ingest_attack")
@@ -121,11 +121,6 @@ REL_QUERIES = {
         "MERGE (s)-[r:IN_TACTIC]->(t) SET r.source = 'attack'"
     ),
 }
-
-IMPORT_META_QUERY = (
-    "MERGE (m:ImportMeta {source: $source}) "
-    "SET m.version = $version, m.file = $file, m.sha256 = $sha256, m.imported_at = datetime()"
-)
 
 # COUNT {} on a single label or relationship type is answered from Neo4j's count store, O(1).
 COUNT_QUERY = (
@@ -276,21 +271,11 @@ def graph_counts(driver: Driver) -> dict[str, int]:
     return dict(records[0])
 
 
-def record_import(driver: Driver, manifest_entry: dict[str, Any]) -> None:
-    """Create or update the :ImportMeta node for ATT&CK from its download manifest entry."""
-    driver.execute_query(IMPORT_META_QUERY, {
-        "source": "attack",
-        "version": manifest_entry.get("version"),
-        "file": manifest_entry.get("file", ATTACK.filename),
-        "sha256": manifest_entry.get("sha256"),
-    })
-
-
 def _load_and_count(data: AttackData, manifest_entry: dict[str, Any]) -> Callable[[Driver], dict[str, int]]:
     def work(driver: Driver) -> dict[str, int]:
         apply_schema(driver)
         load(driver, data)
-        record_import(driver, manifest_entry)
+        record_import(driver, "attack", {"file": ATTACK.filename} | manifest_entry)
         return graph_counts(driver)
 
     return work
@@ -313,18 +298,9 @@ def main() -> int:
     for reason, count in sorted(data.skipped.items()):
         LOGGER.info("skipped %5d  %s", count, reason)
 
-    manifest_path = settings.raw_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
-    actual = run_with_driver(_load_and_count(data, manifest.get("attack", {"version": version})), LOGGER)
-    if actual is None:
-        return 1
-
-    expected = data.expected_counts()
-    for name, count in expected.items():
-        LOGGER.info("%-16s %6d", name, actual.get(name, 0))
-    mismatches = {name: (count, actual.get(name)) for name, count in expected.items() if actual.get(name) != count}
-    if mismatches:
-        LOGGER.error("count mismatch (expected, in graph): %s", mismatches)
+    manifest_entry = read_manifest(settings.raw_dir).get("attack", {"version": version})
+    actual = run_with_driver(_load_and_count(data, manifest_entry), LOGGER)
+    if actual is None or not check_counts(data.expected_counts(), actual, LOGGER):
         return 1
     LOGGER.info("ATT&CK %s loaded", version)
     return 0
