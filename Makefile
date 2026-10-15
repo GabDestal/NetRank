@@ -15,7 +15,7 @@ install:
 	$(PYTHON) -m pip install -r requirements.txt
 
 lint:
-	$(PYTHON) -m pylint $(SRC)
+	$(PYTHON) -m pylint --fail-under=9.5 $(SRC)
 
 test:
 	$(PYTHON) -m pytest --cov=app --cov-report=term-missing --cov-fail-under=80
