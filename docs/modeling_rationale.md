@@ -28,7 +28,7 @@ not chosen is listed, with its reason, under [Rejected alternatives](#rejected-a
 | D15 | Question 6: technique centrality               | C      | Decided | 2026-10-15 |
 | D16 | Where algorithm results live                   | B      | Decided | 2026-10-15 |
 | D17 | Group similarity, computed live                | A      | Decided | 2026-10-15 |
-| D18 | Link prediction                                | –      | Open    |            |
+| D18 | Link prediction                                | A      | Decided | 2026-10-15 |
 
 ---
 
@@ -500,19 +500,39 @@ What I noticed:
 | **B. Group → Technique** | Better score; simple graph | No question in section 1 needs it; would need a new inferred relationship type |
 | **C. Both** | Shows the pipeline on two problems | Twice the work to evaluate and explain, for a second model nobody uses |
 
-If A is chosen, the other choices I'd make:
+**Decision (2026-10-15):** **A**, CVE → Technique, under these conditions:
 
-- **Model:** random forest, since it won on validation for both targets.
-- **What gets stored:** only suggestions with probability ≥ 0.7, at most 3 per CVE, as
-  `INFERRED_MAPS_TO {mapping_type: 'predicted', confidence, model, created_at, rationale}`.
-- **Where it runs:** a `make predict` step that trains and predicts in one run. GDS Community
-  Edition doesn't keep trained models after a restart, so storing the model isn't an option anyway.
-- **Evaluation:** report test AUCPR next to the popularity baseline, and hand-check a sample of
-  suggestions.
+1. **Split by CVE and by date, not by edge.** All techniques of a validation or test CVE are
+   hidden, because the real targets are CVEs with no known technique at all. Train on the oldest
+   mapped CVEs (KEV `dateAdded`), validate on the next ones, test on the newest. Graph features only
+   use the techniques of training CVEs, and a CVE never counts itself. This is the leakage safeguard.
+2. **Features come from the graph around the CVE**, since a target CVE has no technique edges:
+   techniques of CVEs that share a CWE, a product or a vendor, how common each technique is, plus
+   CVSS, SSVC and ransomware use. Importances are reported.
+3. **The baseline is a gate.** Compare against "suggest the most common techniques" with
+   precision@3, recall@3 and AUCPR on the test CVEs. Nothing is stored unless the model clearly
+   beats it (at least +0.05 precision@3 and a higher AUCPR).
+4. **Model:** random forest, with logistic regression reported as the alternative.
+5. **Threshold:** chosen on validation so that kept suggestions reach about 70% precision, at most
+   3 per CVE. Each stored suggestion records confidence, model, model version, date and its top
+   contributing features.
+6. Runs as `make predict` after `make analytics`, recorded in `:ImportMeta {source: 'predict'}`.
+7. The evaluation is written up in [`link_prediction.md`](link_prediction.md), with a hand-check
+   of 20 suggestions.
+8. The API shows suggestions only in a separate, labelled field of the CVE endpoint, never in the
+   verified technique list.
 
-*Lean:* **A**, because it is the one that actually improves the answers to the questions.
+**Outcome:** with the honest split, the model does **not** beat the baseline (test precision@3
+0.253 vs 0.276 for the baseline, AUCPR 0.179 vs 0.175), and no threshold reaches 70% precision on
+validation. So `make predict` stores nothing, removes any older suggestions and records why in
+`:ImportMeta`. The CVE endpoint's suggestion field stays empty and says so. The 0.75 AUCPR from the
+first trial came from the edge split above: the model could still see the other techniques of a
+test CVE. Details are in [`link_prediction.md`](link_prediction.md).
 
-**Decision:** *open*
+I used scikit-learn here instead of the GDS pipeline because the GDS pipeline only splits by
+random edge, can't do a split by CVE and date, and doesn't report feature importances. I also
+dropped the FastRP embeddings from the trial, because a training CVE's own techniques end up in
+its embedding, and that can't be undone per CVE.
 
 ---
 
@@ -536,7 +556,7 @@ graph LR
   Technique["Technique<br/>(+ :SubTechnique)"] -->|SUBTECHNIQUE_OF| Technique
   Technique -->|IN_TACTIC| Tactic
   CVE -->|"EXPLOITS_VIA<br/>PRIMARY_IMPACT<br/>SECONDARY_IMPACT"| Technique
-  CVE -.->|"INFERRED_MAPS_TO<br/>(LLM, never verified)"| Technique
+  CVE -.->|"INFERRED_MAPS_TO<br/>(model or LLM, never verified)"| Technique
   CVE -->|HAS_WEAKNESS| CWE
   CVE -->|AFFECTS| Product
   Product -->|MADE_BY| Vendor
@@ -562,7 +582,7 @@ All ATT&CK nodes also have `description`, `url`, `created` and `modified`.
 | `:CWE` | `cwe_id` (e.g. `CWE-502`) | (none) | KEV, NVD |
 | `:Product` | `product_key` (`<cpe vendor>:<cpe product>`) | `name`, `part` (`a` application, `o` OS, `h` hardware) | NVD CPE |
 | `:Vendor` | `vendor_key` (CPE vendor string) | `name` | NVD CPE |
-| `:ImportMeta` | `source` (`attack`, `kev`, `nvd`, `ctid`, `analytics`) | `version` (e.g. ATT&CK `20.0`, KEV `2026.10.14`, GDS version for analytics), `imported_at`, `remap_log` (D2), `parameters` (analytics) | import scripts, `make analytics` |
+| `:ImportMeta` | `source` (`attack`, `kev`, `nvd`, `ctid`, `analytics`, `predict`) | `version` (e.g. ATT&CK `20.0`, KEV `2026.10.14`, GDS version for analytics, model version for predict), `imported_at`, `remap_log` (D2), `parameters` (analytics, predict), `status`, `metrics`, `threshold` (predict) | import scripts, `make analytics`, `make predict` |
 
 ### Relationship properties
 
@@ -571,7 +591,7 @@ All ATT&CK nodes also have `description`, `url`, `created` and `modified`.
 | `USES`, `MITIGATES`, `ATTRIBUTED_TO` | `source: 'attack'`, `stix_id`, `description` (procedure text), `references` |
 | `SUBTECHNIQUE_OF`, `IN_TACTIC` | `source: 'attack'` |
 | `EXPLOITS_VIA`, `PRIMARY_IMPACT`, `SECONDARY_IMPACT` | `source: 'ctid'`, `attack_version` (`16.1`), `mapping_date` (`2025-07-28`), `comments`, `references`, `remapped_from` (the original ATT&CK id, set only when D2 remapped it) |
-| `INFERRED_MAPS_TO` | `mapping_type`, `confidence`, `model`, `rationale`, `created_at` |
+| `INFERRED_MAPS_TO` | `mapping_type: 'predicted'`, `source: 'model'`, `confidence`, `model`, `model_version`, `top_features`, `rationale`, `created_at` (D18; none stored while the model fails its gate) |
 | `HAS_WEAKNESS` | `sources`: every list the CWE came from, e.g. `['kev', 'nvd@nist.gov']` |
 | `AFFECTS` | `match_criteria_id` (NVD's id for the match, used as the `MERGE` key), `criteria` (full CPE 2.3 string), `version`, `version_start_including`, `version_start_excluding`, `version_end_including`, `version_end_excluding`. There is one relationship per vulnerable NVD `cpeMatch`, so a product can have several ranges for one CVE. |
 | `MADE_BY` | (none) |
@@ -638,3 +658,9 @@ All rejected on 2026-10-15.
 | D16 | C. Keep projections in the GDS catalog | They are lost on every restart, still run per request, and hold memory permanently. |
 | D17 | B. Reuse a named projection | It goes stale after `make ingest`, concurrent first requests race to create it, and it holds memory. |
 | D17 | C. Precompute every group's top-k | It stores 178 × k relationships for an answer that takes about 100 ms to compute. |
+| D18 | B. Group → Technique | It scored better, but none of the seven questions needs it, and it would need a new inferred relationship type. |
+| D18 | C. Both targets | Twice the evaluation and explanation for a second model nothing uses. |
+| D18 | Logistic regression | Test precision@3 0.295 and AUCPR 0.171, also no clear gain over the baseline; random forest was the model asked for and gives importances directly. |
+| D18 | A fixed 0.7 probability threshold | A raw probability says nothing about how often suggestions are right; the threshold is chosen on validation for about 70% precision instead. |
+| D18 | Training live from the API | Slower for every request, and GDS Community Edition forgets trained models on restart; a `make predict` step is reproducible and recorded. |
+| D18 | AUCPR-only evaluation | The first trial's 0.75 AUCPR came from an edge split with one negative per positive and fell to 0.18 with an honest split; precision@3 and recall@3 against a baseline show what a user would actually get. |
