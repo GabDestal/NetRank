@@ -71,8 +71,13 @@ make schema
 Then load the downloaded data (creates the schema first; re-runs update in place):
 
 ```bash
-make ingest     # ATT&CK so far: 1,842 nodes, 21,838 relationships, counts verified after loading
+make ingest     # ATT&CK, then KEV + NVD; every count is verified after loading
 ```
+
+| Source | Loads | Counts (2026-10-15) |
+|--------|-------|---------------------|
+| ATT&CK v20 | groups, campaigns, software, techniques, tactics, mitigations and their relationships | 1,842 nodes, 21,838 relationships |
+| KEV + NVD | CVEs, CWEs, products, vendors; `HAS_WEAKNESS`, `AFFECTS`, `MADE_BY` | 1,745 CVEs, 203 CWEs, 3,599 products, 393 vendors; 37,040 relationships |
 
 The Docker stack needs `.env` with `NEO4J_PASSWORD` set (letters and digits only). The first start downloads the APOC and GDS plugins, which can take a few minutes.
 
