@@ -11,6 +11,7 @@ A knowledge graph for cyber threat intelligence (CTI).
 app/            Python package (application code)
 scripts/        One-off and maintenance scripts
 tests/          pytest suite
+nginx/          Reverse proxy config for the Docker stack
 demo.ipynb      Walkthrough notebook
 .env.example    Template for local settings
 ```
@@ -25,6 +26,22 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 make install
 cp .env.example .env
 ```
+
+## Running
+
+```bash
+make run          # API only, on http://localhost:8000 (auto-reload)
+make docker-run   # neo4j + api + nginx
+make docker-down  # stop the stack, keep the Neo4j volume
+```
+
+The Docker stack needs `.env` with `NEO4J_PASSWORD` set (letters and digits only). The first start downloads the APOC and GDS plugins, which can take a few minutes.
+
+| Service | URL | Notes |
+|---------|-----|-------|
+| nginx → api | http://localhost:8080 | `GET /health` returns `{"status": "ok"}` |
+| Neo4j Browser | http://localhost:7474 | user `neo4j`, password from `.env` |
+| Neo4j Bolt | bolt://localhost:7687 | |
 
 ## Development
 
