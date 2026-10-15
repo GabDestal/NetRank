@@ -19,4 +19,4 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run pylint
-        run: python -m pylint app scripts tests
+        run: python -m pylint --fail-under=9.5 app scripts tests
