@@ -88,12 +88,32 @@ The Docker stack needs `.env` with `NEO4J_PASSWORD` set (letters and digits only
 | Neo4j Browser | http://localhost:7474 | user `neo4j`, password from `.env` |
 | Neo4j Bolt | bolt://localhost:7687 | |
 
+## API
+
+Interactive documentation: http://localhost:8080/docs. Every endpoint is read-only and uses
+parameterized Cypher.
+
+| Question | Endpoint | Example |
+|----------|----------|---------|
+| 1. Techniques of a group, their tactics and mitigations | `GET /groups/{group_id}/techniques` | `/groups/G0016/techniques` |
+| 2. KEV CVEs exploited via a technique (ransomware filter) | `GET /techniques/{technique_id}/cves` | `/techniques/T1190/cves?ransomware=true` |
+| 3. Groups sharing a technique with a CVE (association only) | `GET /cves/{cve_id}/groups` | `/cves/CVE-2021-44228/groups?limit=10` |
+| 4. Most exploited vendors / products, by weakness | `GET /vendors/top`, `GET /products/top` | `/vendors/top?limit=10&cwe_limit=3` |
+| 7. A product's full exposure | `GET /products/exposure` | `/products/exposure?product=fortinet:fortios` |
+| (helper) Find a product key | `GET /products` | `/products?search=fortios` |
+
+Errors: `404` for an unknown id, `422` for a malformed one (e.g. `G0016`, `T1059.001` and
+`CVE-2021-44228` formats are enforced), `503` when Neo4j is unavailable. Answers that link groups
+to vulnerabilities say so explicitly (`"association": "shared_technique"` plus a note): they are
+never evidence of exploitation (D12).
+
 ## Development
 
 ```bash
-make lint       # pylint (fails under 9.5/10)
-make test       # pytest + coverage (fails under 80%)
-make coverage   # HTML report in htmlcov/
+make lint              # pylint (fails under 9.5/10)
+make test              # pytest + coverage (fails under 80%)
+make coverage          # HTML report in htmlcov/
+make test-integration  # end-to-end API tests against the loaded Neo4j (make docker-run, make ingest first)
 ```
 
 CI runs the same checks on every push to `main` and on every pull request:
