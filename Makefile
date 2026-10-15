@@ -1,10 +1,11 @@
 PYTHON ?= python
 SRC := app scripts tests
 
-.PHONY: help install run docker-run docker-down lint test coverage clean
+.PHONY: help install download run docker-run docker-down lint test coverage clean
 
 help:
 	@echo "make install      Install dependencies"
+	@echo "make download     Download source datasets into data/raw/ (skips existing; FORCE=1 to refresh)"
 	@echo "make run          Run the API locally with auto-reload (port 8000)"
 	@echo "make docker-run   Build and start neo4j, api and nginx (http://localhost:8080)"
 	@echo "make docker-down  Stop the stack (keeps the Neo4j volume)"
@@ -16,6 +17,9 @@ help:
 install:
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -r requirements.txt
+
+download:
+	$(PYTHON) -m scripts.download $(if $(FORCE),--force,)
 
 run:
 	$(PYTHON) -m uvicorn app.main:app --reload
@@ -31,10 +35,10 @@ lint:
 	$(PYTHON) -m pylint --fail-under=9.5 $(SRC)
 
 test:
-	$(PYTHON) -m pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+	$(PYTHON) -m pytest --cov=app --cov=scripts --cov-report=term-missing --cov-fail-under=80
 
 coverage:
-	$(PYTHON) -m pytest --cov=app --cov-report=html
+	$(PYTHON) -m pytest --cov=app --cov=scripts --cov-report=html
 	@echo "Report written to htmlcov/index.html"
 
 clean:
