@@ -27,6 +27,15 @@ def test_reads_environment(monkeypatch):
     assert settings.data_dir == Path("/tmp/cti")
 
 
+def test_api_key_is_read_but_never_shown(monkeypatch):
+    monkeypatch.setenv("NVD_API_KEY", "super-secret")
+    monkeypatch.setenv("DATA_DIR", "/tmp/cti")
+    settings = load_settings(env_file=None)
+    assert settings.nvd_api_key == "super-secret"
+    assert "super-secret" not in repr(settings)
+    assert settings.raw_dir == Path("/tmp/cti") / "raw"
+
+
 def test_reads_env_file(monkeypatch, tmp_path):
     monkeypatch.delenv("LOG_LEVEL", raising=False)
     env_file = tmp_path / ".env"
