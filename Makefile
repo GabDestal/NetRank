@@ -1,7 +1,7 @@
 PYTHON ?= python
 SRC := app scripts tests
 
-.PHONY: help install download schema ingest run docker-run docker-down lint test coverage clean
+.PHONY: help install download schema ingest test-integration run docker-run docker-down lint test coverage clean
 
 help:
 	@echo "make install      Install dependencies"
@@ -13,6 +13,7 @@ help:
 	@echo "make docker-down  Stop the stack (keeps the Neo4j volume)"
 	@echo "make lint         Run pylint"
 	@echo "make test         Run tests with coverage"
+	@echo "make test-integration  Run end-to-end API tests against the loaded Neo4j"
 	@echo "make coverage     Run tests and write an HTML coverage report"
 	@echo "make clean        Remove caches and coverage output"
 
@@ -46,6 +47,9 @@ lint:
 
 test:
 	$(PYTHON) -m pytest --cov=app --cov=scripts --cov-report=term-missing --cov-fail-under=80
+
+test-integration:
+	THREATGRAPH_INTEGRATION=1 $(PYTHON) -m pytest tests/test_integration.py -v
 
 coverage:
 	$(PYTHON) -m pytest --cov=app --cov=scripts --cov-report=html
