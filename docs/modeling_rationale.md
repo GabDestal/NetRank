@@ -24,9 +24,10 @@ not chosen is listed, with its reason, under [Rejected alternatives](#rejected-a
 | D11 | The CVE ↔ ATT&CK bridge                        | B      | Decided | 2026-10-15 |
 | D12 | Verified vs LLM-inferred links                 | B      | Decided | 2026-10-15 |
 | D13 | Ingestion write strategy                       | A      | Decided | 2026-10-15 |
-| D14 | Question 5: ranking mitigations                | –      | Open    |            |
-| D15 | Question 6: technique centrality               | –      | Open    |            |
-| D16 | Where algorithm results live                   | –      | Open    |            |
+| D14 | Question 5: ranking mitigations                | C      | Decided | 2026-10-15 |
+| D15 | Question 6: technique centrality               | C      | Decided | 2026-10-15 |
+| D16 | Where algorithm results live                   | B      | Decided | 2026-10-15 |
+| D17 | Group similarity, computed live                | A      | Decided | 2026-10-15 |
 
 ---
 
@@ -356,11 +357,23 @@ All four answer in under 0.4 s on this graph.
 **Time scope (applies to every option):** "currently exploited" can mean all of KEV, or only CVEs
 added since a date. A `since` parameter (optional, default all of KEV) keeps both readings.
 
-*Lean:* **C**, with B's weights and an optional `since` filter: it is the only option that answers
-"which mitigations *would cover* the most" as a plan rather than a list. Note that this makes
-question 5 a Cypher-and-greedy answer rather than a GDS one; GDS is still used for question 6.
+**Complexity, for the defense.** Choosing mitigations to cover techniques is a covering problem,
+and both of its standard forms are NP-hard:
 
-**Decision:** *open*
+- **Weighted set cover**, the fewest (or cheapest) mitigations covering every coverable technique,
+  is NP-hard. Greedy, picking each time the set with the most newly covered elements per unit of
+  cost, is the standard approximation, within a factor of ln(n) of the optimum (H(n) ≤ ln n + 1,
+  with n the number of elements).
+- **Weighted maximum coverage**, the most exploited-CVE weight covered with k mitigations, is the
+  form question 5 asks and the one this greedy implements: it picks each time the mitigation adding
+  the most *uncovered weight*. For this form, greedy's first k picks are guaranteed to cover at
+  least (1 − 1/e) ≈ 63% of the weight the best possible k mitigations could cover, and no
+  polynomial algorithm can guarantee more unless P = NP.
+
+**Decision (2026-10-15):** **C**. Greedy weighted cover using B's weights (number of exploited CVEs
+reaching each technique), with an optional `since` filter on the KEV date added, computed on
+request (D16). The response lists the techniques no mitigation can cover (20 techniques, 5.9% of
+the weight on 2026-10-15) explicitly instead of hiding them.
 
 ## D15. Question 6: technique centrality
 
@@ -392,11 +405,10 @@ What each algorithm gives on the real graph:
 | **C. B + Louvain communities on P3** | B, plus which cluster each technique belongs to | Adds structure an analyst can use ("techniques used together"); stable and fast on P3 | Two projections to maintain; community labels need describing (largest members) to be meaningful |
 | **D. PageRank on P1** | Random-walk importance | The textbook choice | Identical top 10 to degree here, so it adds complexity without new information |
 
-*Lean:* **C**: degree for "most used", betweenness for "connectors", Louvain on P3 for "used
-together". Each says something different and each is measured above. D is the one to rule out,
-with the identical-top-10 result as the reason.
-
-**Decision:** *open*
+**Decision (2026-10-15):** **C**. Degree for "most used", betweenness on P2 for "connectors", and
+Louvain communities on the top-10 similarity projection P3 for "used together". Each measure says
+something different, as the trials above show. Louvain runs single-threaded so its communities are
+reproducible. PageRank is rejected on evidence: its top 10 is identical to degree's.
 
 ## D16. Where algorithm results live
 
@@ -410,9 +422,35 @@ Question 5's options A–C are plain Cypher and take under 0.4 s, so they can be
 whatever is chosen here (that also keeps the `since` filter possible). This decision matters for
 question 6.
 
-*Lean:* **B** for question 6, with question 5 computed on request.
+**Decision (2026-10-15):** **B** for question 6. `make analytics` (run after `make ingest`) writes
+`used_by_groups`, `betweenness`, `community` and `community_size` on `:Technique` and records the
+run, with its parameters, in `:ImportMeta {source: 'analytics'}`. Question 5 is computed on request,
+and so is group similarity (D17), whose answer depends on the group asked about.
 
-**Decision:** *open*
+## D17. Group similarity, computed live
+
+*Which groups have the most similar technique profiles to group X?* This is the group similarity
+promised in the project proposal. It runs GDS on request, because its answer depends on the group
+asked about.
+
+**Algorithm:** GDS node similarity with the Jaccard metric over a Group–Technique projection:
+|techniques both use| / |techniques either uses|. It is filtered to the one source group, so only
+that group is compared against the 177 others.
+
+**Measured 2026-10-15** (APT29): the most similar group is APT28 (Jaccard 0.223, 29 shared
+techniques). A request costs about 40–60 ms to project, 40–60 ms to compute and 10–20 ms to drop,
+around 100 ms in total once warm. The first call after Neo4j starts takes about 2 s while the JVM
+warms up.
+
+| Option | For | Against |
+|---|---|---|
+| **A. Project on request under a unique name, drop it in a `finally` block** | Always matches the current graph; concurrent requests cannot collide; no memory held between requests | About 50 ms of projection per request |
+| **B. Reuse a named projection if it exists, otherwise create it** | Saves the projection time | Goes stale after `make ingest` unless invalidated; concurrent first requests race to create it; memory held permanently; lost on restart anyway |
+| **C. Precompute every group's top-k with `make analytics`** | Fastest reads | 178 × k stored relationships for an answer that is cheap to compute, and no GDS left running in the API |
+
+**Decision (2026-10-15):** **A**. On a graph this small, projecting per request costs about 50 ms,
+and it buys freshness, no shared state between requests and nothing to invalidate. The projection
+name carries a random suffix, and the projection is dropped even when the algorithm fails.
 
 ---
 
@@ -455,14 +493,14 @@ All ATT&CK nodes also have `description`, `url`, `created` and `modified`.
 | `:Group` | `stix_id`, `attack_id` (G####) | `name`, `aliases` | ATT&CK `intrusion-set` |
 | `:Campaign` | `stix_id`, `attack_id` (C####) | `name`, `aliases`, `first_seen`, `last_seen` | ATT&CK `campaign` |
 | `:Software:Malware`, `:Software:Tool` | `stix_id`, `attack_id` (S####) | `name`, `aliases`, `platforms` | ATT&CK `malware`, `tool` |
-| `:Technique` (`:Technique:SubTechnique` for sub-techniques) | `stix_id`, `attack_id` (T#### or T####.###) | `name`, `platforms`, `is_subtechnique` | ATT&CK `attack-pattern` |
+| `:Technique` (`:Technique:SubTechnique` for sub-techniques) | `stix_id`, `attack_id` (T#### or T####.###) | `name`, `platforms`, `is_subtechnique`; from `make analytics` (D15, D16): `used_by_groups`, `betweenness`, `community`, `community_size` | ATT&CK `attack-pattern`; GDS |
 | `:Tactic` | `stix_id`, `attack_id` (TA####) | `name`, `shortname` (matches `kill_chain_phases`), `order` (position in the matrix) | ATT&CK `x-mitre-tactic` |
 | `:Mitigation` | `stix_id`, `attack_id` (M####) | `name` | ATT&CK `course-of-action` |
 | `:CVE` | `cve_id` | KEV: `name`, `short_description`, `date_added`, `due_date`, `required_action`, `known_ransomware_use` (bool), `kev_vendor`, `kev_product`. NVD: `published`, `last_modified`, `cvss_score`, `cvss_severity`, `cvss_vector`, `cvss_version`, `cvss_source`, `cvss_source_type` (D8 amendment), `ssvc_exploitation`, `ssvc_automatable`, `ssvc_technical_impact` | KEV, NVD |
 | `:CWE` | `cwe_id` (e.g. `CWE-502`) | (none) | KEV, NVD |
 | `:Product` | `product_key` (`<cpe vendor>:<cpe product>`) | `name`, `part` (`a` application, `o` OS, `h` hardware) | NVD CPE |
 | `:Vendor` | `vendor_key` (CPE vendor string) | `name` | NVD CPE |
-| `:ImportMeta` | `source` (`attack`, `kev`, `nvd`, `ctid`) | `version` (e.g. ATT&CK `20.0`, KEV `2026.10.14`), `imported_at`, `remap_log` (D2) | import scripts |
+| `:ImportMeta` | `source` (`attack`, `kev`, `nvd`, `ctid`, `analytics`) | `version` (e.g. ATT&CK `20.0`, KEV `2026.10.14`, GDS version for analytics), `imported_at`, `remap_log` (D2), `parameters` (analytics) | import scripts, `make analytics` |
 
 ### Relationship properties
 
@@ -527,3 +565,14 @@ All rejected on 2026-10-15.
 | D12 | A. Same relationship types, with `source: 'llm'` | One forgotten `WHERE r.source <> 'llm'` would silently mix inferred links into verified answers. |
 | D12 | C. Never store inferred links | Answers would not be reproducible, since the inference would be redone on every question. |
 | D13 | B. Delete the source's data, then `CREATE` | The graph would be incomplete during a reload, and relationships other sources attached to the deleted nodes would be lost. |
+| D14 | A. Count of reachable techniques covered | It weights a technique reached by one exploited CVE the same as one reached by a hundred, and credits overlapping mitigations twice. |
+| D14 | B. CVE-weighted ranking (as a list) | Its weights are kept, but as a ranked list it still credits overlapping mitigations twice and gives no plan. |
+| D14 | D. GDS personalized PageRank | It ranked almost exactly like option A, and its scores cannot be read as "covers N techniques". |
+| D15 | A. Degree only | It gives a single notion of "central" and misses connectors and clusters. |
+| D15 | B. Degree + betweenness, without communities | It leaves out the "used together" structure that Louvain on P3 measured (modularity 0.566). |
+| D15 | D. PageRank on the bipartite graph | Its top 10 was identical to degree's, so it added complexity without new information. |
+| D15 | Louvain on the dense co-usage graph P2 | At 69% density it found almost no structure (modularity 0.08), and its community count changed between runs. |
+| D16 | A. Compute centrality on request | Each call would build a projection first, and Louvain on the dense graph took 13 s. |
+| D16 | C. Keep projections in the GDS catalog | They are lost on every restart, still run per request, and hold memory permanently. |
+| D17 | B. Reuse a named projection | It goes stale after `make ingest`, concurrent first requests race to create it, and it holds memory. |
+| D17 | C. Precompute every group's top-k | It stores 178 × k relationships for an answer that takes about 100 ms to compute. |
