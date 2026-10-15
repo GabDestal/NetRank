@@ -1,18 +1,31 @@
 PYTHON ?= python
 SRC := app scripts tests
 
-.PHONY: help install lint test coverage clean
+.PHONY: help install run docker-run docker-down lint test coverage clean
 
 help:
-	@echo "make install   Install dependencies"
-	@echo "make lint      Run pylint"
-	@echo "make test      Run tests with coverage"
-	@echo "make coverage  Run tests and write an HTML coverage report"
-	@echo "make clean     Remove caches and coverage output"
+	@echo "make install      Install dependencies"
+	@echo "make run          Run the API locally with auto-reload (port 8000)"
+	@echo "make docker-run   Build and start neo4j, api and nginx (http://localhost:8080)"
+	@echo "make docker-down  Stop the stack (keeps the Neo4j volume)"
+	@echo "make lint         Run pylint"
+	@echo "make test         Run tests with coverage"
+	@echo "make coverage     Run tests and write an HTML coverage report"
+	@echo "make clean        Remove caches and coverage output"
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -r requirements.txt
+
+run:
+	$(PYTHON) -m uvicorn app.main:app --reload
+
+docker-run:
+	@test -f .env || (echo "Missing .env: copy .env.example to .env and set NEO4J_PASSWORD" && exit 1)
+	docker compose up -d --build
+
+docker-down:
+	docker compose down
 
 lint:
 	$(PYTHON) -m pylint --fail-under=9.5 $(SRC)
