@@ -4,14 +4,14 @@
 from neo4j.exceptions import ServiceUnavailable
 
 from app.database.schema import SCHEMA
-from scripts import init_schema
+from scripts import common, init_schema
 from tests.fakes import FakeDriver
 
 
 def install(monkeypatch, driver):
     closed = []
-    monkeypatch.setattr(init_schema, "get_driver", lambda: driver)
-    monkeypatch.setattr(init_schema, "close_driver", lambda: closed.append(True))
+    monkeypatch.setattr(common, "get_driver", lambda: driver)
+    monkeypatch.setattr(common, "close_driver", lambda: closed.append(True))
     return closed
 
 

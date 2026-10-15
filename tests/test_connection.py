@@ -14,7 +14,7 @@ def fixture_created(monkeypatch):
     monkeypatch.setenv("NEO4J_PASSWORD", "pw")
     calls = []
 
-    def fake_driver(uri, auth):
+    def fake_driver(uri, auth, **_config):
         driver = FakeDriver()
         calls.append((uri, auth, driver))
         return driver

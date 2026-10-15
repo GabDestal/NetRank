@@ -22,8 +22,10 @@ def get_driver() -> Driver:
     with _LOCK:
         if "driver" not in _STATE:
             settings = load_settings()
+            # Server notices such as "constraint already exists" are informational: report warnings and above.
             _STATE["driver"] = GraphDatabase.driver(settings.neo4j_uri,
-                                                    auth=(settings.neo4j_user, settings.neo4j_password))
+                                                    auth=(settings.neo4j_user, settings.neo4j_password),
+                                                    notifications_min_severity="WARNING")
         return _STATE["driver"]
 
 

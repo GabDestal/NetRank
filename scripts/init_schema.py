@@ -8,27 +8,25 @@ Usage:
 
 import logging
 
-from neo4j.exceptions import DriverError, Neo4jError
+from neo4j import Driver
 
-from app.config import load_settings
-from app.database.connection import close_driver, get_driver
 from app.database.schema import SCHEMA, apply_schema, missing_schema
+from scripts.common import run_with_driver, setup_logging
 
 LOGGER = logging.getLogger("init_schema")
 
 
+def _apply_and_check(driver: Driver) -> list[str]:
+    apply_schema(driver)
+    return missing_schema(driver)
+
+
 def main() -> int:
     """Apply the schema and verify it. Returns a process exit code."""
-    logging.basicConfig(level=load_settings().log_level, format="%(asctime)s %(levelname)s %(message)s")
-    driver = get_driver()
-    try:
-        apply_schema(driver)
-        missing = missing_schema(driver)
-    except (DriverError, Neo4jError) as exc:
-        LOGGER.error("Neo4j error: %s", exc)
+    setup_logging()
+    missing = run_with_driver(_apply_and_check, LOGGER)
+    if missing is None:
         return 1
-    finally:
-        close_driver()
     if missing:
         LOGGER.error("schema items missing after apply: %s", ", ".join(missing))
         return 1
