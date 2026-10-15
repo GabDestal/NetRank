@@ -23,9 +23,12 @@ def get_driver() -> Driver:
         if "driver" not in _STATE:
             settings = load_settings()
             # Server notices such as "constraint already exists" are informational: report warnings and above.
+            # "Unrecognized" warnings are off too: queries that look for INFERRED_MAPS_TO legitimately run
+            # before any suggestion exists (D18), and would otherwise log a warning on every request.
             _STATE["driver"] = GraphDatabase.driver(settings.neo4j_uri,
                                                     auth=(settings.neo4j_user, settings.neo4j_password),
-                                                    notifications_min_severity="WARNING")
+                                                    notifications_min_severity="WARNING",
+                                                    notifications_disabled_categories=["UNRECOGNIZED"])
         return _STATE["driver"]
 
 
