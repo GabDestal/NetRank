@@ -94,6 +94,13 @@ def test_group_similarity_runs_gds_live_and_cleans_up(client):
     assert not [name for name in records[0]["g"] if name.startswith("group_similarity_")]
 
 
+def test_cve_suggestions_are_separate_and_labelled(client):
+    body = get_ok(client, "/cves/CVE-2021-44228/groups")
+    assert body["suggestions_label"] == "model-generated, not verified"
+    verified = {t["attack_id"] for t in body["techniques"]}
+    assert not verified & {s["attack_id"] for s in body["suggested_techniques"]}
+
+
 def test_unknown_ids_are_404(client):
     assert client.get("/groups/G9999/techniques").status_code == 404
     assert client.get("/products/exposure?product=nope:nope").status_code == 404

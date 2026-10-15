@@ -97,14 +97,61 @@ def test_technique_cves_defaults(serve):
     assert last_call(driver)[0] == techniques.TECHNIQUE_CVES_QUERY
 
 
-def test_cve_groups_carries_the_association_note(serve):
-    driver = serve([CVE_RECORD])
-    body = client.get("/cves/CVE-2021-44228/groups?limit=5").json()
+SUGGESTION = {"attack_id": "T1059", "name": "Command and Scripting Interpreter", "confidence": 0.81,
+              "model": "random_forest", "model_version": "rf-2026-10-15-abc", "top_features": ["cwe_vote=0.40"],
+              "rationale": "4 of 10 mapped CVEs sharing a cwe map to T1059"}
+
+
+def cve_driver(suggestions=(), status=None):
+    def responder(query, _parameters):
+        if query == cves.SUGGESTIONS_QUERY:
+            return [{"status": status, "suggestions": list(suggestions)}]
+        return [CVE_RECORD]
+
+    return FakeDriver(responder)
+
+
+def test_cve_groups_carries_the_association_note():
+    driver = cve_driver()
+    app.dependency_overrides[get_driver] = lambda: driver
+    try:
+        body = client.get("/cves/CVE-2021-44228/groups?limit=5").json()
+    finally:
+        app.dependency_overrides.clear()
     assert body["association"] == "shared_technique" and body["note"] == SHARED_TECHNIQUE_NOTE
     assert body["group_count"] == 80 and body["groups"][0]["shared_techniques"] == ["T1190"]
-    query, params, _ = last_call(driver)
+    query, params, _ = driver.queries[0]
     assert query == cves.CVE_GROUPS_QUERY and params == {"cve_id": "CVE-2021-44228", "limit": 5}
     assert "INFERRED" not in query
+    assert body["suggested_techniques"] == [] and body["suggestions_label"] == "model-generated, not verified"
+
+
+def test_model_suggestions_stay_out_of_the_verified_lists():
+    app.dependency_overrides[get_driver] = lambda: cve_driver([SUGGESTION], status="stored")
+    try:
+        body = client.get("/cves/CVE-2021-44228/groups").json()
+    finally:
+        app.dependency_overrides.clear()
+    assert body["suggested_techniques"][0]["attack_id"] == "T1059"
+    assert body["suggested_techniques"][0]["confidence"] == 0.81
+    assert "T1059" not in [t["attack_id"] for t in body["techniques"]]
+    assert body["suggestions_status"] == "stored"
+
+
+def test_suggestions_report_why_none_are_stored():
+    app.dependency_overrides[get_driver] = lambda: cve_driver(status="not stored: no threshold reaches 70%")
+    try:
+        body = client.get("/cves/CVE-2021-44228/groups").json()
+    finally:
+        app.dependency_overrides.clear()
+    assert body["suggested_techniques"] == [] and body["suggestions_status"].startswith("not stored")
+
+
+def test_suggestions_query_is_separate_and_read_only():
+    assert "INFERRED_MAPS_TO" in cves.SUGGESTIONS_QUERY
+    assert "INFERRED_MAPS_TO" not in cves.CVE_GROUPS_QUERY
+    for keyword in ("CREATE", "MERGE", "DELETE", "SET "):
+        assert keyword not in cves.SUGGESTIONS_QUERY
 
 
 @pytest.mark.parametrize("url, record, key", [
