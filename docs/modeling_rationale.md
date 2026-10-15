@@ -18,7 +18,7 @@ not chosen is listed, with its reason, under [Rejected alternatives](#rejected-a
 | D5  | Software: malware and tools                    | C      | Decided | 2026-10-15 |
 | D6  | Scope: campaigns and detection content         | B      | Decided | 2026-10-15 |
 | D7  | Properties on ATT&CK relationships             | A      | Decided | 2026-10-15 |
-| D8  | CVE severity (CVSS, SSVC)                      | A      | Decided | 2026-10-15 |
+| D8  | CVE severity (CVSS, SSVC)                      | A + A1 | Decided | 2026-10-15 |
 | D9  | Weaknesses (CWE)                               | A      | Decided | 2026-10-15 |
 | D10 | Vendors and products (KEV, CPE)                | B      | Decided | 2026-10-15 |
 | D11 | The CVE ↔ ATT&CK bridge                        | B      | Decided | 2026-10-15 |
@@ -223,6 +223,20 @@ references (citations).
 
 **Decision (2026-10-15):** **A**. Use the NVD *Primary* metric: v4.0 if present, else v3.1, else v2. That rule is recorded here and in `cvss_version`. `cvss_score` gets a range index.
 
+**Amendment (2026-10-15), found while loading NVD:** 311 of the 1,745 KEV CVEs (18%) have no NVD
+*Primary* CVSS metric, only *Secondary* ones (scored by the vendor's CNA or by CISA-ADP). CVSS v3.0
+was also missing from the rule (1 CVE has it as Primary, 3 as Secondary).
+
+| Option | For | Against |
+|---|---|---|
+| **A1. Primary, then Secondary** (each v4.0 → v3.1 → v3.0 → v2), recording `cvss_source` and `cvss_source_type` | Every CVE gets a score; NVD's own score still wins when it exists; answers can say who scored it | Scores from different sources are less comparable, so the source has to be shown or filtered on |
+| **A2. Primary only** (v4.0 → v3.1 → v3.0 → v2) | Uniform scores from one analyst team | 311 CVEs get no score, and severity filters and rankings silently leave them out; the gap is skewed towards recent CVEs |
+| **A3. Highest version from any source**, Primary preferred only within a version | More v3.x/v4.0 scores | Drops NVD's own score even when it exists; mixing sources by version is harder to justify |
+
+**Decision (2026-10-15):** **A1**. No exploited CVE drops out of severity questions, NVD's score is
+used whenever it exists, and `cvss_source`/`cvss_source_type` keep every score attributable
+(filter on `cvss_source_type = 'Primary'` when comparability matters).
+
 ## D9. Weaknesses (CWE)
 
 | Option | For | Against |
@@ -346,7 +360,7 @@ All ATT&CK nodes also have `description`, `url`, `created` and `modified`.
 | `:Technique` (`:Technique:SubTechnique` for sub-techniques) | `stix_id`, `attack_id` (T#### or T####.###) | `name`, `platforms`, `is_subtechnique` | ATT&CK `attack-pattern` |
 | `:Tactic` | `stix_id`, `attack_id` (TA####) | `name`, `shortname` (matches `kill_chain_phases`), `order` (position in the matrix) | ATT&CK `x-mitre-tactic` |
 | `:Mitigation` | `stix_id`, `attack_id` (M####) | `name` | ATT&CK `course-of-action` |
-| `:CVE` | `cve_id` | KEV: `name`, `short_description`, `date_added`, `due_date`, `required_action`, `known_ransomware_use` (bool), `kev_vendor`, `kev_product`. NVD: `published`, `last_modified`, `cvss_score`, `cvss_severity`, `cvss_vector`, `cvss_version`, `ssvc_exploitation`, `ssvc_automatable`, `ssvc_technical_impact` | KEV, NVD |
+| `:CVE` | `cve_id` | KEV: `name`, `short_description`, `date_added`, `due_date`, `required_action`, `known_ransomware_use` (bool), `kev_vendor`, `kev_product`. NVD: `published`, `last_modified`, `cvss_score`, `cvss_severity`, `cvss_vector`, `cvss_version`, `cvss_source`, `cvss_source_type` (D8 amendment), `ssvc_exploitation`, `ssvc_automatable`, `ssvc_technical_impact` | KEV, NVD |
 | `:CWE` | `cwe_id` (e.g. `CWE-502`) | (none) | KEV, NVD |
 | `:Product` | `product_key` (`<cpe vendor>:<cpe product>`) | `name`, `part` (`a` application, `o` OS, `h` hardware) | NVD CPE |
 | `:Vendor` | `vendor_key` (CPE vendor string) | `name` | NVD CPE |
@@ -361,7 +375,7 @@ All ATT&CK nodes also have `description`, `url`, `created` and `modified`.
 | `EXPLOITS_VIA`, `PRIMARY_IMPACT`, `SECONDARY_IMPACT` | `source: 'ctid'`, `attack_version` (`16.1`), `mapping_date` (`2025-07-28`), `comments`, `references`, `remapped_from` (the original ATT&CK id, set only when D2 remapped it) |
 | `INFERRED_MAPS_TO` | `mapping_type`, `confidence`, `model`, `rationale`, `created_at` |
 | `HAS_WEAKNESS` | `sources`: every list the CWE came from, e.g. `['kev', 'nvd@nist.gov']` |
-| `AFFECTS` | `criteria` (full CPE 2.3 string), `version`, `version_start_including`, `version_start_excluding`, `version_end_including`, `version_end_excluding`. There is one relationship per vulnerable NVD `cpeMatch`, so a product can have several ranges for one CVE. |
+| `AFFECTS` | `match_criteria_id` (NVD's id for the match, used as the `MERGE` key), `criteria` (full CPE 2.3 string), `version`, `version_start_including`, `version_start_excluding`, `version_end_including`, `version_end_excluding`. There is one relationship per vulnerable NVD `cpeMatch`, so a product can have several ranges for one CVE. |
 | `MADE_BY` | (none) |
 
 ### Constraints and indexes
@@ -405,6 +419,8 @@ All rejected on 2026-10-15.
 | D6 | C. Also load detection content | It is large, changes fast and answers none of the confirmed questions; listed as future work. |
 | D7 | B. Store only the relationship's STIX id | The agent could not cite procedure descriptions from the graph alone. |
 | D8 | B. `:CVSSMetric` nodes per version and source | Every severity question would need an extra hop and a rule for choosing among sources at query time. |
+| D8 amendment | A2. Primary only | 311 KEV CVEs (18%) would have no score and silently drop out of severity questions. |
+| D8 amendment | A3. Highest version from any source | It would discard NVD's own score even where one exists. |
 | D9 | B. CWEs as a list property | Counting CVEs by weakness would unwind every CVE's list, a full O(n) pass. |
 | D10 | A. KEV vendor/product only | Free-text names and one product per CVE are too coarse to answer question 7. |
 | D10 | C. One node per CPE version | Version ranges do not list versions, so the nodes would be invented, and the graph would blow up. |
