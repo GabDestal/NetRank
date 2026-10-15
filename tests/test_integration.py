@@ -11,7 +11,7 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-from app.database.connection import close_driver
+from app.database.connection import close_driver, get_driver
 from app.main import app
 
 pytestmark = pytest.mark.skipif(os.getenv("THREATGRAPH_INTEGRATION") != "1",
@@ -65,6 +65,33 @@ def test_question_7_exposure(client):
     body = get_ok(client, f"/products/exposure?product={key}")
     assert body["cve_count"] >= body["mapped_cve_count"] > 0
     assert body["techniques"] and body["groups"] and body["mitigations"]
+
+
+def test_question_5_mitigation_plan(client):
+    body = get_ok(client, "/mitigations/plan")
+    assert body["picks"] and body["picks"][0]["cumulative_pct"] > 0
+    assert body["covered_pct"] + body["uncoverable"]["pct"] == pytest.approx(100, abs=0.2)
+    assert body["uncoverable"]["technique_count"] == len(body["uncoverable"]["techniques"])
+    recent = get_ok(client, "/mitigations/plan?since=2025-01-01&max_picks=2")
+    assert recent["scope"]["kev_cves"] < body["scope"]["kev_cves"] and len(recent["picks"]) == 2
+
+
+def test_question_6_central_techniques(client):
+    by_degree = get_ok(client, "/techniques/central?limit=5")["techniques"]
+    assert by_degree[0]["used_by_groups"] >= by_degree[-1]["used_by_groups"]
+    body = get_ok(client, "/techniques/central?by=betweenness&limit=5")
+    assert body["techniques"][0]["betweenness"] >= body["techniques"][-1]["betweenness"]
+    assert body["communities"] and body["analytics"]["modularity"] > 0
+
+
+def test_group_similarity_runs_gds_live_and_cleans_up(client):
+    body = get_ok(client, "/groups/G0016/similar?limit=5")
+    assert 0 < len(body["similar"]) <= 5
+    scores = [g["jaccard"] for g in body["similar"]]
+    assert scores == sorted(scores, reverse=True) and all(0 < s <= 1 for s in scores)
+    assert all(g["attack_id"] != "G0016" for g in body["similar"])
+    records, _, _ = get_driver().execute_query("CALL gds.graph.list() YIELD graphName RETURN collect(graphName) AS g")
+    assert not [name for name in records[0]["g"] if name.startswith("group_similarity_")]
 
 
 def test_unknown_ids_are_404(client):
