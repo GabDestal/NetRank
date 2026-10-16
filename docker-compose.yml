@@ -7,6 +7,11 @@ services:
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
       NEO4J_PLUGINS: '["apoc", "graph-data-science"]'
       NEO4J_dbms_security_procedures_unrestricted: apoc.*,gds.*
+      # Capped so Neo4j fits next to a local LLM on a 16 GB laptop. The graph is ~8k nodes and ~60k
+      # relationships, so 512 MB of page cache holds all of it.
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1G
+      NEO4J_server_memory_pagecache_size: 512m
     ports:
       - "7474:7474"
       - "7687:7687"
@@ -21,12 +26,22 @@ services:
 
   api:
     build: .
+    # Lets the container reach a native Ollama on the host (automatic on Docker Desktop, needed on Linux).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: ${NEO4J_PASSWORD}
       NVD_API_KEY: ${NVD_API_KEY:-}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LLM_PROVIDER: ${LLM_PROVIDER:-groq}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Native Ollama on the host by default; set DOCKER_OLLAMA_BASE_URL=http://ollama:11434 for the ollama service.
+      OLLAMA_BASE_URL: ${DOCKER_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LLM_MAX_RETRIES: ${LLM_MAX_RETRIES:-6}
     depends_on:
       neo4j:
         condition: service_healthy
@@ -46,5 +61,16 @@ services:
       api:
         condition: service_healthy
 
+  # Optional: Ollama in Docker. Native Ollama is the recommended keyless path (README); this service is
+  # only started with --profile ollama.
+  ollama:
+    image: ollama/ollama:0.34.4
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+
 volumes:
   neo4j_data:
+  ollama_models:
