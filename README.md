@@ -3,22 +3,57 @@
 [![lint](https://github.com/GabDestal/threatgraph/actions/workflows/lint.yml/badge.svg)](https://github.com/GabDestal/threatgraph/actions/workflows/lint.yml)
 [![test](https://github.com/GabDestal/threatgraph/actions/workflows/test.yml/badge.svg)](https://github.com/GabDestal/threatgraph/actions/workflows/test.yml)
 
-A knowledge graph for cyber threat intelligence (CTI).
+A knowledge graph for cyber threat intelligence (CTI), in Neo4j. It links MITRE ATT&CK (groups,
+techniques, tactics, mitigations, software) with the CISA Known Exploited Vulnerabilities catalog,
+NVD details for those CVEs (CVSS, CWE, affected products) and CTID's mappings from CVEs to ATT&CK
+techniques. A FastAPI service answers seven questions over it, such as "what is my exposure if I run
+FortiOS?" or "which mitigations cover the most exploited techniques?". A LangGraph agent answers the
+same questions in plain English, with citations.
+
+A walkthrough of everything with real outputs: [`demo.ipynb`](demo.ipynb).
 
 ![ThreatGraph schema](docs/schema.png)
 
 Schema and design decisions (D1–D19) and rejected alternatives: [`docs/modeling_rationale.md`](docs/modeling_rationale.md).
 Diagram source: [`docs/schema.drawio`](docs/schema.drawio).
 
+## Architecture
+
+```
+ data sources (HTTPS)                      Docker Compose stack
+ ATT&CK STIX, KEV, NVD API, CTID
+        |  make download                    browser / curl / notebook
+        v                                          | :8080
+   data/raw/  (+ manifest.json)             +------v------+
+        |  make ingest / analytics / predict |    nginx    |  reverse proxy
+        |  (Bolt :7687)                      +------+------+
+        v                                           | :8000 (internal)
+ +--------------------+     Bolt :7687      +------v------+     HTTPS     +-----------------+
+ |  Neo4j 5.26        |<--------------------|  api        |-------------->| LLM: Groq       |
+ |  + APOC + GDS      |   read-only queries |  FastAPI +  |               | (or Ollama on   |
+ |  browser :7474     |                     |  agent      |               |  the host:11434)|
+ +--------------------+                     +-------------+               +-----------------+
+```
+
+| Service | Image | Port | Role |
+|---------|-------|------|------|
+| `neo4j` | `neo4j:5.26-community` + APOC, GDS | 7474 (browser), 7687 (Bolt) | The graph; memory capped at 1 GB heap, 512 MB page cache |
+| `api` | built from `Dockerfile` (python:3.12-slim) | 8000, internal only | FastAPI endpoints and the agent |
+| `nginx` | `nginx:1.27-alpine` | 8080 | Public entry point, proxies to the api |
+| `ollama` (optional) | `ollama/ollama:0.34.4` | 11434 | Local LLM; only with `--profile ollama` |
+
+The download and ingest scripts run on the host and write to Neo4j over Bolt. The api only reads.
+Every service has a Docker healthcheck, and each one starts only after the service before it is healthy.
+
 ## Layout
 
 ```
-app/            Python package (application code)
-scripts/        One-off and maintenance scripts
-tests/          pytest suite
+app/            FastAPI app: routers, services (Cypher), models (Pydantic), database, agent
+scripts/        Download, ingestion, analytics, link prediction, agent evaluation and demo
+tests/          pytest suite (unit tests with a fake driver, integration tests against Neo4j)
 nginx/          Reverse proxy config for the Docker stack
-docs/           Schema diagram (draw.io) and modeling rationale
-demo.ipynb      Walkthrough notebook
+docs/           Schema diagram (draw.io), modeling rationale (D1–D19), link prediction write-up, audit
+demo.ipynb      Walkthrough notebook, committed with outputs
 .env.example    Template for local settings
 ```
 
@@ -185,6 +220,30 @@ answer has citations but no fact list.
 
 Neo4j's memory is capped in `docker-compose.yml` (heap 512 MB to 1 GB, page cache 512 MB), so it fits
 next to a local model on a 16 GB machine. The whole graph fits in that page cache.
+
+## Makefile
+
+| Target | What it does |
+|--------|--------------|
+| `make help` | List the targets |
+| `make install` | Install the pinned dependencies |
+| `make download` | Fetch every source into `data/raw/` (`FORCE=1` to refresh) |
+| `make schema` | Create constraints and indexes |
+| `make ingest` | Schema, then ATT&CK, KEV + NVD, CTID, then `make analytics` |
+| `make analytics` | GDS degree, betweenness and Louvain, stored as properties |
+| `make predict` | Link prediction evaluation; stores suggestions only if it beats the baseline |
+| `make run` | API on the host with auto-reload (port 8000) |
+| `make docker-run` / `make docker-down` | Start or stop neo4j, api and nginx |
+| `make evaluate-agent` | Agent evaluation, 15 questions (`DELAY=30`) |
+| `make guardrail-demo` | Guardrails rejecting scripted bad LLM output |
+| `make ollama-docker` | Optional Ollama container with the local model |
+| `make lint` | pylint, fails under 9.5 |
+| `make test` | Unit tests with coverage, fails under 80% |
+| `make test-integration` | End-to-end tests against the loaded Neo4j |
+| `make coverage` | HTML coverage report |
+| `make clean` | Remove caches and coverage output |
+
+On Windows, `make` comes from scoop (`scoop install make`) or Git for Windows' SDK.
 
 ## Development
 
