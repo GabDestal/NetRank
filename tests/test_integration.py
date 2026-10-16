@@ -10,7 +10,10 @@ import os
 
 import pytest
 from fastapi.testclient import TestClient
+from neo4j import READ_ACCESS
+from neo4j.exceptions import ClientError
 
+from app.agent.guardrails import MAX_ROWS, run_guarded
 from app.database.connection import close_driver, get_driver
 from app.main import app
 
@@ -104,3 +107,19 @@ def test_cve_suggestions_are_separate_and_labelled(client):
 def test_unknown_ids_are_404(client):
     assert client.get("/groups/G9999/techniques").status_code == 404
     assert client.get("/products/exposure?product=nope:nope").status_code == 404
+
+
+def test_guardrails_against_the_real_server(client):
+    check = client.post("/agent/check-cypher", json={"query": "MATCH (c:CVE) RETURN c.cve_id"}).json()
+    assert check["allowed"] and check["query"].endswith("LIMIT 50")
+    unknown = client.post("/agent/check-cypher", json={"query": "MATCH (v:Vulnerability) RETURN v"}).json()
+    assert unknown["rule"] == "explain_unknown_schema" and "Vulnerability" in unknown["reason"]
+    bad = client.post("/agent/check-cypher", json={"query": "MATCH (c:CVE) RETURN c.cve_id ORDER BY"}).json()
+    assert bad["rule"] == "explain_syntax"
+
+
+def test_guarded_cypher_runs_read_only_with_the_limit():
+    result = run_guarded(get_driver(), "MATCH (c:CVE)-[:HAS_WEAKNESS]->(:CWE {cwe_id: 'CWE-79'}) RETURN c.cve_id AS id")
+    assert 0 < len(result.rows) <= MAX_ROWS and result.query.endswith(f"LIMIT {MAX_ROWS}")
+    with get_driver().session(default_access_mode=READ_ACCESS) as session, pytest.raises(ClientError):
+        session.run("MATCH (c:CVE {cve_id: 'CVE-2021-44228'}) SET c.probe = 1 RETURN c").consume()
