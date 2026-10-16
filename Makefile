@@ -1,7 +1,7 @@
 PYTHON ?= python
 SRC := app scripts tests
 
-.PHONY: help install download schema ingest analytics predict test-integration run docker-run docker-down lint test coverage clean
+.PHONY: help install download schema ingest analytics predict evaluate-agent guardrail-demo ollama-docker test-integration run docker-run docker-down lint test coverage clean
 
 help:
 	@echo "make install      Install dependencies"
@@ -10,6 +10,9 @@ help:
 	@echo "make ingest       Load downloaded data into Neo4j (ATT&CK, KEV, NVD, CTID; needs Neo4j running)"
 	@echo "make analytics    Compute technique centrality and communities with GDS (run by make ingest)"
 	@echo "make predict      Evaluate link prediction and store suggestions only if it beats the baseline"
+	@echo "make evaluate-agent  Ask the agent the evaluation questions and report the pass rate (DELAY=30 s apart)"
+	@echo "make guardrail-demo  Show the guardrails rejecting bad LLM output (needs Neo4j, no LLM)"
+	@echo "make ollama-docker   Optional: run Ollama in Docker instead of natively and pull the local model"
 	@echo "make run          Run the API locally with auto-reload (port 8000)"
 	@echo "make docker-run   Build and start neo4j, api and nginx (http://localhost:8080)"
 	@echo "make docker-down  Stop the stack (keeps the Neo4j volume)"
@@ -40,6 +43,18 @@ analytics:
 
 predict:
 	$(PYTHON) -m scripts.predict
+
+DELAY ?= 30
+evaluate-agent:
+	$(PYTHON) -m scripts.evaluate_agent --delay $(DELAY)
+
+guardrail-demo:
+	$(PYTHON) -m scripts.guardrail_demo
+
+OLLAMA_MODEL ?= qwen2.5:3b
+ollama-docker:
+	docker compose --profile ollama up -d ollama
+	docker compose exec ollama ollama pull $(OLLAMA_MODEL)
 
 run:
 	$(PYTHON) -m uvicorn app.main:app --reload
