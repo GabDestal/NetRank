@@ -7,7 +7,7 @@ A knowledge graph for cyber threat intelligence (CTI).
 
 ![ThreatGraph schema](docs/schema.png)
 
-Schema decisions and rejected alternatives: [`docs/modeling_rationale.md`](docs/modeling_rationale.md).
+Schema and design decisions (D1–D19) and rejected alternatives: [`docs/modeling_rationale.md`](docs/modeling_rationale.md).
 Diagram source: [`docs/schema.drawio`](docs/schema.drawio).
 
 ## Layout
@@ -119,6 +119,72 @@ Errors: `404` for an unknown id, `422` for a malformed one (e.g. `G0016`, `T1059
 `CVE-2021-44228` formats are enforced), `503` when Neo4j is unavailable. Answers that link groups
 to vulnerabilities say so explicitly (`"association": "shared_technique"` plus a note): they are
 never evidence of exploitation (D12).
+
+## Agent
+
+`POST /agent/ask` answers a question in plain English using the graph (D19). A LangGraph loop lets the
+LLM call tools: the same functions as the endpoints above, plus `run_cypher` as a guarded fallback for
+questions no tool covers. Every answer comes back with the tool calls it made, the graph paths it
+walked, and a list of facts. The server, not the LLM, marks each fact `verified` (all its citations
+were returned by a tool from ATT&CK, KEV, NVD or CTID) or `model-generated` (it cites a link
+prediction, an id no tool returned, or nothing).
+
+```bash
+curl -X POST localhost:8080/agent/ask -H "Content-Type: application/json" \
+     -d '{"question": "Which initial access techniques does Cozy Bear use?"}'
+```
+
+Generated Cypher only runs if it passes the guardrails: one read-only statement (no `CREATE`, `MERGE`,
+`DELETE`, `SET`, `REMOVE`, `DROP`, `CALL`, `LOAD CSV`...), a `LIMIT` of at most 50 (added or lowered),
+and an `EXPLAIN` showing a read-only plan with no unknown labels, relationship types or properties.
+It then runs in a read transaction with a 10 s timeout. A rejected query is sent back to the LLM with
+the reason, at most twice. `POST /agent/check-cypher` runs a query through the guardrails without executing it.
+
+```bash
+make guardrail-demo   # scripted bad LLM output rejected by the guardrails, against the real graph (no LLM needed)
+make evaluate-agent   # 15 questions (7 core, fallback Cypher, prompt injection); writes data/processed/agent_eval_*.json
+```
+
+On Groq with `qwen/qwen3.8-27b`, 13 of the 15 questions pass (2026-10-16). Both prompt injections were
+refused, and the graph was unchanged after every question. The two failures and their details are in
+D19 of [`docs/modeling_rationale.md`](docs/modeling_rationale.md).
+
+### Choosing the LLM
+
+Set `LLM_PROVIDER` in `.env`. Nothing here needs a paid API.
+
+| Provider | Setting | Default model | Notes |
+|----------|---------|---------------|-------|
+| Groq (default) | `GROQ_API_KEY` ([free key](https://console.groq.com/keys)) | `qwen/qwen3.8-27b` | Free tier: 8,000 tokens/min, 1,000 requests/day |
+| Ollama, local | nothing | `qwen2.5:3b` | No key, runs on the CPU; slower and less accurate |
+| Anthropic | `ANTHROPIC_API_KEY` | `claude-haiku-5-5` | Paid |
+
+`LLM_MODEL` overrides the default model. On Groq, `openai/gpt-oss-120b` is bigger, but in our tests
+it often came back with an empty reply or a malformed tool call, so `qwen/qwen3.8-27b` is the default.
+
+Free tiers answer HTTP 429 when the per-minute budget is used up. Every LLM call then waits and retries
+(2, 4, 8... s, up to 60 s, or longer if the server says so; `LLM_MAX_RETRIES`, default 6).
+`make evaluate-agent` also waits `DELAY` seconds between questions (default 30). If a run still hits
+the limit, raise it: `make evaluate-agent DELAY=60`.
+
+**Running without a key (recommended local setup): native Ollama.** Install it from
+[ollama.com/download](https://ollama.com/download) (Windows: `winget install Ollama.Ollama`), then:
+
+```bash
+ollama pull qwen2.5:3b       # about 2 GB
+# in .env: LLM_PROVIDER=ollama
+make run                     # the API reaches Ollama on http://localhost:11434
+```
+
+In the Docker stack, the api container reaches the native Ollama through `host.docker.internal`.
+Running Ollama natively, rather than in Docker, keeps it outside Docker Desktop's memory limit.
+`make ollama-docker` starts the optional `ollama` compose service instead; then set
+`DOCKER_OLLAMA_BASE_URL=http://ollama:11434` in `.env`. A 3B model takes about a minute per question
+on a laptop CPU. It also often answers in plain text instead of the structured answer, and then the
+answer has citations but no fact list.
+
+Neo4j's memory is capped in `docker-compose.yml` (heap 512 MB to 1 GB, page cache 512 MB), so it fits
+next to a local model on a 16 GB machine. The whole graph fits in that page cache.
 
 ## Development
 
