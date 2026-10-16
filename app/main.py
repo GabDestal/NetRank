@@ -9,7 +9,7 @@ from neo4j.exceptions import DriverError, Neo4jError
 
 from app import __version__
 from app.database.connection import close_driver
-from app.routers import cves, groups, health, mitigations, products, techniques
+from app.routers import agent, cves, groups, health, mitigations, products, techniques
 
 
 @asynccontextmanager
@@ -34,5 +34,5 @@ async def neo4j_unavailable(_request: Request, _exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"detail": "Neo4j is unavailable"})
 
 
-for router_module in (health, groups, techniques, cves, products, mitigations):
+for router_module in (health, groups, techniques, cves, products, mitigations, agent):
     app.include_router(router_module.router)
