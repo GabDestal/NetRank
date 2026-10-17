@@ -1,0 +1,106 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="threatgraph-arch" name="Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="&lt;b&gt;ThreatGraph — system architecture&lt;/b&gt;" style="text;html=1;fontSize=20;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="compose" value="Docker Compose (project: threatgraph)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10;spacingTop=5;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="90" width="860" height="320" as="geometry" />
+        </mxCell>
+
+        <mxCell id="user" value="&lt;b&gt;Client&lt;/b&gt;&lt;br&gt;Browser / Swagger UI&lt;br&gt;demo.ipynb / curl" style="shape=actor;whiteSpace=wrap;html=1;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="90" y="160" width="50" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="nginx" value="&lt;b&gt;nginx&lt;/b&gt;&lt;br&gt;reverse proxy&lt;br&gt;host port :8080 → :80&lt;br&gt;timeout 300 s" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="300" y="150" width="170" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api" value="&lt;b&gt;api (FastAPI)&lt;/b&gt;&lt;br&gt;:8000 — /docs (Swagger)&lt;br&gt;graph endpoints&lt;br&gt;LangGraph agent + guardrails&lt;br&gt;image: gabdestal/threatgraph-api:1.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="540" y="140" width="220" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="neo4j" value="&lt;b&gt;neo4j 5&lt;/b&gt;&lt;br&gt;Bolt :7687 / Browser :7474&lt;br&gt;plugins: GDS + APOC&lt;br&gt;volume: neo4j_data&lt;br&gt;heap 1 GB, page cache 512 MB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="850" y="130" width="220" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ollama" value="&lt;b&gt;ollama&lt;/b&gt; (optional)&lt;br&gt;qwen2.5:3b, keyless mode&lt;br&gt;native install recommended" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="540" y="310" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="groq" value="&lt;b&gt;Groq API&lt;/b&gt; (cloud)&lt;br&gt;default LLM provider&lt;br&gt;qwen/qwen3.8-27b&lt;br&gt;key in .env (GROQ_API_KEY)" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="300" width="210" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" value="HTTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="user" target="nginx">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="proxy_pass :8000" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="nginx" target="api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="Bolt :7687&lt;br&gt;parameterized, read-only Cypher&lt;br&gt;GDS calls" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="api" target="neo4j">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="HTTPS (agent LLM calls)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;exitX=1;exitY=0.75;exitDx=0;exitDy=0;" edge="1" parent="1" source="api" target="groq">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="230" />
+              <mxPoint x="800" y="440" />
+              <mxPoint x="1255" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" value=":11434 (if LLM_PROVIDER=ollama)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;" edge="1" parent="1" source="api" target="ollama">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pipeline" value="Data pipeline (Makefile targets, run from host)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#b85450;verticalAlign=top;align=left;spacingLeft=10;spacingTop=5;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="1080" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sources" value="&lt;b&gt;Public sources&lt;/b&gt;&lt;br&gt;MITRE ATT&amp;amp;CK v20 (STIX 2.1)&lt;br&gt;CISA KEV (JSON)&lt;br&gt;NVD API 2.0&lt;br&gt;CTID Mappings Explorer (KEV → ATT&amp;amp;CK)" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="70" y="540" width="230" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ingest" value="&lt;b&gt;make download&lt;/b&gt; + &lt;b&gt;make ingest&lt;/b&gt;&lt;br&gt;download, clean, remap revoked ids,&lt;br&gt;load nodes then relationships" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="350" y="555" width="220" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="analytics" value="&lt;b&gt;make analytics&lt;/b&gt;&lt;br&gt;GDS: degree, betweenness,&lt;br&gt;communities → stored properties" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="610" y="555" width="210" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="predict" value="&lt;b&gt;make predict&lt;/b&gt;&lt;br&gt;CVE → technique link prediction&lt;br&gt;baseline gate → INFERRED_MAPS_TO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="860" y="555" width="230" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="sources" target="ingest">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="ingest" target="analytics">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="analytics" target="predict">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4" value="writes via Bolt :7687" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;strokeColor=#b85450;" edge="1" parent="1" source="predict" target="neo4j">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="975" y="470" />
+              <mxPoint x="960" y="470" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="ci" value="&lt;b&gt;GitHub&lt;/b&gt;: main protected, PRs only&lt;br&gt;Actions: lint (pylint ≥ 9.5), test (pytest + coverage)&lt;br&gt;&lt;b&gt;Docker Hub&lt;/b&gt;: gabdestal/threatgraph-api:1.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="720" width="460" height="70" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
