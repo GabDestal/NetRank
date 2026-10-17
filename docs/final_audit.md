@@ -33,7 +33,7 @@ Status: **Met**, **Partial** (part of it is there; what is missing is stated), *
 | Schemas | Neo4j graph diagram | 2 | Met | `docs/schema.drawio`, `.png`, `.svg`, in the README |
 | Schemas | Architecture diagram | 2 | Met | `docs/architecture.drawio`, linked from the README, plus the text diagram and services table |
 | Schemas | Modeling rationale + anti-genericity appendix | 3 | Met | `docs/modeling_rationale.md` D1–D19 with a rejected-alternatives table; `docs/anti_genericity_appendix.md` compares our schema with the unedited AI baseline (`docs/ai_baseline_schema.md`), including a CVE-regex check over ATT&CK v20 |
-| Docs | README + screenshots | 3 | Partial | README is complete (description, architecture, install, data, API, agent, Makefile, Docker image). The Screenshots section shows `neo4j-browser.png` and `swagger.png`; the agent answer screenshot is still to come |
+| Docs | README + screenshots | 3 | Met | README is complete (description, architecture, install, data, API, agent, Makefile, Docker image). The Screenshots section shows `neo4j-browser.png`, `swagger.png` and `agent-answer.png` (tool calls, citations, verified tags) |
 | Docs | Demo notebook | 2 | Met | `demo.ipynb`, committed with outputs and five charts |
 | Clean code | `.pylintrc`, pylint ≥ 9.5, `make lint` | 2 | Met | `.pylintrc`; `make lint` 10.00/10 |
 | Clean code | PEP 8 + structure | 1 | Met | Max line length 120 enforced by pylint; `app/` split into routers, services, models, database, agent |
@@ -55,16 +55,14 @@ Status: **Met**, **Partial** (part of it is there; what is missing is stated), *
 | Git | Branch workflow | 2 | Met | One branch per feature (`feat/`, `fix/`, `docs/`, `chore/`), merged by PR into a protected `main` |
 | Git | `.gitignore` | 1 | Met | `.gitignore` covers `.env`, `.venv`, `data/`, caches, coverage |
 | Git | Balanced contributions | 3 | Solo | One author. Ask the instructor |
-| Git | ≥ 1 merged PR per member | 3 | Solo | 23 merged PRs from the only member. Ask the instructor |
+| Git | ≥ 1 merged PR per member | 3 | Solo | 24 merged PRs from the only member. Ask the instructor |
 | Git | Clear commits | 1 | Met | Prefixes feat/fix/test/docs/refactor/chore, small focused commits |
 
 ## Summary
 
 | Status | Points |
 |---|---:|
-| Met | 90 |
-| Partial | 3 (README + screenshots) |
+| Met | 93 |
+| Partial | 0 |
 | Solo, ask the instructor | 7 |
 | Missing | 0 |
-
-The partial row only needs one file: `docs/screenshots/agent-answer.png` (a Swagger capture of `POST /agent/ask`).

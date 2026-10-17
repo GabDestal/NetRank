@@ -73,9 +73,9 @@ docker pull gabdestal/threatgraph-api:1.0
 
 Images are in [`docs/screenshots/`](docs/screenshots/).
 
-| Neo4j Browser (`CALL db.schema.visualization()`) | Swagger UI (`/docs`) |
-|---|---|
-| ![Neo4j Browser](docs/screenshots/neo4j-browser.png) | ![Swagger UI](docs/screenshots/swagger.png) |
+| Neo4j Browser (`CALL db.schema.visualization()`) | Swagger UI (`/docs`) | Agent answer (`POST /agent/ask`) |
+|---|---|---|
+| ![Neo4j Browser](docs/screenshots/neo4j-browser.png) | ![Swagger UI](docs/screenshots/swagger.png) | ![Agent answer: "Which mitigations cover technique T1190?"](docs/screenshots/agent-answer.png) |
 
 ## Layout
 
