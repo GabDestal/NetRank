@@ -71,7 +71,9 @@ Other facts that matter:
 - In v20, the old *Defense Evasion* tactic is gone, split into **Stealth** and
   **Defense Impairment**.
 - Each `uses` relationship carries a procedure description, 197 characters on average.
-- **No live ATT&CK object references a CVE.** ATT&CK alone never links a group to a CVE.
+- **No live ATT&CK object has a structured CVE reference** (no `external_id` is a CVE), so ATT&CK has no
+  structured group → CVE link. *Corrected 2026-10-17:* CVE ids do appear in free text; a regex finds 272
+  group/software/campaign–CVE pairs reaching 138 KEV CVEs ([appendix](anti_genericity_appendix.md)).
 
 **CISA KEV** (catalog 2026.10.14):
 - 1,745 CVEs, 361 of them with known ransomware use.
@@ -298,7 +300,7 @@ relationship.
 
 ## D12. Verified vs LLM-inferred links
 
-76% of KEV CVEs have no CTID mapping, and ATT&CK never links groups to CVEs. The agent will be
+76% of KEV CVEs have no CTID mapping, and ATT&CK has no structured link from groups to CVEs. The agent will be
 tempted to fill these gaps, and the brief requires keeping verified facts apart from inferred
 ones.
 
