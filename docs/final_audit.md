@@ -18,11 +18,11 @@ Status: **Met**, **Partial** (part of it is there; what is missing is stated), *
 | Neo4j | Indexes | 2 | Met | 17 constraint-backed range indexes + `cve_cvss_score` (D8); their effect is measured in `docs/benchmarks.md` |
 | Neo4j | Ingestion script | 2 | Met | `scripts/ingest_attack.py`, `ingest_kev_nvd.py`, `ingest_ctid.py` (`make ingest`), batched `UNWIND` writes (D13), count checks after each source |
 | Neo4j | Dataset source documented | 1 | Met | README "Data"; `data/raw/manifest.json` (URL, version, SHA-256); one `:ImportMeta` node per source |
-| FastAPI | ≥ 4 endpoints, ≥ 3 advanced graph queries | 2 | Met | 14 paths in `/openapi.json`; advanced: product exposure (4 hops), CVE → groups, mitigation plan, GDS similarity, centrality |
+| FastAPI | ≥ 4 endpoints, ≥ 3 advanced graph queries | 2 | Met | 15 paths in `/openapi.json`; advanced: product exposure (4 hops), connection path (shortestPath), CVE → groups, mitigation plan, GDS similarity, centrality |
 | FastAPI | Pydantic | 2 | Met | `app/models/`, every endpoint has a `response_model` and typed inputs |
 | FastAPI | Swagger `/docs` | 1 | Met | `http://localhost:8080/docs` returns 200 through nginx |
 | FastAPI | Error handling | 1 | Met | 404 (unknown ids), 422 (bad input), 503 (Neo4j or LLM down), tested in `tests/test_api.py`, `test_health.py`, `test_agent.py` |
-| Advanced Cypher | Pathfinding / GDS in ≥ 2 endpoints | 4 | Met | `/groups/{id}/similar` runs GDS node similarity live on a temporary projection (D17); `/techniques/central` serves GDS betweenness and Louvain results computed by `make analytics` (D15, D16). No shortest-path endpoint |
+| Advanced Cypher | Pathfinding / GDS in ≥ 2 endpoints | 4 | Met | `/paths/connection` runs a bounded Cypher `shortestPath` over verified links (D20); `/groups/{id}/similar` runs GDS node similarity live on a temporary projection (D17). Also `/techniques/central` serves GDS betweenness and Louvain computed by `make analytics` (D15, D16) |
 | Advanced Cypher | Complex pattern matching | 3 | Met | Multi-hop patterns with type alternation (`EXPLOITS_VIA\|PRIMARY_IMPACT\|SECONDARY_IMPACT`), optional sub-technique expansion, `EXISTS` filters (`app/services/`) |
 | Advanced Cypher | WITH / UNWIND / subqueries / aggregations | 2 | Met | 34 `COLLECT {}` / `COUNT {}` / `EXISTS {}` / `UNWIND` uses in `app/services/`, plus `WITH … ORDER BY … LIMIT` rankings |
 | Optimization | Optimized queries + benchmarks | 5 | Met | `docs/benchmarks.md`, `make benchmark`: PROFILE before/after for 3 queries (db hits 4,053 → 147; 7,200 → 3; 185,838 → 15,987); cost comment above each query |
@@ -41,11 +41,11 @@ Status: **Met**, **Partial** (part of it is there; what is missing is stated), *
 | Makefile | Required commands | 1 | Met | help, install, run, docker-run, test, lint, clean (+ download, ingest, analytics, predict, benchmark, …) |
 | Makefile | Functional | 1 | Met | All run on 2026-10-16; `make test`, `make lint` and `make benchmark` re-run on 2026-10-17 |
 | Makefile | Documented | 1 | Met | `make help` and the README Makefile table |
-| Tests | Unit / API / Neo4j tests | 3 | Met | 270 tests: unit (fake driver), API (`TestClient`), and 13 against the real Neo4j |
+| Tests | Unit / API / Neo4j tests | 3 | Met | 284 tests: unit (fake driver), API (`TestClient`), and 14 against the real Neo4j |
 | Tests | Container health checks | 2 | Met | Docker healthchecks on `neo4j`, `api`, `nginx`; `tests/test_health.py` (`/health`, `/health/db` up and down) |
 | Tests | Cypher tests | 2 | Met | `make test` now includes `tests/test_integration.py` (real Cypher, guardrails against the real server); its tests skip with the reason when Neo4j is unreachable or empty, so CI stays green |
 | Tests | Coverage ≥ 60% | 2 | Met | 98.8% (`make test`); CI fails under 80% |
-| Tests | All pass | 1 | Met | 270 passed locally; CI green on every merged PR |
+| Tests | All pass | 1 | Met | 284 passed locally; CI green on every merged PR |
 | SE | Lint workflow | 1 | Met | `.github/workflows/lint.yml`, required check on `main` |
 | SE | Test workflow | 1 | Met | `.github/workflows/test.yml`, required check on `main` |
 | SE | README badges | 1 | Met | lint and test badges at the top of the README |
@@ -55,7 +55,7 @@ Status: **Met**, **Partial** (part of it is there; what is missing is stated), *
 | Git | Branch workflow | 2 | Met | One branch per feature (`feat/`, `fix/`, `docs/`, `chore/`), merged by PR into a protected `main` |
 | Git | `.gitignore` | 1 | Met | `.gitignore` covers `.env`, `.venv`, `data/`, caches, coverage |
 | Git | Balanced contributions | 3 | Solo | One author. Ask the instructor |
-| Git | ≥ 1 merged PR per member | 3 | Solo | 20 merged PRs from the only member. Ask the instructor |
+| Git | ≥ 1 merged PR per member | 3 | Solo | 21 merged PRs from the only member. Ask the instructor |
 | Git | Clear commits | 1 | Met | Prefixes feat/fix/test/docs/refactor/chore, small focused commits |
 
 ## Summary

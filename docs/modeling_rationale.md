@@ -29,6 +29,8 @@ not chosen is listed, with its reason, under [Rejected alternatives](#rejected-a
 | D16 | Where algorithm results live                   | B      | Decided | 2026-10-15 |
 | D17 | Group similarity, computed live                | A      | Decided | 2026-10-15 |
 | D18 | Link prediction                                | A      | Decided | 2026-10-15 |
+| D19 | The agent                                      | C      | Decided | 2026-10-15 |
+| D20 | Group → product connection path                | B      | Decided | 2026-10-17 |
 
 ---
 
@@ -614,6 +616,34 @@ returned ids that its text mentions, and the fact list is empty. Tool results ar
 per list to stay within the free tier's 8,000 tokens per minute, so the model only sees part of a long
 list (25 of APT29's 66 techniques, for example).
 
+## D20. Group → product connection path
+
+`GET /paths/connection?group=&product=&max_hops=` answers "how is this group connected to this
+product?" with Cypher `shortestPath`, over verified relationship types only (`USES`,
+`SUBTECHNIQUE_OF`, the three CTID types, `AFFECTS`; never `INFERRED_MAPS_TO`).
+
+| Option | For | Against |
+|---|---|---|
+| **A. Plain undirected shortestPath** over those types | Simplest; finds a path whenever one exists | When there is no direct route, the path goes through other groups, campaigns or software: G0025 → fortios came back through campaign C0064. On 300 random pairs, 31 of 76 paths used software the group doesn't use and 6 went through two CVEs |
+| **B. shortestPath with per-node and per-relationship filters**: no other group, campaign or product in the middle; a `USES` hop must start from the group or its own software; a CVE → technique hop must come from a CVE affecting the product | Every path reads group → (its software) → technique(s) → one CVE → product, which is the "shares technique T with CVE C" reading; Neo4j still runs it as a breadth-first `ShortestPath` | More filters to explain; returns 404 for pairs only A could connect |
+| **C. A fixed pattern with `SHORTEST 1`** | The shape is guaranteed by the pattern | Not a general path search: the length is fixed by the pattern, so `max_hops` means nothing |
+
+**Why the search is bounded.** A breadth-first search grows with the frontier, roughly the average
+degree to the power of half the hops from each side, and T1190 alone links to hundreds of CVEs. Past
+6 hops the paths also stop meaning anything. The bound is a literal `*..8` in the query, because Cypher
+does not accept a parameter there and our queries are never built from strings. The caller's
+`max_hops` (default 6, at most 8) is then checked on the returned path. That gives the same answer,
+since `shortestPath` returns the shortest length, and it is the only fast way: adding
+`length(path) <= $max_hops`, or `size([n IN nodes(path) WHERE n:CVE]) = 1`, to the `WHERE` makes Neo4j
+fall back to an exhaustive search of every path, and the no-path case went from 6 ms to over 20 s
+(the query timeout). Every filter in B is on a single node or relationship, so `EXPLAIN` shows a plain
+`ShortestPath` operator with no fallback. Measured on 300 random group–product pairs: median 4 ms, worst 769 ms.
+
+**Decision (2026-10-17):** **B**. The path always has the shape the reading describes, and the
+response says "shares technique T with CVE C affecting product P" with a note that this is an
+association, never "group exploits product" (D12). 404 says which part is missing: the group, the
+product, any path within 8 hops, or a path within `max_hops` (with the shortest length found).
+
 ---
 
 ## Final schema
@@ -700,7 +730,7 @@ carries `:Software` (D5). Likewise the `:Technique` constraints cover sub-techni
 
 ## Rejected alternatives
 
-All rejected on 2026-10-15 (D19: 2026-10-16).
+All rejected on 2026-10-15 (D19: 2026-10-16, D20: 2026-10-17).
 
 | Decision | Rejected option | Reason |
 |---|---|---|
@@ -753,3 +783,6 @@ All rejected on 2026-10-15 (D19: 2026-10-16).
 | D19 | `openai/gpt-oss-120b` on Groq | Bigger, with the same free-tier limits, but it often returned an empty reply or a malformed tool call after reading a tool result (3 of 3 tries on the mitigation question). |
 | D19 | Anthropic Claude Haiku as the default | Paid; kept as an option. |
 | D19 | Ollama 7B in Docker as the keyless path | On a 16 GB laptop, with Neo4j running, it ran out of memory and stalled Docker Desktop. Native Ollama with a 3B model works. |
+| D20 | A. Plain undirected shortestPath | Paths went through other groups, campaigns and unrelated software (31 of 76 sampled paths), so "shares technique T" would be false for them. |
+| D20 | C. Fixed pattern with `SHORTEST 1` | Not a path search: the pattern fixes the length, so a hop bound means nothing. |
+| D20 | `max_hops` or a CVE count inside the `WHERE` | Neo4j falls back to an exhaustive search: over 20 s instead of 6 ms when no path exists. |
