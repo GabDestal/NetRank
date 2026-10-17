@@ -1,24 +1,41 @@
 """End-to-end checks against a real, loaded Neo4j (make docker-run, make ingest).
 
-Skipped unless THREATGRAPH_INTEGRATION=1, so CI and plain `make test` never need a database.
+Part of `make test`. When Neo4j is not reachable (as in CI) or holds no data, every test here is
+skipped with the reason, so the suite stays green without a database.
 These catch what fake drivers cannot: Cypher syntax errors and queries that return the wrong shape.
-Run with: make test-integration
+Run only these with: make test-integration
 """
 # pylint: disable=missing-function-docstring
 
-import os
-
 import pytest
 from fastapi.testclient import TestClient
-from neo4j import READ_ACCESS
-from neo4j.exceptions import ClientError
+from neo4j import READ_ACCESS, GraphDatabase
+from neo4j.exceptions import ClientError, DriverError, Neo4jError
 
 from app.agent.guardrails import MAX_ROWS, run_guarded
+from app.config import load_settings
 from app.database.connection import close_driver, get_driver
 from app.main import app
 
-pytestmark = pytest.mark.skipif(os.getenv("THREATGRAPH_INTEGRATION") != "1",
-                                reason="set THREATGRAPH_INTEGRATION=1 with Neo4j running and loaded")
+
+def neo4j_skip_reason() -> str | None:
+    """Return why these tests cannot run here, or None if Neo4j is up and loaded."""
+    settings = load_settings()
+    try:
+        # Short timeouts and no retries, so a missing database costs seconds, not the driver's 30 s retry loop.
+        with GraphDatabase.driver(settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_password),
+                                  connection_timeout=3, connection_acquisition_timeout=3,
+                                  max_transaction_retry_time=0) as driver:
+            records, _, _ = driver.execute_query("MATCH (m:ImportMeta) RETURN count(m) AS n")
+    except (DriverError, Neo4jError, OSError, ValueError) as exc:
+        return f"Neo4j not reachable at {settings.neo4j_uri} ({type(exc).__name__}); start it with make docker-run"
+    if records[0]["n"] == 0:
+        return "Neo4j is reachable but empty; run make ingest"
+    return None
+
+
+SKIP_REASON = neo4j_skip_reason()
+pytestmark = pytest.mark.skipif(SKIP_REASON is not None, reason=SKIP_REASON or "")
 
 
 @pytest.fixture(name="client", scope="module")

@@ -17,8 +17,8 @@ help:
 	@echo "make docker-run   Build and start neo4j, api and nginx (http://localhost:8080)"
 	@echo "make docker-down  Stop the stack (keeps the Neo4j volume)"
 	@echo "make lint         Run pylint"
-	@echo "make test         Run tests with coverage"
-	@echo "make test-integration  Run end-to-end API tests against the loaded Neo4j"
+	@echo "make test         Run tests with coverage (Neo4j tests skip if the database is down)"
+	@echo "make test-integration  Run only the end-to-end tests against the loaded Neo4j"
 	@echo "make benchmark    PROFILE key queries with and without their index or rewrite (local Neo4j)"
 	@echo "make coverage     Run tests and write an HTML coverage report"
 	@echo "make clean        Remove caches and coverage output"
@@ -71,10 +71,10 @@ lint:
 	$(PYTHON) -m pylint --fail-under=9.5 $(SRC)
 
 test:
-	$(PYTHON) -m pytest --cov=app --cov=scripts --cov-report=term-missing --cov-fail-under=80
+	$(PYTHON) -m pytest --cov=app --cov=scripts --cov-report=term-missing --cov-fail-under=80 -rs
 
 test-integration:
-	THREATGRAPH_INTEGRATION=1 $(PYTHON) -m pytest tests/test_integration.py -v
+	$(PYTHON) -m pytest tests/test_integration.py -v -rs
 
 benchmark:
 	$(PYTHON) -m scripts.benchmark
