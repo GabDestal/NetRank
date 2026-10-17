@@ -32,7 +32,7 @@ Status: **Met**, **Partial** (part of it is there; what is missing is stated), *
 | GDS & Agentic | LLM reliability and guardrails | 4 | Met | Read-only allow-list, `EXPLAIN` check, LIMIT 50, READ session, 10 s timeout, server-side provenance (`app/agent/guardrails.py`); `make guardrail-demo`; rejected attacks in the evaluation |
 | Schemas | Neo4j graph diagram | 2 | Met | `docs/schema.drawio`, `.png`, `.svg`, in the README |
 | Schemas | Architecture diagram | 2 | Partial | Text diagram and services table in the README; the README links `docs/architecture.drawio`, which is not committed yet |
-| Schemas | Modeling rationale + anti-genericity appendix | 3 | Partial | `docs/modeling_rationale.md` D1–D19 with a rejected-alternatives table. The anti-genericity appendix is missing: it needs the unedited AI baseline schema, not provided yet |
+| Schemas | Modeling rationale + anti-genericity appendix | 3 | Met | `docs/modeling_rationale.md` D1–D19 with a rejected-alternatives table; `docs/anti_genericity_appendix.md` compares our schema with the unedited AI baseline (`docs/ai_baseline_schema.md`), including a CVE-regex check over ATT&CK v20 |
 | Docs | README + screenshots | 3 | Partial | README is complete (description, architecture, install, data, API, agent, Makefile, Docker image). The Screenshots section points to `docs/screenshots/`, but the 3 images are not committed yet |
 | Docs | Demo notebook | 2 | Met | `demo.ipynb`, committed with outputs and five charts |
 | Clean code | `.pylintrc`, pylint ≥ 9.5, `make lint` | 2 | Met | `.pylintrc`; `make lint` 10.00/10 |
@@ -55,17 +55,17 @@ Status: **Met**, **Partial** (part of it is there; what is missing is stated), *
 | Git | Branch workflow | 2 | Met | One branch per feature (`feat/`, `fix/`, `docs/`, `chore/`), merged by PR into a protected `main` |
 | Git | `.gitignore` | 1 | Met | `.gitignore` covers `.env`, `.venv`, `data/`, caches, coverage |
 | Git | Balanced contributions | 3 | Solo | One author. Ask the instructor |
-| Git | ≥ 1 merged PR per member | 3 | Solo | 19 merged PRs from the only member. Ask the instructor |
+| Git | ≥ 1 merged PR per member | 3 | Solo | 20 merged PRs from the only member. Ask the instructor |
 | Git | Clear commits | 1 | Met | Prefixes feat/fix/test/docs/refactor/chore, small focused commits |
 
 ## Summary
 
 | Status | Points |
 |---|---:|
-| Met | 85 |
-| Partial | 8 (architecture diagram 2, rationale + appendix 3, README + screenshots 3) |
+| Met | 88 |
+| Partial | 5 (architecture diagram 2, README + screenshots 3) |
 | Solo, ask the instructor | 7 |
 | Missing | 0 |
 
-The three partial rows only need files: `docs/architecture.drawio`, the 3 images in `docs/screenshots/`
-(`neo4j-browser.png`, `swagger.png`, `agent-answer.png`), and the AI baseline schema for the appendix.
+The two partial rows only need files: `docs/architecture.drawio` and the 3 images in `docs/screenshots/`
+(`neo4j-browser.png`, `swagger.png`, `agent-answer.png`).
