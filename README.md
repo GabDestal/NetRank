@@ -15,6 +15,7 @@ A walkthrough of everything with real outputs: [`demo.ipynb`](demo.ipynb).
 ![ThreatGraph schema](docs/schema.png)
 
 Schema and design decisions (D1–D19) and rejected alternatives: [`docs/modeling_rationale.md`](docs/modeling_rationale.md).
+Comparison with a generic AI-generated schema: [`docs/anti_genericity_appendix.md`](docs/anti_genericity_appendix.md).
 Diagram source: [`docs/schema.drawio`](docs/schema.drawio).
 
 ## Architecture
@@ -71,7 +72,7 @@ app/            FastAPI app: routers, services (Cypher), models (Pydantic), data
 scripts/        Download, ingestion, analytics, link prediction, agent evaluation and demo
 tests/          pytest suite (unit tests with a fake driver, integration tests against Neo4j)
 nginx/          Reverse proxy config for the Docker stack
-docs/           Diagrams (draw.io), screenshots, modeling rationale (D1–D19), link prediction, benchmarks, audit
+docs/           Diagrams (draw.io), screenshots, modeling rationale (D1–D19), anti-genericity appendix, link prediction, benchmarks, audit
 demo.ipynb      Walkthrough notebook, committed with outputs
 .env.example    Template for local settings
 ```
