@@ -3,12 +3,24 @@
 [![lint](https://github.com/GabDestal/threatgraph/actions/workflows/lint.yml/badge.svg)](https://github.com/GabDestal/threatgraph/actions/workflows/lint.yml)
 [![test](https://github.com/GabDestal/threatgraph/actions/workflows/test.yml/badge.svg)](https://github.com/GabDestal/threatgraph/actions/workflows/test.yml)
 
+**Project level: 3 (Advanced graph & GDS).**
+
 A knowledge graph for cyber threat intelligence (CTI), in Neo4j. It links MITRE ATT&CK (groups,
 techniques, tactics, mitigations, software) with the CISA Known Exploited Vulnerabilities catalog,
 NVD details for those CVEs (CVSS, CWE, affected products) and CTID's mappings from CVEs to ATT&CK
 techniques. A FastAPI service answers seven questions over it, such as "what is my exposure if I run
-FortiOS?" or "which mitigations cover the most exploited techniques?". A LangGraph agent answers the
-same questions in plain English, with citations.
+FortiOS?" or "which mitigations cover the most exploited techniques?".
+
+The core of the project is graph analytics on that graph:
+
+- **Centrality and communities** with GDS: degree, betweenness and Louvain over techniques (D15, D16)
+- **Live node similarity** between groups' technique profiles, on a projection made per request (D17)
+- **Bounded shortest-path queries** explaining how a group is connected to a product (D20)
+- **Link prediction workflow** for CVE → technique, evaluated against a baseline (D18)
+- **Mitigation cover plan**: a greedy weighted cover of the techniques behind exploited CVEs (D14)
+
+A LangGraph agent is one component built on top: it answers the same questions in plain English,
+with citations, through the same queries, and its generated Cypher goes through read-only guardrails (D19).
 
 A walkthrough of everything with real outputs: [`demo.ipynb`](demo.ipynb).
 

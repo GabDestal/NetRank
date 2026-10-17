@@ -10,6 +10,10 @@ A Cyber Threat Intelligence knowledge graph in Neo4j linking:
 
 Exposed through FastAPI, with a LangGraph agent on top (NL questions → graph tools → cited answer).
 
+Project level: 3 ("Advanced graph & GDS"). The core is graph analytics (GDS centrality and communities,
+live node similarity, bounded shortest paths, link prediction, mitigation cover plan); the agent is one
+component built on top.
+
 ## Hard constraints (graded — do not break)
 - pylint score >= 9.5 on `app/` (`make lint`). Below that = -8 points.
 - Every Makefile command must work: help, install, run, docker-run, test, lint, clean.

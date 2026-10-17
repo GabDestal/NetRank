@@ -1,6 +1,6 @@
 # Final audit (2026-10-17)
 
-Checked against the course's 100-point checklist. Commands were run on 2026-10-17 on `main` plus the
+Project level: 3 ("Advanced graph & GDS"). Checked against the course's 100-point checklist. Commands were run on 2026-10-17 on `main` plus the
 `chore/final-gaps` branch, with the Docker stack up and the full data loaded.
 
 Status: **Met**, **Partial** (part of it is there; what is missing is stated), **Missing**, or
