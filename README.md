@@ -45,6 +45,25 @@ Diagram source: [`docs/schema.drawio`](docs/schema.drawio).
 The download and ingest scripts run on the host and write to Neo4j over Bolt. The api only reads.
 Every service has a Docker healthcheck, and each one starts only after the service before it is healthy.
 
+Architecture diagram source: [`docs/architecture.drawio`](docs/architecture.drawio).
+
+### Docker image
+
+The api image is on Docker Hub: [`gabdestal/threatgraph-api`](https://hub.docker.com/r/gabdestal/threatgraph-api).
+It is the same image `make docker-run` builds from the `Dockerfile` (code in `app/` only, no `.env`).
+
+```bash
+docker pull gabdestal/threatgraph-api:1.0
+```
+
+## Screenshots
+
+Images are in [`docs/screenshots/`](docs/screenshots/).
+
+| Neo4j Browser | Swagger UI (`/docs`) | Agent answer |
+|---|---|---|
+| ![Neo4j Browser](docs/screenshots/neo4j-browser.png) | ![Swagger UI](docs/screenshots/swagger.png) | ![Agent answer](docs/screenshots/agent-answer.png) |
+
 ## Layout
 
 ```
@@ -52,7 +71,7 @@ app/            FastAPI app: routers, services (Cypher), models (Pydantic), data
 scripts/        Download, ingestion, analytics, link prediction, agent evaluation and demo
 tests/          pytest suite (unit tests with a fake driver, integration tests against Neo4j)
 nginx/          Reverse proxy config for the Docker stack
-docs/           Schema diagram (draw.io), modeling rationale (D1–D19), link prediction write-up, audit
+docs/           Diagrams (draw.io), screenshots, modeling rationale (D1–D19), link prediction, benchmarks, audit
 demo.ipynb      Walkthrough notebook, committed with outputs
 .env.example    Template for local settings
 ```
@@ -238,8 +257,9 @@ next to a local model on a 16 GB machine. The whole graph fits in that page cach
 | `make guardrail-demo` | Guardrails rejecting scripted bad LLM output |
 | `make ollama-docker` | Optional Ollama container with the local model |
 | `make lint` | pylint, fails under 9.5 |
-| `make test` | Unit tests with coverage, fails under 80% |
-| `make test-integration` | End-to-end tests against the loaded Neo4j |
+| `make test` | All tests with coverage, fails under 80%; the Neo4j tests skip, with the reason, if the database is down |
+| `make test-integration` | Only the end-to-end tests against the loaded Neo4j |
+| `make benchmark` | PROFILE three queries with and without their index or rewrite ([`docs/benchmarks.md`](docs/benchmarks.md)) |
 | `make coverage` | HTML coverage report |
 | `make clean` | Remove caches and coverage output |
 
@@ -249,10 +269,14 @@ On Windows, `make` comes from scoop (`scoop install make`) or Git for Windows' S
 
 ```bash
 make lint              # pylint (fails under 9.5/10)
-make test              # pytest + coverage (fails under 80%)
+make test              # pytest + coverage (fails under 80%), Neo4j tests included when the database is up
 make coverage          # HTML report in htmlcov/
-make test-integration  # end-to-end API tests against the loaded Neo4j (make docker-run, make ingest first)
+make test-integration  # only the end-to-end tests against the loaded Neo4j (make docker-run, make ingest first)
+make benchmark         # PROFILE before/after, results in docs/benchmarks.md
 ```
+
+`tests/test_integration.py` runs real Cypher through the API. It checks first whether Neo4j is
+reachable and loaded; if not (as in CI) its 13 tests are skipped and pytest prints why.
 
 CI runs the same checks on every push to `main` and on every pull request:
 
