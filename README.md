@@ -163,12 +163,36 @@ parameterized Cypher.
 | 6. Central techniques: most used, connectors (betweenness), communities | `GET /techniques/central` | `/techniques/central?by=betweenness` |
 | 7. A product's full exposure | `GET /products/exposure` | `/products/exposure?product=fortinet:fortios` |
 | Groups with similar technique profiles (GDS node similarity, live) | `GET /groups/{group_id}/similar` | `/groups/G0016/similar?limit=5` |
+| How is a group connected to a product? (bounded shortest path) | `GET /paths/connection` | `/paths/connection?group=G0016&product=fortinet:fortios&max_hops=6` |
 | (helper) Find a product key | `GET /products` | `/products?search=fortios` |
 
 Graph algorithms: `/groups/{id}/similar` runs GDS node similarity (Jaccard) on request, on a
 projection created and dropped per call (D17). `/techniques/central` serves degree, betweenness and
 Louvain results computed by GDS in `make analytics` (D15, D16). `/mitigations/plan` is a greedy
-weighted maximum-coverage optimization (D14).
+weighted maximum-coverage optimization (D14). `/paths/connection` runs a bounded Cypher
+`shortestPath` over verified links only (D20):
+
+```bash
+curl "http://localhost:8080/paths/connection?group=G0016&product=fortinet:fortios"
+```
+
+```json
+{
+  "hops": 3,
+  "nodes": [{"kind": "Group", "id": "G0016", "name": "APT29"},
+            {"kind": "Technique", "id": "T1190", "name": "Exploit Public-Facing Application"},
+            {"kind": "CVE", "id": "CVE-2022-42475", "name": "Fortinet FortiOS Heap-Based Buffer Overflow Vulnerability"},
+            {"kind": "Product", "id": "fortinet:fortios", "name": "fortios"}],
+  "relationships": [{"type": "USES", "direction": "forward"},
+                    {"type": "EXPLOITS_VIA", "direction": "backward"},
+                    {"type": "AFFECTS", "direction": "forward"}],
+  "reading": "APT29 (G0016) shares technique Exploit Public-Facing Application (T1190) with Fortinet FortiOS Heap-Based Buffer Overflow Vulnerability (CVE-2022-42475) affecting fortios (fortinet:fortios). Path: ...",
+  "note": "The group and the product are linked through a shared technique (CTID mapping). This is an association, not evidence that the group exploited this product."
+}
+```
+
+`404` when the group or product is unknown, or no path fits within `max_hops` (the message gives
+the shortest length found).
 
 Errors: `404` for an unknown id, `422` for a malformed one (e.g. `G0016`, `T1059.001` and
 `CVE-2021-44228` formats are enforced), `503` when Neo4j is unavailable. Answers that link groups
