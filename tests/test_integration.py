@@ -121,6 +121,18 @@ def test_cve_suggestions_are_separate_and_labelled(client):
     assert not verified & {s["attack_id"] for s in body["suggested_techniques"]}
 
 
+def test_connection_path_is_a_bounded_verified_shortest_path(client):
+    body = get_ok(client, "/paths/connection?group=G0016&product=fortinet:fortios")
+    assert body["hops"] == 3 and [n["kind"] for n in body["nodes"]] == ["Group", "Technique", "CVE", "Product"]
+    assert body["reading"].startswith("APT29 (G0016) shares technique") and "exploits" not in body["reading"]
+    longer = get_ok(client, "/paths/connection?group=G0025&product=microsoft:exchange_server&max_hops=8")
+    assert [n["kind"] for n in longer["nodes"]].count("CVE") == 1 and longer["hops"] == 5
+    too_short = client.get("/paths/connection?group=G0025&product=microsoft:exchange_server&max_hops=4")
+    assert too_short.status_code == 404 and "shortest verified path has 5" in too_short.json()["detail"]
+    unmapped = client.get("/paths/connection?group=G0016&product=3ds:delmia_apriso&max_hops=8")
+    assert unmapped.status_code == 404 and "No verified path" in unmapped.json()["detail"]
+
+
 def test_unknown_ids_are_404(client):
     assert client.get("/groups/G9999/techniques").status_code == 404
     assert client.get("/products/exposure?product=nope:nope").status_code == 404
