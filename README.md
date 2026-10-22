@@ -8,23 +8,34 @@
 | app/agent/\_\_init\_\_.py     |        0 |        0 |        0 |        0 |    100% |           |
 | app/config.py                 |       13 |        0 |        0 |        0 |    100% |           |
 | app/database/\_\_init\_\_.py  |        0 |        0 |        0 |        0 |    100% |           |
-| app/database/client.py        |       25 |        1 |        0 |        0 |     96% |        59 |
-| app/main.py                   |       18 |        0 |        0 |        0 |    100% |           |
+| app/database/client.py        |       36 |        1 |        6 |        0 |     98% |        77 |
+| app/errors.py                 |        2 |        0 |        0 |        0 |    100% |           |
+| app/main.py                   |       36 |        0 |        0 |        0 |    100% |           |
 | app/models/\_\_init\_\_.py    |        0 |        0 |        0 |        0 |    100% |           |
+| app/models/common.py          |       12 |        0 |        0 |        0 |    100% |           |
+| app/models/graph.py           |       13 |        0 |        0 |        0 |    100% |           |
 | app/models/health.py          |        7 |        0 |        0 |        0 |    100% |           |
+| app/models/players.py         |       22 |        0 |        0 |        0 |    100% |           |
 | app/routers/\_\_init\_\_.py   |        0 |        0 |        0 |        0 |    100% |           |
+| app/routers/graph.py          |       15 |        0 |        0 |        0 |    100% |           |
 | app/routers/health.py         |       19 |        0 |        2 |        0 |    100% |           |
+| app/routers/params.py         |       17 |        0 |        2 |        0 |    100% |           |
+| app/routers/players.py        |       23 |        0 |        0 |        0 |    100% |           |
 | app/services/\_\_init\_\_.py  |        0 |        0 |        0 |        0 |    100% |           |
+| app/services/graph.py         |       40 |        1 |       14 |        1 |     96% |       142 |
 | app/services/health.py        |       12 |        0 |        0 |        0 |    100% |           |
+| app/services/players.py       |       36 |        0 |        8 |        0 |    100% |           |
+| app/text.py                   |        6 |        0 |        0 |        0 |    100% |           |
 | scripts/\_\_init\_\_.py       |        0 |        0 |        0 |        0 |    100% |           |
+| scripts/benchmark.py          |       69 |       13 |       16 |        1 |     81% |212-224, 228 |
 | scripts/download\_sackmann.py |       52 |        4 |        8 |        1 |     92% | 44-46, 93 |
-| scripts/ingest.py             |       60 |       30 |        8 |        1 |     54% |113-122, 136-147, 152-163, 167 |
-| scripts/names.py              |       30 |        1 |        6 |        1 |     94% |        57 |
+| scripts/ingest.py             |       69 |       32 |       10 |        2 |     57% |134-143, 158, 166-177, 182-194, 198 |
+| scripts/names.py              |       26 |        1 |        6 |        1 |     94% |        51 |
 | scripts/report.py             |       44 |        0 |        2 |        0 |    100% |           |
 | scripts/resolve.py            |       82 |        0 |       10 |        0 |    100% |           |
 | scripts/sackmann.py           |       79 |        2 |       18 |        2 |     96% |   53, 106 |
 | scripts/tennis\_data.py       |       59 |        0 |       16 |        1 |     99% |   59-\>61 |
-| **TOTAL**                     |  **501** |   **38** |   **70** |    **6** | **92%** |           |
+| **TOTAL**                     |  **790** |   **54** |  **118** |    **9** | **93%** |           |
 
 
 ## Setup coverage badge
