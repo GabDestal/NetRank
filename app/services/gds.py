@@ -80,7 +80,7 @@ RETURN count(*) AS ranked
 # are career totals.
 PROJECT_ERA = """
 MATCH (w:Player)-[:WON]->(m:Match)<-[:LOST]-(l:Player)
-WHERE m.date >= $start AND m.date < $end AND NOT m.walkover
+WHERE ($start IS NULL OR m.date >= $start) AND m.date < $end AND NOT m.walkover
 WITH l, w, count(m) AS wins
 WITH gds.graph.project($graph, l, w, {relationshipProperties: {wins: toFloat(wins)}}) AS g
 RETURN g.nodeCount AS nodeCount, g.relationshipCount AS relationshipCount
@@ -255,8 +255,20 @@ def concurrency() -> int:
 # --------------------------------------------------------------------------- era PageRank
 
 
+def pagerank_window(db: Neo4jClient, start: date | None, end: date) -> list[dict]:
+    """PageRank over played matches dated in [start, end) (no lower bound when start is None).
+
+    Best first: [{id, score}]; empty when the window holds no played match. Not cached.
+    """
+    with projection(db, "netrank-window") as graph:
+        projected = gds_call(db, PROJECT_ERA, {"start": start, "end": end, "graph": graph})
+        if not projected or not projected[0]["nodeCount"]:
+            return []
+        return gds_call(db, PAGERANK_STREAM, {"graph": graph, "concurrency": concurrency()})
+
+
 def era_ranking(db: Neo4jClient, start_year: int, end_year: int) -> list[dict]:
-    """PageRank over played matches in [start_year, end_year], best first: [{id, score}].
+    """PageRank over played matches in seasons [start_year, end_year], best first: [{id, score}].
 
     Cached per era for the life of the process (results only change on re-ingest; refresh clears it).
     One computation at a time, so concurrent requests cannot pile up projections.
@@ -266,12 +278,9 @@ def era_ranking(db: Neo4jClient, start_year: int, end_year: int) -> list[dict]:
         if key in _era_cache:
             _era_cache.move_to_end(key)
             return _era_cache[key]
-        params = {"start": date(start_year, 1, 1), "end": date(end_year + 1, 1, 1)}
-        with projection(db, "netrank-era") as graph:
-            projected = gds_call(db, PROJECT_ERA, {**params, "graph": graph})
-            if not projected or not projected[0]["nodeCount"]:
-                raise NotFoundError(f"No played matches between {start_year} and {end_year}")
-            ranking = gds_call(db, PAGERANK_STREAM, {"graph": graph, "concurrency": concurrency()})
+        ranking = pagerank_window(db, date(start_year, 1, 1), date(end_year + 1, 1, 1))
+        if not ranking:
+            raise NotFoundError(f"No played matches between {start_year} and {end_year}")
         _era_cache[key] = ranking
         if len(_era_cache) > ERA_CACHE_SIZE:
             _era_cache.popitem(last=False)
