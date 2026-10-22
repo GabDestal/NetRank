@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     neo4j_password: SecretStr = SecretStr("")
     neo4j_database: str = "neo4j"
     log_level: str = "INFO"
+
+    # Key for /api/admin/*; when unset the admin endpoints answer 503.
+    admin_api_key: SecretStr | None = None
+    # GDS Community caps concurrency at 4; tests and CI use 1 for reproducible KNN/Louvain.
+    gds_concurrency: int = Field(default=4, ge=1, le=4)
+    # Players need this many matches with serve statistics to get a style vector.
+    style_min_matches: int = Field(default=50, ge=1)
 
 
 @lru_cache
