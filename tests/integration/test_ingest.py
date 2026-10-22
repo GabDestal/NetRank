@@ -27,8 +27,14 @@ MATCH = {
     "loser": {"aces": 2, "rank": 40},
 }
 
+BOOKMAKER = [{"code": "TST", "name": "TEST Book"}]
+PRICE = [{"matchId": "TEST-T-1", "bookmaker": "TEST Book", "winnerOdds": 1.5, "loserOdds": 2.6, "overround": 0.0513}]
+MARKET = [{"matchId": "TEST-T-1", "marketMaxWinnerOdds": 1.6, "oddsLinkMethod": "exact", "oddsDayOffset": 6}]
+
 CLEANUP = """
-MATCH (n) WHERE (n:Player AND n.id < 0) OR ((n:Match OR n:Tournament) AND n.id STARTS WITH 'TEST-')
+MATCH (n)
+WHERE (n:Player AND n.id < 0) OR ((n:Match OR n:Tournament) AND n.id STARTS WITH 'TEST-')
+   OR (n:Bookmaker AND n.name STARTS WITH 'TEST')
 DETACH DELETE n
 """
 
@@ -41,6 +47,9 @@ def fixture_loaded(neo4j_client):
         ingest.load(neo4j_client, ingest.MERGE_PLAYERS, PLAYERS, "players")
         ingest.load(neo4j_client, ingest.MERGE_TOURNAMENTS, TOURNAMENT, "tournaments")
         ingest.load(neo4j_client, ingest.MERGE_MATCHES, [MATCH], "matches")
+        ingest.load(neo4j_client, ingest.MERGE_BOOKMAKERS, BOOKMAKER, "bookmakers")
+        ingest.load(neo4j_client, ingest.MERGE_PRICES, PRICE, "prices")
+        ingest.load(neo4j_client, ingest.SET_MARKET, MARKET, "market odds")
     yield neo4j_client
     neo4j_client.write(CLEANUP)
 
@@ -78,6 +87,19 @@ def test_side_properties_land_on_the_relationships(loaded):
     assert row["winner"] == "TEST Winner" and row["winnerAces"] == 9
     assert row["loser"] == "TEST Loser" and row["loserRank"] == 40
     assert row["date"].to_native() == date(2000, 1, 3)
+
+
+def test_prices_and_market_odds_attach_to_the_match(loaded):
+    """One PRICED per bookmaker and match (even after reloading); market odds and provenance on Match."""
+    row = loaded.read(
+        """
+        MATCH (m:Match {id: 'TEST-T-1'})
+        RETURN COUNT { (:Bookmaker {name: 'TEST Book'})-[:PRICED]->(m) } AS prices,
+               [(b:Bookmaker)-[p:PRICED]->(m) | p.winnerOdds][0] AS winnerOdds,
+               m.marketMaxWinnerOdds AS marketMax, m.oddsLinkMethod AS method, m.oddsDayOffset AS offset
+        """
+    )[0]
+    assert row == {"prices": 1, "winnerOdds": 1.5, "marketMax": 1.6, "method": "exact", "offset": 6}
 
 
 def test_duplicate_player_id_is_rejected(loaded):

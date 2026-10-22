@@ -1,6 +1,6 @@
 """Load and clean Sackmann ATP matches and players into graph-ready records.
 
-Scope (decision log D16): tour-level matches (Grand Slams, Masters, other ATP events, Tour
+Scope (decision log D14): tour-level matches (Grand Slams, Masters, other ATP events, Tour
 Finals) dated 1991-01-01 or later. Davis Cup and Olympics are out. Walkovers are kept and
 flagged; retirements are flagged.
 """
@@ -66,7 +66,9 @@ def read_matches(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
     matches["tourney_date"] = pd.to_datetime(matches["tourney_date"].astype(str), format="%Y%m%d")
     in_scope = matches["tourney_level"].isin(TOUR_LEVELS) & (matches["tourney_date"] >= FIRST_DATE)
     log.info(f"matches: {len(matches)} read, {int(in_scope.sum())} in scope")
-    return matches[in_scope].reset_index(drop=True)
+    kept = matches[in_scope].reset_index(drop=True)
+    kept.attrs.update(files=len(frames), read=len(matches))
+    return kept
 
 
 def read_players(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
