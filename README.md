@@ -10,9 +10,6 @@ A tennis knowledge graph on Neo4j + Graph Data Science. NetRank ranks ATP player
 bookmaker odds, and answers questions through a LangGraph agent whose claims are tagged as
 verified, predicted or interpreted.
 
-Course project, GraphDB (AIDAMS 3A, CentraleSupélec), Level 3 — Advanced graph & GDS.
-Spec and grading checklist: [docs/guidelines.md](docs/guidelines.md).
-
 > **Status:** Phase 5 (match-outcome model). The agent arrives in the next phase.
 
 ## Quick start
