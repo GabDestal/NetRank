@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     gds_concurrency: int = Field(default=4, ge=1, le=4)
     # Players need this many matches with serve statistics to get a style vector.
     style_min_matches: int = Field(default=50, ge=1)
+    # Winner model written by make train (mounted read-only into the API container).
+    model_path: str = "models/winner_model.json"
 
 
 @lru_cache
