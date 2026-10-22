@@ -1,4 +1,4 @@
-.PHONY: help venv install run download ingest gds train benchmark docker-build docker-run docker-down docker-logs test test-unit test-stack lint clean
+.PHONY: help venv install run download ingest gds train eval eval-replay benchmark docker-build docker-run docker-down docker-logs test test-unit test-stack lint clean
 
 PYTHON ?= python3
 VENV := .venv
@@ -40,6 +40,12 @@ train: ## Train and evaluate the match-outcome model -> models/, docs/model_repo
 	# One GDS thread: parallel PageRank sums in varying order (~1e-14), which moved weights by ~1e-10
 	# and changed the model version between identical runs.
 	GDS_CONCURRENCY=1 $(PY) -m scripts.train
+
+eval: ## Live agent evaluation on eval/questions.json (needs GROQ_API_KEY; records eval/recordings/)
+	$(PY) -m scripts.eval_agent
+
+eval-replay: ## Re-score the recorded agent runs without calling Groq
+	$(PY) -m scripts.eval_agent --replay
 
 benchmark: ## PROFILE before/after query benchmarks -> docs/benchmarks.md (needs the loaded graph)
 	$(PY) -m scripts.benchmark
