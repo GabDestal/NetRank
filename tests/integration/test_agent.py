@@ -81,12 +81,13 @@ def test_scripted_agent_end_to_end(agent_graph):
         {"content": "", "tool_calls": [{"name": "submit_answer", "id": "d", "args": {
             "kind": "answer", "summary": "Alpha leads Bravo 2-1.",
             "claims": [
-                {"text": "Alpha leads the head-to-head 2-1.", "tag": "verified", "sources": ["t3"]},
-                {"text": "Alpha won 5 matches against Bravo.", "tag": "verified", "sources": ["t3"]},
+                {"text": "Alpha leads the head-to-head 2-1.", "type": "verified", "sources": ["t3"]},
+                {"text": "Alpha won 5 matches against Bravo.", "type": "verified", "sources": ["t3"]},
             ],
         }}]},
     ]
-    response = graph.ask(agent_graph, ReplayLLM(turns), "What is Alpha's record against Bravo?", 8, "scripted")
+    question = "What is Agenttest Alpha's record against Agenttest Bravo?"
+    response = graph.ask(agent_graph, ReplayLLM(turns), question, 8, "scripted")
     assert [record.tool for record in response.trace] == ["search_player", "search_player", "head_to_head"]
     assert response.trace[2].result["player1Wins"] == 2
     assert [c.tag for c in response.answer.claims] == ["verified", "interpreted"]

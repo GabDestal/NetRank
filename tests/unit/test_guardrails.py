@@ -123,6 +123,9 @@ def test_run_readonly_executes_checked_query_with_caps():
         ("Who is the better player on clay?", False),
         ("What probability does the model give Sinner?", False),
         ("What are Pinnacle's odds for the 2019 final?", False),
+        ("What did Pinnacle give Federer in the 2019 Wimbledon semi?", False),
+        ("How does the model compare with the bookmakers?", False),
+        ("Which bookmaker had the lowest margin in 2015?", False),
     ],
 )
 def test_betting_scope(question, betting):

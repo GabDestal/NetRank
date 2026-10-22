@@ -1,7 +1,12 @@
-"""The agent's LLM: Groq, configured from the environment, with retry and backoff (decision log D66)."""
+"""The agent's LLM: Groq, configured from the environment, with counted retry and backoff (decision log D66)."""
+
+import random
+import re
+import time
+from typing import Any
 
 import groq
-from langchain_core.runnables import Runnable
+from langchain_core.messages import AIMessage
 from langchain_groq import ChatGroq
 
 from app.agent.tools import tool_specs
@@ -10,13 +15,104 @@ from app.errors import GdsUnavailableError
 
 # Retried with exponential backoff and jitter: free-tier rate limits and transient server errors.
 RETRYABLE = (groq.RateLimitError, groq.APIConnectionError, groq.APITimeoutError, groq.InternalServerError)
+# Never retried: the configuration is wrong (retired model, bad key) and retrying cannot help.
+CONFIGURATION = (groq.NotFoundError, groq.AuthenticationError, groq.PermissionDeniedError)
+BASE_DELAY, MAX_DELAY = 2.0, 60.0
+DURATION_PART = re.compile(r"(\d+(?:\.\d+)?)(ms|h|m|s)")
+
+
+def parse_duration(text: str) -> float | None:
+    """Seconds from Groq's reset headers: '585ms', '7.66s', '1m2.3s', '3h18m43.2s' (None if unparseable)."""
+    parts = DURATION_PART.findall(text or "")
+    if not parts:
+        return None
+    unit_seconds = {"ms": 0.001, "s": 1.0, "m": 60.0, "h": 3600.0}
+    return sum(float(value) * unit_seconds[unit] for value, unit in parts)
+
+
+def server_wait(exc: Exception) -> float | None:
+    """How long the provider asks us to wait before the token window allows another request."""
+    response = getattr(exc, "response", None)
+    if response is None:
+        return None
+    headers = response.headers
+    if (retry_after := headers.get("retry-after")) and retry_after.replace(".", "", 1).isdigit():
+        return float(retry_after)
+    return parse_duration(headers.get("x-ratelimit-reset-tokens", ""))
 
 
 class AgentUnavailableError(GdsUnavailableError):
     """No LLM configured, or the provider kept failing (HTTP 503)."""
 
 
-def build_llm(settings: Settings) -> Runnable:
+class LLMConfigurationError(AgentUnavailableError):
+    """The provider rejected the model or the key (e.g. a retired Groq model)."""
+
+
+class ToolCallRejectedError(Exception):
+    """The provider rejected the model's tool call because its arguments did not match the schema."""
+
+
+def rejected_tool_call(exc: groq.BadRequestError) -> str | None:
+    """Message for a 400 caused by the model's own output (invalid tool call or unparseable output).
+
+    Groq reports these with code 'tool_use_failed' and/or a 'failed_generation' field; the start of the
+    failed generation is kept so the model (and the trace) can see what was wrong.
+    """
+    body = exc.body if isinstance(exc.body, dict) else {}
+    error = body.get("error", body)
+    if not isinstance(error, dict):
+        return None
+    if error.get("code") != "tool_use_failed" and "failed_generation" not in error:
+        return None
+    message = str(error.get("message", "tool call did not match its schema"))[:400]
+    generation = str(error.get("failed_generation", ""))[:300]
+    return f"{message} | model output: {generation}" if generation else message
+
+
+class RetryingLLM:
+    """Calls the model, retrying retryable errors with backoff, and counts what happened.
+
+    `rate_limited` counts 429 responses and `retries` all retries, so an evaluation can report how
+    many questions were throttled instead of hiding it.
+    """
+
+    def __init__(self, llm: Any, max_attempts: int, sleep=time.sleep) -> None:
+        """`llm` is the bound chat model; `sleep` is injectable for tests."""
+        self.llm = llm
+        self.max_attempts = max_attempts
+        self.sleep = sleep
+        self.retries = 0
+        self.rate_limited = 0
+
+    def invoke(self, messages: list) -> AIMessage:
+        """One model turn; raises AgentUnavailableError once every attempt failed."""
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                return self.llm.invoke(messages)
+            except groq.BadRequestError as exc:
+                if message := rejected_tool_call(exc):
+                    raise ToolCallRejectedError(message) from exc
+                raise
+            except CONFIGURATION as exc:
+                raise LLMConfigurationError(
+                    f"LLM configuration rejected by the provider ({type(exc).__name__}): "
+                    + "check GROQ_MODEL and GROQ_API_KEY"
+                ) from exc
+            except RETRYABLE as exc:
+                self.rate_limited += isinstance(exc, groq.RateLimitError)
+                if attempt == self.max_attempts:
+                    raise AgentUnavailableError(
+                        f"LLM provider failed after {attempt} attempts ({type(exc).__name__})"
+                    ) from exc
+                self.retries += 1
+                backoff = BASE_DELAY * 2 ** (attempt - 1) * (0.5 + random.random() / 2)
+                # Wait for the provider's own reset time when it gives one (per-minute token windows).
+                self.sleep(min(MAX_DELAY, max(backoff, (server_wait(exc) or 0.0) + 0.5)))
+        raise AssertionError("unreachable")
+
+
+def build_llm(settings: Settings) -> RetryingLLM:
     """Chat model with every tool bound; a tool call is required on every turn.
 
     Requiring a tool call means the final answer always arrives through submit_answer, i.e. as
@@ -31,6 +127,4 @@ def build_llm(settings: Settings) -> Runnable:
         max_retries=0,
         timeout=60,
     )
-    return model.bind_tools(tool_specs(), tool_choice="required").with_retry(
-        retry_if_exception_type=RETRYABLE, wait_exponential_jitter=True, stop_after_attempt=settings.llm_max_attempts
-    )
+    return RetryingLLM(model.bind_tools(tool_specs(), tool_choice="required"), settings.llm_max_attempts)

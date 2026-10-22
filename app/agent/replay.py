@@ -1,6 +1,7 @@
 """Record and replay LLM turns, so tests and CI never call Groq (decision log D67).
 
-A recording is a JSON list of turns: {"content": str, "tool_calls": [{"name", "args", "id"}]}.
+A recording is a JSON list of turns: {"content": str, "tool_calls": [{"name", "args", "id"}]}, or
+{"rejected": message} when the provider refused the model's output (replayed as that rejection).
 RecordingLLM wraps the live model and stores every turn; ReplayLLM returns them in order.
 """
 
@@ -9,6 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.messages import AIMessage
+
+from app.agent.llm import ToolCallRejectedError
 
 
 def to_turn(message: AIMessage) -> dict:
@@ -42,6 +45,8 @@ class ReplayLLM:
             raise RuntimeError(f"recording exhausted after {self.calls} turns")
         turn = self.turns[self.calls]
         self.calls += 1
+        if "rejected" in turn:  # the provider refused this turn during the live run
+            raise ToolCallRejectedError(turn["rejected"])
         return from_turn(turn)
 
 
@@ -54,8 +59,12 @@ class RecordingLLM:
         self.turns: list[dict] = []
 
     def invoke(self, messages: list) -> AIMessage:
-        """Call the live model and record its answer."""
-        message = self.llm.invoke(messages)
+        """Call the live model and record its answer, or the provider's rejection of it."""
+        try:
+            message = self.llm.invoke(messages)
+        except ToolCallRejectedError as exc:
+            self.turns.append({"rejected": str(exc)})
+            raise
         self.turns.append(to_turn(message))
         return message
 

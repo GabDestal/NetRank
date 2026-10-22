@@ -8,13 +8,14 @@ an earlier tool result. Ids the LLM invents, or picks from an ambiguous search, 
 
 import json
 import logging
+import re
 from collections.abc import Callable
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError
 
 from app.agent import guardrails
-from app.agent.schema import AgentAnswer, ToolCallRecord
+from app.agent.schema import DraftAnswer, ToolCallRecord
 from app.config import get_settings
 from app.database.client import Neo4jClient
 from app.errors import GdsUnavailableError, InvalidRequestError, NotFoundError
@@ -129,7 +130,7 @@ TOOL_ARGS: dict[str, type[BaseModel]] = {
     "get_style": StyleArgs,
     "predict_match": PredictArgs,
     "run_readonly_cypher": CypherArgs,
-    "submit_answer": AgentAnswer,
+    "submit_answer": DraftAnswer,
 }
 
 
@@ -163,6 +164,16 @@ def ids_in(value: Any) -> set[int]:
     return found
 
 
+def names_in(value: Any) -> list[str]:
+    """Every string stored under a 'name' key of a tool result."""
+    if isinstance(value, dict):
+        own = [value["name"]] if isinstance(value.get("name"), str) else []
+        return own + [n for key, item in value.items() if key != "name" for n in names_in(item)]
+    if isinstance(value, list):
+        return [n for item in value for n in names_in(item)]
+    return []
+
+
 def trim_for_llm(value: Any) -> Any:
     """Copy of a result with long lists cut to LLM_LIST_LIMIT items (the trace keeps everything)."""
     if isinstance(value, dict):
@@ -176,9 +187,10 @@ def trim_for_llm(value: Any) -> Any:
 class ToolBox:
     """Executes tool calls for one question and keeps the trace and resolution state."""
 
-    def __init__(self, db: Neo4jClient) -> None:
-        """Fresh state per question."""
+    def __init__(self, db: Neo4jClient, question: str = "") -> None:
+        """Fresh state per question; the question text bounds which names may be searched."""
         self._db = db
+        self.question_words = set(re.findall(r"[a-z0-9]+", fold(question)))
         self.trace: list[ToolCallRecord] = []
         self.resolved: set[int] = set()
         self.ambiguous: set[int] = set()
@@ -223,8 +235,24 @@ class ToolBox:
             raise InvalidRequestError(f"player id {player_id} has not been resolved: call search_player first")
         return player_id
 
+    def known_words(self) -> set[str]:
+        """Words the agent may use in a search: the question's, plus player names returned so far."""
+        names = [n for r in self.trace if r.success for n in names_in(r.result)]
+        return self.question_words | {w for name in names for w in re.findall(r"[a-z0-9]+", fold(name))}
+
     def search_player(self, args: NameArgs) -> dict:
-        """Unique when exactly one hit or an exact full-name match; otherwise ambiguous (never guessed)."""
+        """Unique when exactly one hit or an exact full-name match; otherwise ambiguous (never guessed).
+
+        The name must use only words from the question or from earlier results: in live runs the model
+        expanded "Zverev" to "Alexander Zverev" by itself, which is a guess (decision log D61).
+        """
+        if self.question_words:
+            extra = sorted(set(re.findall(r"[a-z0-9]+", fold(args.name))) - self.known_words())
+            if extra:
+                raise InvalidRequestError(
+                    f"search with the name exactly as the user wrote it; {extra} is not in the question. "
+                    + "If that search is ambiguous, ask the user which player they mean"
+                )
         page = players.search(self._db, args.name, 1, 5)
         candidates = [{"id": h.id, "name": h.name, "ioc": h.ioc} for h in page.items]
         exact = [c for c in candidates if fold(c["name"]) == fold(args.name)]
@@ -274,6 +302,12 @@ class ToolBox:
             content = {"toolCallId": call_id, "error": record.error}
         self.trace.append(record)
         return record, json.dumps(content, default=str)
+
+    def record_rejection(self, message: str) -> None:
+        """Keep a provider-rejected model output in the trace (it produced no tool call)."""
+        call_id = f"t{len(self.trace) + 1}"
+        self.trace.append(ToolCallRecord(id=call_id, tool="(rejected model output)", arguments={}, success=False,
+                                         error=message[:500]))
 
     def results_by_id(self) -> dict[str, ToolCallRecord]:
         """Trace records keyed by call id."""

@@ -28,9 +28,9 @@ class Settings(BaseSettings):
 
     # Agent (Groq free tier). Without a key POST /api/agent/ask answers 503.
     groq_api_key: SecretStr | None = None
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "openai/gpt-oss-120b"
     agent_max_steps: int = Field(default=8, ge=2, le=20)
-    llm_max_attempts: int = Field(default=5, ge=1, le=10)
+    llm_max_attempts: int = Field(default=6, ge=1, le=10)
 
 
 @lru_cache
