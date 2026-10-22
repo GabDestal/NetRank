@@ -5,16 +5,10 @@ Sackmann gives first and last names ("Juan Martin", "del Potro"); tennis-data gi
 """
 
 import re
-import unicodedata
+
+from app.text import fold
 
 INITIALS = re.compile(r"^(?:[A-Za-z]{1,2}\.?-?)+$")
-
-
-def fold(text: str) -> str:
-    """Lowercase, strip accents, turn hyphens/apostrophes/dots into spaces, collapse spaces."""
-    decomposed = unicodedata.normalize("NFKD", text)
-    ascii_only = "".join(char for char in decomposed if not unicodedata.combining(char))
-    return re.sub(r"\s+", " ", re.sub(r"[-'.`]", " ", ascii_only.lower())).strip()
 
 
 def sackmann_key(first: str | None, last: str | None) -> str:
