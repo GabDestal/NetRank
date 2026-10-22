@@ -2,21 +2,29 @@
 
 [Full report](https://htmlpreview.github.io/?https://github.com/GabDestal/NetRank/blob/python-coverage-comment-action-data/htmlcov/index.html)
 
-| Name                         |    Stmts |     Miss |   Branch |   BrPart |   Cover |   Missing |
-|----------------------------- | -------: | -------: | -------: | -------: | ------: | --------: |
-| app/\_\_init\_\_.py          |        1 |        0 |        0 |        0 |    100% |           |
-| app/agent/\_\_init\_\_.py    |        0 |        0 |        0 |        0 |    100% |           |
-| app/config.py                |       13 |        0 |        0 |        0 |    100% |           |
-| app/database/\_\_init\_\_.py |        0 |        0 |        0 |        0 |    100% |           |
-| app/database/client.py       |       25 |        1 |        0 |        0 |     96% |        54 |
-| app/main.py                  |       18 |        0 |        0 |        0 |    100% |           |
-| app/models/\_\_init\_\_.py   |        0 |        0 |        0 |        0 |    100% |           |
-| app/models/health.py         |        7 |        0 |        0 |        0 |    100% |           |
-| app/routers/\_\_init\_\_.py  |        0 |        0 |        0 |        0 |    100% |           |
-| app/routers/health.py        |       19 |        0 |        2 |        0 |    100% |           |
-| app/services/\_\_init\_\_.py |        0 |        0 |        0 |        0 |    100% |           |
-| app/services/health.py       |       12 |        0 |        0 |        0 |    100% |           |
-| **TOTAL**                    |   **95** |    **1** |    **2** |    **0** | **99%** |           |
+| Name                          |    Stmts |     Miss |   Branch |   BrPart |   Cover |   Missing |
+|------------------------------ | -------: | -------: | -------: | -------: | ------: | --------: |
+| app/\_\_init\_\_.py           |        1 |        0 |        0 |        0 |    100% |           |
+| app/agent/\_\_init\_\_.py     |        0 |        0 |        0 |        0 |    100% |           |
+| app/config.py                 |       13 |        0 |        0 |        0 |    100% |           |
+| app/database/\_\_init\_\_.py  |        0 |        0 |        0 |        0 |    100% |           |
+| app/database/client.py        |       25 |        1 |        0 |        0 |     96% |        59 |
+| app/main.py                   |       18 |        0 |        0 |        0 |    100% |           |
+| app/models/\_\_init\_\_.py    |        0 |        0 |        0 |        0 |    100% |           |
+| app/models/health.py          |        7 |        0 |        0 |        0 |    100% |           |
+| app/routers/\_\_init\_\_.py   |        0 |        0 |        0 |        0 |    100% |           |
+| app/routers/health.py         |       19 |        0 |        2 |        0 |    100% |           |
+| app/services/\_\_init\_\_.py  |        0 |        0 |        0 |        0 |    100% |           |
+| app/services/health.py        |       12 |        0 |        0 |        0 |    100% |           |
+| scripts/\_\_init\_\_.py       |        0 |        0 |        0 |        0 |    100% |           |
+| scripts/download\_sackmann.py |       52 |        4 |        8 |        1 |     92% | 44-46, 93 |
+| scripts/ingest.py             |       60 |       30 |        8 |        1 |     54% |113-122, 136-147, 152-163, 167 |
+| scripts/names.py              |       30 |        1 |        6 |        1 |     94% |        57 |
+| scripts/report.py             |       44 |        0 |        2 |        0 |    100% |           |
+| scripts/resolve.py            |       82 |        0 |       10 |        0 |    100% |           |
+| scripts/sackmann.py           |       79 |        2 |       18 |        2 |     96% |   53, 106 |
+| scripts/tennis\_data.py       |       59 |        0 |       16 |        1 |     99% |   59-\>61 |
+| **TOTAL**                     |  **501** |   **38** |   **70** |    **6** | **92%** |           |
 
 
 ## Setup coverage badge
