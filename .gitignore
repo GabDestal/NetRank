@@ -36,3 +36,6 @@ Thumbs.db
 
 # Row-level resolution logs (derived from tennis-data files)
 data/processed/
+
+# Trained model artifacts (make train)
+models/

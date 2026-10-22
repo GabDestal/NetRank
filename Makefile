@@ -1,4 +1,4 @@
-.PHONY: help venv install run download ingest gds benchmark docker-build docker-run docker-down docker-logs test test-unit test-stack lint clean
+.PHONY: help venv install run download ingest gds train benchmark docker-build docker-run docker-down docker-logs test test-unit test-stack lint clean
 
 PYTHON ?= python3
 VENV := .venv
@@ -35,6 +35,11 @@ ingest: ## Load Neo4j from data/raw and write docs/data_exploration.md (needs ma
 
 gds: ## Recompute prestige, style similarity and styles (after make ingest)
 	$(PY) -m scripts.gds_refresh
+
+train: ## Train and evaluate the match-outcome model -> models/, docs/model_report.md (after make gds)
+	# One GDS thread: parallel PageRank sums in varying order (~1e-14), which moved weights by ~1e-10
+	# and changed the model version between identical runs.
+	GDS_CONCURRENCY=1 $(PY) -m scripts.train
 
 benchmark: ## PROFILE before/after query benchmarks -> docs/benchmarks.md (needs the loaded graph)
 	$(PY) -m scripts.benchmark
