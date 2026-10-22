@@ -1,4 +1,4 @@
-.PHONY: help venv install run docker-build docker-run docker-down docker-logs test test-unit test-stack lint clean
+.PHONY: help venv install run download ingest docker-build docker-run docker-down docker-logs test test-unit test-stack lint clean
 
 PYTHON ?= python3
 VENV := .venv
@@ -27,6 +27,12 @@ install: venv ## Install runtime + dev dependencies into .venv
 run: ## Run the API with reload on http://localhost:8000 (needs Neo4j: make docker-run)
 	$(PY) -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+download: ## Download and verify Sackmann data (tennis-data files are manual, see README)
+	$(PY) -m scripts.download_sackmann
+
+ingest: ## Load Neo4j from data/raw and write docs/data_exploration.md (needs make docker-run)
+	$(PY) -m scripts.ingest
+
 docker-build: ## Build the API image
 	docker compose build
 
@@ -49,8 +55,10 @@ test-unit: ## Run unit tests only
 test-stack: ## Run the container health tests against the running stack
 	$(PY) -m pytest tests/container -v
 
+# --jobs=1 overrides the template's jobs=0: the parallel pool occasionally crashed on Windows
+# (BrokenProcessPool), and a single worker takes ~15 s on this codebase.
 lint: ## Run pylint (fails below 9.5/10)
-	$(PY) -m pylint --fail-under=9.5 $(LINT_PATHS)
+	$(PY) -m pylint --jobs=1 --fail-under=9.5 $(LINT_PATHS)
 
 clean: ## Remove caches, coverage and build artefacts (keeps .venv and .env)
 	rm -rf .pytest_cache .coverage .coverage.* coverage.xml htmlcov build dist *.egg-info
