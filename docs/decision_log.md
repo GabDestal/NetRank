@@ -45,3 +45,19 @@ Evidence for each choice is in [data_exploration.md](data_exploration.md).
 | D28 | Batched `UNWIND $rows ... MERGE` loads (2,000 rows per transaction) through the API's `Neo4jClient` | `LOAD CSV`; `neo4j-admin import`; row-by-row writes | Ingestion script; parameterised queries |
 | D29 | ETL dependencies (pandas, openpyxl, xlrd) in `requirements-etl.txt`, kept out of the API image | One requirements file | Docker: image size |
 | D30 | `make lint` runs pylint with `--jobs=1` (template has `jobs=0`) after an intermittent Windows process-pool crash | Keep `jobs=0` | Makefile: commands functional |
+
+## Phase 3 — Cypher endpoints and benchmarks
+
+Measurements for each choice are in [benchmarks.md](benchmarks.md).
+
+| # | Decision | Alternatives considered | Checklist item |
+| --- | --- | --- | --- |
+| D31 | Name search through a full-text index (`standard-folding` analyser); each word becomes a folded prefix; ties broken by career length | `toLower(name) CONTAINS`; TEXT index; a normalised `searchName` property with a range index and `STARTS WITH` | Indexes; FastAPI endpoints |
+| D32 | Derived `(Player)-[:BEAT {wins, firstWin, lastWin}]->(Player)`, all-time, walkovers excluded, rebuilt on every `make ingest`; `Match` stays the source of truth | One `BEAT` per pair and season; no materialisation (traverse `Match` every time) | Schema; optimisation |
+| D33 | Nemeses ranked by the opponent's wins over the player, then by head-to-head margin; `min_wins` filter (default 2) | Rank by margin; rank by win share | Complex pattern matching |
+| D34 | Non-transitive triangle = player > second > third > player where every `>` is a strict head-to-head lead; sorted by the weakest lead | Any single win per edge; return only the count | Complex pattern matching |
+| D35 | Beat chain = `SHORTEST 1` over `BEAT`, search capped at 6 hops (a literal: quantifier bounds cannot be parameters), `max_hops` parameter (default 4) rejects longer chains; each hop backed by the latest played match | `allShortestPaths`; unbounded search; weighted path (e.g. recency) via GDS | Pathfinding in an endpoint |
+| D36 | Offset pagination (`page`, `size` <= 100) returning `total` on every list | Keyset/cursor pagination; no total | Optimisation: pagination |
+| D37 | Services raise `NotFoundError` / `InvalidRequestError`; app-level handlers map them to 404 / 400, driver outages to 503 on every endpoint; validation errors stay 422 | try/except in each router | FastAPI: error handling |
+| D38 | Cypher kept as named constants in `app/services`, fully parameterised; services return typed Pydantic models | Query builder / OGM; raw dicts to routers | Clean architecture; Pydantic |
+| D39 | Benchmarks force the "before" plan with `USING SCAN` instead of dropping indexes; each pair must return identical results; cases without gain are reported, not dropped | Drop and recreate indexes; report only improvements | Optimisation: benchmarks; EXPLAIN/PROFILE |

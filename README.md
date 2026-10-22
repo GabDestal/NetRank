@@ -13,7 +13,7 @@ verified, predicted or interpreted.
 Course project, GraphDB (AIDAMS 3A, CentraleSupélec), Level 3 — Advanced graph & GDS.
 Spec and grading checklist: [docs/guidelines.md](docs/guidelines.md).
 
-> **Status:** Phase 2 (data). The graph is loaded; endpoints, GDS, ML and the agent arrive in later phases.
+> **Status:** Phase 3 (Cypher endpoints). GDS, ML and the agent arrive in later phases.
 
 ## Quick start
 
@@ -42,6 +42,48 @@ curl http://localhost:8080/api/health/ready
 | `neo4j` | `neo4j:5.26.32` + GDS plugin | 7474, 7687 (127.0.0.1) | `cypher-shell 'RETURN gds.version()'` |
 | `api` | [`ghcr.io/gabdestal/netrank-api`](https://github.com/GabDestal/NetRank/pkgs/container/netrank-api) (built from `Dockerfile`) | none (behind nginx) | `GET /api/health` |
 | `nginx` | `nginx:1.30.6-alpine` | `${NGINX_PORT:-8080}` | `GET /nginx-health` |
+
+## API
+
+Every list is paginated (`page`, `size` <= 100, response carries `total`). Errors return
+`{"detail": "..."}` with 400 (inconsistent parameters), 404 (unknown player, no chain), 422
+(invalid parameter) or 503 (Neo4j down). Full schemas at <http://localhost:8080/docs>.
+
+| Endpoint | What it answers | Graph technique |
+| --- | --- | --- |
+| `GET /api/players?q=` | Find a player by name (accents and case ignored) | Full-text index |
+| `GET /api/players/{id}` | Career record, titles, best rank, per surface | Subqueries, conditional aggregation |
+| `GET /api/players/{id}/matches` | Match history with odds; `surface`, `since`, `until` filters | Anchored traversal, pagination |
+| `GET /api/h2h?p1=&p2=` | Head-to-head overall and per surface | Pattern anchored at both players |
+| `GET /api/players/{id}/nemesis` | Who beats this player; non-transitive triangles | 3-cycles on `BEAT` |
+| `GET /api/path?from=&to=` | Shortest "beat chain", each hop backed by a match | `SHORTEST` path, bounded |
+
+```bash
+curl "localhost:8080/api/players?q=federer&size=1"
+# {"items":[{"id":103819,"name":"Roger Federer",...}],"page":1,"size":1,"total":1}
+
+curl "localhost:8080/api/h2h?p1=104925&p2=104745"
+# Djokovic vs Nadal: {"player1Wins":30,"player2Wins":28,"bySurface":[...],"matches":[...]}
+
+curl "localhost:8080/api/path?from=100532&to=103819"
+# Johan Kriek > Fabrice Santoro > Roger Federer, 2 hops, with the match behind each hop
+
+curl "localhost:8080/api/players/103819/nemesis?size=3&triangles=2"
+# Djokovic (27-22) and Nadal (24-16) lead; 783 non-transitive triangles, the strongest:
+# Federer leads Agassi 8-3, Agassi leads Rafter 10-5, Rafter leads Federer 3-0
+```
+
+### Query performance
+
+`make benchmark` profiles each optimisation before and after and writes
+[docs/benchmarks.md](docs/benchmarks.md). Highlights on the loaded graph:
+
+| Case | db hits before → after | latency before → after |
+| --- | ---: | ---: |
+| Beat cycles through Djokovic (`BEAT` instead of `Match` hops) | 71.2M → 23k | 10.0 s → 7 ms |
+| Beat chain, 3 hops (`SHORTEST` on `BEAT`) | 335k → 365 | 123 ms → 3 ms |
+| Career totals (one subquery instead of chained `OPTIONAL MATCH`) | 983k → 7.4k | 229 ms → 4 ms |
+| Matches in one week (`Match.date` index) | 205k → 130 | 39 ms → 3 ms |
 
 ## Datasets
 
@@ -96,6 +138,7 @@ exactly on both players' ranks. Each `Match` records how its odds were linked (`
 | `WON` / `LOST` | 102,417 each |
 | `PART_OF` | 102,417 |
 | `PRICED` | 181,474 |
+| `BEAT` (derived: who beat whom, with win counts) | 66,624 |
 
 ## Makefile
 
@@ -106,6 +149,7 @@ exactly on both players' ranks. Each `Match` records how its odds were linked (`
 | `make run` | Run the API on :8000 with reload (needs Neo4j from `make docker-run`) |
 | `make download` | Download the Sackmann files and verify them against commit `712be0c5` |
 | `make ingest` | Load Neo4j from `data/raw/` and regenerate `docs/data_exploration.md` |
+| `make benchmark` | PROFILE before/after benchmarks, written to `docs/benchmarks.md` |
 | `make docker-run` | Build and start the stack, wait until every service is healthy |
 | `make docker-down` | Stop the stack (Neo4j data volume kept) |
 | `make test` | All tests with coverage (fails under 60%); integration/container tests skip if services are down |
