@@ -369,7 +369,10 @@ def main() -> None:
     try:
         for question in questions:
             rows.append(evaluate_one(db, question, {"replay": bool(args.replay), "recordings": recordings}))
-            log.info(f"{question['id']}: correct={rows[-1]['correct']} kind={rows[-1]['kind']}")
+            row = rows[-1]
+            # The error and 429 count go to the console too, so a run killed before save_run keeps its cause.
+            log.info(f"{question['id']}: correct={row['correct']} kind={row['kind']} "
+                     + f"rateLimited={row.get('rateLimited', 0)} error={row.get('error')}")
             if args.pause and not args.replay:
                 time.sleep(args.pause)
     finally:
