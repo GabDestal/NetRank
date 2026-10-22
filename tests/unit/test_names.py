@@ -44,6 +44,7 @@ def test_sackmann_key_tolerates_missing_parts():
     """Missing first or last names give a usable, trimmed key."""
     assert sackmann_key(None, "Federer") == "federer"
     assert sackmann_key("Roger", None) == "r"
+    assert sackmann_key(float("nan"), "Federer") == "federer"  # pandas missing value
 
 
 def test_last_name_drops_only_a_single_letter_initial():

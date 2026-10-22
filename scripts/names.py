@@ -18,21 +18,45 @@ def fold(text: str) -> str:
 
 
 def sackmann_key(first: str | None, last: str | None) -> str:
-    """Key for a Sackmann player: folded last name + initial of the first name."""
-    initial = fold(first or "")[:1]
-    return f"{fold(last or '')} {initial}".strip()
+    """Key for a Sackmann player: folded last name + initial of the first name.
+
+    Missing parts (None, or NaN as read by pandas) count as empty.
+    """
+    first = first if isinstance(first, str) else ""
+    last = last if isinstance(last, str) else ""
+    return f"{fold(last)} {fold(first)[:1]}".strip()
+
+
+def is_initials(token: str) -> bool:
+    """'R.', 'J.M.', 'An.', 'JP' are initials; 'Nadal' or 'Ze' are not."""
+    return bool(INITIALS.match(token)) and (token.endswith(".") or token.isupper())
 
 
 def tennisdata_key(name: str) -> str:
-    """Key for a tennis-data name like 'Del Potro J.M.' or 'Ramos-Vinolas A.'.
+    """Key for a tennis-data name like 'Del Potro J.M.', 'Varillas J. P.' or 'Ramos-Vinolas A.'.
 
-    The last token is read as initials when it is short and dotted or all-caps; otherwise the
-    whole string is treated as the last name (no initial).
+    Trailing initials tokens are stripped; the first of them gives the initial. A name with no
+    initials is treated as a bare last name.
     """
     tokens = name.strip().split()
-    if len(tokens) > 1 and INITIALS.match(tokens[-1]) and (tokens[-1].endswith(".") or tokens[-1].isupper()):
-        return f"{fold(' '.join(tokens[:-1]))} {fold(tokens[-1])[:1]}"
-    return fold(name)
+    split = len(tokens)
+    while split > 1 and is_initials(tokens[split - 1]):
+        split -= 1
+    if split == len(tokens):
+        return fold(name)
+    return f"{fold(' '.join(tokens[:split]))} {fold(tokens[split])[:1]}"
+
+
+def surname_variants(key: str) -> set[str]:
+    """Looser forms of a key for compound or joined surnames, initial kept.
+
+    'ramos vinolas a' -> {'ramos a', 'ramosvinolas a'}; 'o connell c' -> {'o c', 'oconnell c'}.
+    """
+    surname, _, initial = key.rpartition(" ") if " " in key else (key, "", "")
+    if len(initial) != 1:
+        surname, initial = key, ""
+    tokens = surname.split()
+    return {f"{form} {initial}".strip() for form in (tokens[0], "".join(tokens))} if tokens else set()
 
 
 def last_name(key: str) -> str:
