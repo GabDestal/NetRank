@@ -7,7 +7,7 @@ The API owns one driver (one connection pool) for its whole lifetime. Every quer
 from typing import Any
 
 from fastapi import Request
-from neo4j import Driver, GraphDatabase, RoutingControl
+from neo4j import Driver, GraphDatabase, NotificationMinimumSeverity, RoutingControl
 
 from app.config import Settings
 
@@ -16,8 +16,13 @@ class Neo4jClient:
     """Owns a Neo4j driver and runs parameterised queries against one database."""
 
     def __init__(self, uri: str, auth: tuple[str, str], database: str) -> None:
-        """Create the driver. No connection is opened until the first query."""
-        self._driver: Driver = GraphDatabase.driver(uri, auth=auth)
+        """Create the driver. No connection is opened until the first query.
+
+        Server notifications below WARNING (e.g. "index already exists") are not reported.
+        """
+        self._driver: Driver = GraphDatabase.driver(
+            uri, auth=auth, notifications_min_severity=NotificationMinimumSeverity.WARNING
+        )
         self._database = database
 
     @classmethod
