@@ -31,7 +31,7 @@ Evidence for each choice is in [data_exploration.md](data_exploration.md).
 | D14 | Scope: tour-level matches (Grand Slam, Masters, ATP Tour, Tour Finals) dated 1991-01-01 or later; Davis Cup and Olympics excluded | Add Davis Cup (~10k matches, ~1.7k low-degree players); all levels in the files | Dataset documented and justified |
 | D15 | Walkovers kept as `Match {walkover: true}` (to be excluded from the `LOST_TO` projection); retirements flagged `retired: true` | Drop walkovers at load time; treat retirements like walkovers | Schema: meaningful properties |
 | D16 | Each player's match facts (rank, seed, entry, age, serve stats) as properties of their own `WON` / `LOST` relationship | `Performance` node between Player and Match; flat `w_*` / `l_*` properties on Match | Schema: relationship properties |
-| D17 | Communities: Louvain on the who-beat-whom graph, presented as competition clusters (not playing styles) | Style vectors from serve stats -> KNN `SIMILAR_STYLE` -> Louvain; run both and compare | GDS: algorithms |
+| D17 | ~~Communities: Louvain on the who-beat-whom graph, presented as competition clusters (not playing styles)~~ **Superseded by D42** | Style vectors from serve stats -> KNN `SIMILAR_STYLE` -> Louvain; run both and compare | GDS: algorithms |
 | D18 | Source duplicate players (same name and birth date) merged into the id with most matches | Keep both ids; hand-maintained mapping | Ingestion / data quality |
 | D19 | `surface` stored on both `Tournament` and `Match` | `Surface` node; on Tournament only | Indexes / query patterns |
 | D20 | Sackmann data from a fork pinned to the final upstream commit `712be0c5`, every file verified by Git blob hash | Unpinned mirror; Kaggle re-uploads; another results dataset | Dataset source documented |
@@ -61,3 +61,33 @@ Measurements for each choice are in [benchmarks.md](benchmarks.md).
 | D37 | Services raise `NotFoundError` / `InvalidRequestError`; app-level handlers map them to 404 / 400, driver outages to 503 on every endpoint; validation errors stay 422 | try/except in each router | FastAPI: error handling |
 | D38 | Cypher kept as named constants in `app/services`, fully parameterised; services return typed Pydantic models | Query builder / OGM; raw dicts to routers | Clean architecture; Pydantic |
 | D39 | Benchmarks force the "before" plan with `USING SCAN` instead of dropping indexes; each pair must return identical results; cases without gain are reported, not dropped | Drop and recreate indexes; report only improvements | Optimisation: benchmarks; EXPLAIN/PROFILE |
+
+## Phase 4 — Graph Data Science
+
+| # | Decision | Alternatives considered | Checklist item |
+| --- | --- | --- | --- |
+| D40 | Prestige = weighted PageRank where losers point to winners (weight = wins). All-time: native projection of `BEAT` reversed, written by the refresh. `?era=`: Cypher-aggregation projection over `Match` inside the window (BEAT's wins are career totals and cannot be cut by date), streamed per request | Per-season BEAT; precomputed decades only; unweighted PageRank; ArticleRank / eigenvector centrality | GDS projection + algorithms; pathfinding/GDS in endpoints |
+| D41 | "Similar" = playing style: 11 career features per player (ace %, double-fault %, 1st-serve in / won %, 2nd-serve won %, break points saved %, return points won %, break points converted %, clay/grass/hard win shares), z-scored, only for players with >= 50 matches with serve statistics (712 players); KNN cosine, topK = 10, written as `SIMILAR_STYLE {score}` | FastRP on `BEAT` (encodes era and circuit, see D42 evidence); stats concatenated with FastRP; unscaled features; Euclidean distance; threshold 30 (828 players) or 100 (520) | GDS algorithms; endpoints |
+| D42 | Styles (`/api/styles`) = Louvain on the undirected KNN graph (`toUndirected`, MAX), weighted by similarity: 9 styles, modularity 0.62. Louvain on `BEAT` is shown in the notebook only, as the counter-example (table below) | Louvain on `BEAT` (D17); Leiden; K-means on the feature vectors | GDS algorithms; modeling rationale |
+| D43 | Lifecycle: the refresh writes everything the API reads (`prestige`, `prestigeRank`, style features, `styleVector`, `styleId`, `SIMILAR_STYLE`) and drops its projections, so a Neo4j restart loses nothing. Era PageRank is the only per-request projection: unique name, dropped in `finally`, one at a time (lock), results cached per era (32 eras, cleared by the refresh). Missing results or GDS failures answer 503 with what to run | Keep named projections in the catalog and stream everything; rebuild projections at API startup; precompute all eras | Optimisation; error handling |
+| D44 | `POST /api/admin/gds/refresh` protected by `X-API-Key` = `ADMIN_API_KEY` from the environment, compared with `secrets.compare_digest`: 401 when missing, 403 when wrong, 503 when the server has no key configured. Same work available offline as `make gds` | OAuth2 / JWT; HTTP Basic; restriction at the nginx layer only | Reverse proxy or authentication |
+| D45 | FastRP is exposed only as `fastrp_embeddings(cutoff)`: projects played matches strictly before the cutoff (undirected, weighted by wins), dimension 64, `iterationWeights [0, 1, 1]`, for Phase 5 features; never written to the database | Write one embedding property for all time (leaks future matches into training features); GraphSAGE | ML workflow (leakage) |
+| D46 | Reproducibility: `randomSeed 42` on FastRP and KNN; KNN and Louvain always run with concurrency 1 (GDS rejects `randomSeed` on KNN otherwise, and Louvain ids become `styleId`s); PageRank and FastRP use `GDS_CONCURRENCY` (1 in tests, up to 4 on Community) after checking they are identical at 4 (FastRP bit-identical; PageRank same order, scores within 1e-14). A test runs the refresh twice and compares | Seed only; same concurrency everywhere; accept run-to-run variation | Tests; GDS |
+| D47 | PageRank: damping 0.85, `maxIterations` 100, tolerance 1e-7 (converges in 94 iterations; at 50 it did not converge although the top 20 was already identical) | Defaults (20 iterations); tolerance 1e-6 (80 iterations) | GDS |
+| D48 | Style communities stored as `Player.styleId` (renumbered 1..k by size), not as `Style` nodes; each style's traits are computed from its centroid (top 3 features with \|z\| >= 0.5, fixed labels such as "big server", "strong returner") without any LLM | `Style` nodes with `HAS_STYLE`; LLM-generated style names | Schema; agent "interpreted" vs "verified" (Phase 6) |
+| D49 | Era syntax `2000s`, `2004-2008` or `2010`, clipped to 1991–2026; a player absent from the era gets a 404 naming them | Separate `since`/`until` parameters; dates instead of seasons | FastAPI: validation, error handling |
+
+### Evidence for D42: what Louvain finds on each graph
+
+Same 712 styled players, Louvain with concurrency 1. η² is the share of a variable's variance explained by the
+community assignment; country purity is the average share of each community's most common nationality.
+
+| Partition | Communities (>= 10 members) | Debut year η² | Country purity | Style features η² (mean of 11) |
+| --- | ---: | ---: | ---: | ---: |
+| Louvain on `BEAT` (who beat whom) | 4 | **0.91** | 0.12 | 0.06 |
+| Louvain on style KNN | 9 | 0.13 | 0.20 | **0.50** |
+
+The four `BEAT` communities are generations: median debut 1991 (left-censored at the start of the data),
+1996, 2004 and 2017. They are **not** regional: the largest nationality is ~12% of each. Style communities
+mix eras and explain half the variance of the style features. Consistency check for D40: an era covering
+every season ranks the top 200 players in exactly the same order as the native all-time projection.

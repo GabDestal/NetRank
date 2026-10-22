@@ -13,7 +13,7 @@ verified, predicted or interpreted.
 Course project, GraphDB (AIDAMS 3A, CentraleSupélec), Level 3 — Advanced graph & GDS.
 Spec and grading checklist: [docs/guidelines.md](docs/guidelines.md).
 
-> **Status:** Phase 3 (Cypher endpoints). GDS, ML and the agent arrive in later phases.
+> **Status:** Phase 4 (Graph Data Science). Match prediction (ML) and the agent arrive in later phases.
 
 ## Quick start
 
@@ -26,6 +26,7 @@ make docker-run               # neo4j + api + nginx, returns once all three are 
 make download                 # Sackmann files, verified against the pinned commit
 # tennis-data.co.uk files: download by hand, see "Datasets" below
 make ingest                   # load Neo4j (~1 min) and regenerate docs/data_exploration.md
+make gds                      # PageRank prestige, style similarity (KNN) and styles (Louvain), ~5 s
 curl http://localhost:8080/api/health/ready
 ```
 
@@ -57,6 +58,11 @@ Every list is paginated (`page`, `size` <= 100, response carries `total`). Error
 | `GET /api/h2h?p1=&p2=` | Head-to-head overall and per surface | Pattern anchored at both players |
 | `GET /api/players/{id}/nemesis` | Who beats this player; non-transitive triangles | 3-cycles on `BEAT` |
 | `GET /api/path?from=&to=` | Shortest "beat chain", each hop backed by a match | `SHORTEST` path, bounded |
+| `GET /api/players/{id}/prestige?era=` | Prestige score and rank, all-time or in an era (`2000s`, `2004-2008`) | PageRank (native or per-era Cypher projection) |
+| `GET /api/prestige?era=` | Prestige leaderboard | PageRank |
+| `GET /api/players/{id}/similar` | Players with the closest playing style | KNN on standardised serve/return features |
+| `GET /api/styles`, `GET /api/styles/{id}` | Playing-style communities with readable traits and members | Louvain on the KNN graph |
+| `POST /api/admin/gds/refresh` | Recompute prestige, similarity and styles (header `X-API-Key`) | Projections, write mode |
 
 ```bash
 curl "localhost:8080/api/players?q=federer&size=1"
@@ -72,6 +78,30 @@ curl "localhost:8080/api/players/103819/nemesis?size=3&triangles=2"
 # Djokovic (27-22) and Nadal (24-16) lead; 783 non-transitive triangles, the strongest:
 # Federer leads Agassi 8-3, Agassi leads Rafter 10-5, Rafter leads Federer 3-0
 ```
+
+### Graph Data Science
+
+`make gds` (or `POST /api/admin/gds/refresh` with `X-API-Key: $ADMIN_API_KEY`) writes the results the
+API reads, then drops its in-memory projections, so a Neo4j restart loses nothing. Era prestige is the
+only computation done per request: a projection of the matches in the window, PageRank streamed,
+cached per era. Missing results answer 503 with the command to run.
+
+```bash
+curl "localhost:8080/api/players/104925/prestige?era=2010s"
+# Djokovic: rank 1 of 774 players active in 2010-2019
+
+curl "localhost:8080/api/players/103819/similar?size=3"
+# closest style to Federer: Jannik Sinner (0.98), ...
+
+curl "localhost:8080/api/styles?size=3"
+# style 3: "risky second serve", "dominant first serve", "big server" -> Ivanisevic, Rusedski, Rosset
+
+curl -X POST -H "X-API-Key: $ADMIN_API_KEY" localhost:8080/api/admin/gds/refresh   # 401 without, 403 wrong key
+```
+
+Similarity means playing style, not network position: Louvain on the who-beat-whom graph only
+recovers generations (debut year explains 91% of its partition), while the style communities explain
+50% of the style features. See D41–D42 in [docs/decision_log.md](docs/decision_log.md).
 
 ### Query performance
 
@@ -149,6 +179,7 @@ exactly on both players' ranks. Each `Match` records how its odds were linked (`
 | `make run` | Run the API on :8000 with reload (needs Neo4j from `make docker-run`) |
 | `make download` | Download the Sackmann files and verify them against commit `712be0c5` |
 | `make ingest` | Load Neo4j from `data/raw/` and regenerate `docs/data_exploration.md` |
+| `make gds` | Recompute prestige, style similarity and styles (same as the admin endpoint) |
 | `make benchmark` | PROFILE before/after benchmarks, written to `docs/benchmarks.md` |
 | `make docker-run` | Build and start the stack, wait until every service is healthy |
 | `make docker-down` | Stop the stack (Neo4j data volume kept) |

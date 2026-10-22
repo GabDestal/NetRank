@@ -4,6 +4,10 @@ import os
 from collections.abc import Callable, Iterator
 from typing import Any
 
+# Reproducible KNN/Louvain/FastRP: one GDS thread in every test run (set before settings are read).
+os.environ.setdefault("GDS_CONCURRENCY", "1")
+
+# pylint: disable=wrong-import-position
 import pytest
 from fastapi.testclient import TestClient
 from neo4j.exceptions import AuthError, ServiceUnavailable

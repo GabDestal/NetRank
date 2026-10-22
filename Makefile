@@ -1,4 +1,4 @@
-.PHONY: help venv install run download ingest benchmark docker-build docker-run docker-down docker-logs test test-unit test-stack lint clean
+.PHONY: help venv install run download ingest gds benchmark docker-build docker-run docker-down docker-logs test test-unit test-stack lint clean
 
 PYTHON ?= python3
 VENV := .venv
@@ -32,6 +32,9 @@ download: ## Download and verify Sackmann data (tennis-data files are manual, se
 
 ingest: ## Load Neo4j from data/raw and write docs/data_exploration.md (needs make docker-run)
 	$(PY) -m scripts.ingest
+
+gds: ## Recompute prestige, style similarity and styles (after make ingest)
+	$(PY) -m scripts.gds_refresh
 
 benchmark: ## PROFILE before/after query benchmarks -> docs/benchmarks.md (needs the loaded graph)
 	$(PY) -m scripts.benchmark

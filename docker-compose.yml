@@ -37,6 +37,9 @@ services:
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
       NEO4J_DATABASE: ${NEO4J_DATABASE:-neo4j}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      GDS_CONCURRENCY: ${GDS_CONCURRENCY:-4}
+      STYLE_MIN_MATCHES: ${STYLE_MIN_MATCHES:-50}
     depends_on:
       neo4j:
         condition: service_healthy

@@ -7,3 +7,7 @@ class NotFoundError(Exception):
 
 class InvalidRequestError(Exception):
     """Parameters are individually valid but make no sense together (400)."""
+
+
+class GdsUnavailableError(Exception):
+    """GDS results are missing (refresh not run) or the GDS plugin cannot be used (503)."""

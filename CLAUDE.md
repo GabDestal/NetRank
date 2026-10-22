@@ -33,7 +33,13 @@ prediction benchmarked against bookmaker odds, and a LangGraph agent answering q
   make ingest (D32). Path/nemesis/triangles use BEAT; era-filtered queries must traverse Match.
   GDS LOST_TO can be a native projection of BEAT reversed with weight = wins.
 - Full-text index player_name_ft (standard-folding) backs /api/players?q=.
-- Communities = Louvain on the beat graph, described as competition clusters, not playing styles.
+- GDS (Phase 4, D40-D49): all-time prestige = PageRank on native reversed-BEAT projection, written by
+  `make gds` / POST /api/admin/gds/refresh; era prestige = per-request Cypher projection over Match,
+  cached per era. Similar = KNN on 11 z-scored style features (players >= 50 stat matches);
+  styles = Louvain on undirected KNN graph -> Player.styleId. Refresh writes results and drops projections.
+- KNN and Louvain must run with concurrency 1 (randomSeed rule, stable styleIds); PageRank/FastRP use
+  GDS_CONCURRENCY. FastRP only via fastrp_embeddings(cutoff) for leakage-free ML features (Phase 5).
+- Phase 7 notebook MUST include the Louvain-on-BEAT vs style-Louvain comparison (numbers in D42).
 - Entity resolution window is [tourney_date, +16] as the user specified (not [-2, +16]).
 - GDS: PageRank, FastRP, KNN, Louvain. ML: scikit-learn winner classifier on FastRP, PageRank,
   head-to-head; temporal train/test split; benchmark vs bookmaker implied probabilities.
@@ -67,12 +73,12 @@ schema; LIMIT enforced; Pydantic output tagging each claim verified / predicted 
 
 ## Phases
 0 reset ✔ → 1 scaffold ✔ → 2 data exploration + ingestion ✔ →
-3 Cypher endpoints + PROFILE before/after benchmarks ✔ → 4 GDS endpoints → 5 ML → 6 agent + guardrails →
+3 Cypher endpoints + PROFILE before/after benchmarks ✔ → 4 GDS endpoints ✔ → 5 ML → 6 agent + guardrails →
 7 docs + demo.ipynb.
 
 ## Commands
 `make install` (uv if present, Python 3.11), `make docker-run` (waits for healthy), `make download`,
-`make ingest` (~1 min, regenerates docs/data_exploration.md), `make benchmark` (~2 min, docs/benchmarks.md),
+`make ingest` (~1 min, regenerates docs/data_exploration.md), `make gds` (~5 s), `make benchmark` (~2 min, docs/benchmarks.md),
 `make test`, `make test-stack`, `make lint`.
 - API conventions: services raise NotFoundError/InvalidRequestError (app/errors.py), mapped in app/main.py;
   lists return Page[T] (app/models/common.py) with page/size from app/routers/params.py. Local `.venv` is at `.venv/Scripts` on Windows, `.venv/bin` elsewhere.
