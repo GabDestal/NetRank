@@ -33,3 +33,6 @@ data/interim/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Row-level resolution logs (derived from tennis-data files)
+data/processed/

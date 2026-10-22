@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
-from neo4j import RoutingControl
+from neo4j import NotificationMinimumSeverity, RoutingControl
 
 from app.config import Settings
 from app.database.client import Neo4jClient
@@ -21,7 +21,9 @@ def test_from_settings_passes_uri_and_secret(driver):
     """Settings are unwrapped into driver arguments, including the SecretStr password."""
     settings = Settings(neo4j_uri="bolt://db:7687", neo4j_user="u", neo4j_password="pw123456", neo4j_database="x")
     Neo4jClient.from_settings(settings)
-    driver.factory.assert_called_once_with("bolt://db:7687", auth=("u", "pw123456"))
+    driver.factory.assert_called_once_with(
+        "bolt://db:7687", auth=("u", "pw123456"), notifications_min_severity=NotificationMinimumSeverity.WARNING
+    )
 
 
 def test_read_routes_to_reader_and_returns_dicts(driver):
