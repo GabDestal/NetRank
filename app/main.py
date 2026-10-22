@@ -11,8 +11,8 @@ from neo4j.exceptions import AuthError, ServiceUnavailable, SessionExpired
 from app import __version__
 from app.config import get_settings
 from app.database.client import Neo4jClient
-from app.errors import InvalidRequestError, NotFoundError
-from app.routers import graph, health, players
+from app.errors import GdsUnavailableError, InvalidRequestError, NotFoundError
+from app.routers import analytics, graph, health, players
 
 log = logging.getLogger(__name__)
 
@@ -38,6 +38,8 @@ app = FastAPI(
 app.include_router(health.router)
 app.include_router(players.router)
 app.include_router(graph.router)
+app.include_router(analytics.router)
+app.include_router(analytics.admin)
 
 
 @app.exception_handler(NotFoundError)
@@ -50,6 +52,12 @@ async def not_found(_: Request, exc: NotFoundError) -> JSONResponse:
 async def invalid_request(_: Request, exc: InvalidRequestError) -> JSONResponse:
     """400 with the service's message."""
     return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
+@app.exception_handler(GdsUnavailableError)
+async def gds_unavailable(_: Request, exc: GdsUnavailableError) -> JSONResponse:
+    """503 when GDS results are missing or the plugin cannot run, with what to do about it."""
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
 
 
 @app.exception_handler(ServiceUnavailable)
