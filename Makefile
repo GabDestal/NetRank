@@ -44,8 +44,8 @@ train: ## Train and evaluate the match-outcome model -> models/, docs/model_repo
 eval: ## Live agent evaluation on eval/questions.json (needs GROQ_API_KEY; records eval/recordings/)
 	$(PY) -m scripts.eval_agent
 
-eval-replay: ## Re-score the recorded agent runs without calling Groq
-	$(PY) -m scripts.eval_agent --replay
+eval-replay: ## Re-score a live run's recordings without Groq: make eval-replay RUN=<live label>
+	$(PY) -m scripts.eval_agent --replay $(RUN)
 
 benchmark: ## PROFILE before/after query benchmarks -> docs/benchmarks.md (needs the loaded graph)
 	$(PY) -m scripts.benchmark

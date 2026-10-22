@@ -5,17 +5,20 @@ and model values), never written by hand. Reported per question and overall: ans
 correct tool choice, adversarial cases handled safely (and by which layer), fallback Cypher usage,
 and the share of verified/predicted claims the verifier downgraded.
 
-Usage: python -m scripts.eval_agent [--replay] [--only q01,q04]
+Usage: python -m scripts.eval_agent [--label NAME] [--replay LIVE_LABEL] [--only q01,q04]
+Every run is kept (eval/runs/<label>.json, docs/agent_eval/<label>.md); docs/agent_eval.md lists them.
 """
 
 import argparse
 import json
 import logging
 import re
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app.agent import graph
-from app.agent.llm import build_llm
+from app.agent.llm import AgentUnavailableError, LLMConfigurationError, build_llm
 from app.agent.replay import RecordingLLM, ReplayLLM
 from app.agent.schema import AgentResponse
 from app.config import get_settings
@@ -25,8 +28,10 @@ from app.text import fold
 
 QUESTIONS = Path("eval/questions.json")
 RECORDINGS = Path("eval/recordings")
-RESULTS = Path("eval/results.json")
+RUNS = Path("eval/runs")
+REPORTS = Path("docs/agent_eval")
 DOC = Path("docs/agent_eval.md")
+ABORTED = Path("eval/aborted_attempts.json")
 
 INTEGRITY = """
 CALL () { MATCH (n) RETURN count(n) AS nodes }
@@ -161,6 +166,7 @@ def score(question: dict, response: AgentResponse, gold: list, integrity: tuple[
         "caughtBy": caught_by(response) if question["category"] == "adversarial" else None,
         "fallback": response.fallbackCypherCalls,
         "guardrailRejections": response.guardrailRejections,
+        "invalidToolCalls": response.invalidToolCalls,
         "checkableClaims": len(claims),
         "downgraded": response.downgradedClaims,
         "steps": response.steps,
@@ -172,16 +178,45 @@ def score(question: dict, response: AgentResponse, gold: list, integrity: tuple[
 # --------------------------------------------------------------------------- running and reporting
 
 
-def run_one(db: Neo4jClient, question: dict, replay: bool) -> AgentResponse:
-    """Answer one question live (recording the turns) or from its recording."""
+def failed_row(question: dict, reason: str, retries: int, rate_limited: int) -> dict:
+    """A question that produced no answer (throttling, desynchronised recording, crash)."""
+    return {
+        "id": question["id"], "category": question["category"], "kind": "error", "correct": False,
+        "toolsOk": False, "safe": None, "caughtBy": None, "fallback": 0, "guardrailRejections": 0,
+        "invalidToolCalls": 0,
+        "checkableClaims": 0, "downgraded": 0, "steps": 0, "gold": [], "tools": [],
+        "error": reason, "retries": retries, "rateLimited": rate_limited,
+    }
+
+
+def run_one(db: Neo4jClient, question: dict, mode: dict) -> tuple[AgentResponse | None, dict]:
+    """Answer one question live (recording every turn) or from a recording.
+
+    Returns the response (None on failure) and {retries, rateLimited, error}.
+    """
     settings = get_settings()
-    path = RECORDINGS / f"{question['id']}.json"
-    if replay:
-        return graph.ask(db, ReplayLLM.from_file(path), question["question"], settings.agent_max_steps, "replay")
-    recorder = RecordingLLM(build_llm(settings))
-    response = graph.ask(db, recorder, question["question"], settings.agent_max_steps, settings.groq_model)
+    path = mode["recordings"] / f"{question['id']}.json"
+    if mode["replay"]:
+        try:
+            llm = ReplayLLM.from_file(path)
+            return graph.ask(db, llm, question["question"], settings.agent_max_steps, "replay"), {}
+        except (OSError, RuntimeError) as exc:
+            return None, {"error": f"replay: {exc}"}
+    retrying = build_llm(settings)
+    recorder = RecordingLLM(retrying)
+    info = {}
+    try:
+        response = graph.ask(db, recorder, question["question"], settings.agent_max_steps, settings.groq_model)
+    except LLMConfigurationError:
+        raise  # wrong model or key: abort the whole run
+    except AgentUnavailableError as exc:
+        response, info["error"] = None, str(exc)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        # Any other failure is this question's failure, reported in the run instead of aborting it.
+        response, info["error"] = None, f"{type(exc).__name__}: {str(exc)[:150]}"
     recorder.save(path)
-    return response
+    info.update(retries=retrying.retries, rateLimited=retrying.rate_limited)
+    return response, info
 
 
 def percent(part: int, whole: int) -> str:
@@ -189,21 +224,22 @@ def percent(part: int, whole: int) -> str:
     return f"{part}/{whole} ({100 * part / whole:.0f}%)" if whole else "n/a"
 
 
-def render(rows: list[dict], model: str) -> str:
-    """Markdown report."""
+def mark(ok: bool) -> str:
+    """Table cell for a yes/no verdict."""
+    return "yes" if ok else "**no**"
+
+
+def summary_lines(rows: list[dict]) -> list[str]:
+    """The metrics table."""
     adversarial = [r for r in rows if r["category"] == "adversarial"]
     checkable = sum(r["checkableClaims"] for r in rows)
     downgraded = sum(r["downgraded"] for r in rows)
     safe = sum(bool(r["safe"]) for r in adversarial)
     fallback_questions = sum(r["fallback"] > 0 for r in rows)
     fallback_calls = sum(r["fallback"] for r in rows)
-    lines = [
-        "# Agent evaluation",
-        "",
-        f"Generated by `make eval` (`scripts/eval_agent.py`), model `{model}`. Gold answers are computed from "
-        + "the graph at evaluation time; recordings of every LLM turn are in `eval/recordings/` and can be "
-        + "re-scored without Groq (`make eval-replay`).",
-        "",
+    throttled = sum(r.get("rateLimited", 0) > 0 for r in rows)
+    throttle_failures = sum("failed after" in (r.get("error") or "") for r in rows)
+    return [
         "| Metric | Result |",
         "| --- | --- |",
         f"| Answer accuracy | {percent(sum(r['correct'] for r in rows), len(rows))} |",
@@ -212,27 +248,119 @@ def render(rows: list[dict], model: str) -> str:
         f"| Questions using fallback Cypher | {fallback_questions} (calls: {fallback_calls}) |",
         f"| Guardrail rejections | {sum(r['guardrailRejections'] for r in rows)} |",
         f"| Verified/predicted claims downgraded by the verifier | {percent(downgraded, checkable)} |",
+        f"| Questions hit by rate limiting (429) | {throttled} (failed because of it: {throttle_failures}) |",
+        f"| Questions without an answer (errors) | {sum(r['kind'] == 'error' for r in rows)} |",
+        f"| Model tool calls rejected for schema mismatch | {sum(r.get('invalidToolCalls', 0) for r in rows)} |",
+    ]
+
+
+def render(rows: list[dict], meta: dict) -> str:
+    """Markdown report of one run."""
+    lines = [
+        f"# Agent evaluation: {meta['label']}",
         "",
-        "| Id | Category | Kind | Correct | Tools | Fallback | Downgraded | Caught by | Gold |",
-        "| --- | --- | --- | :---: | :---: | ---: | ---: | --- | --- |",
+        f"- Mode: **{meta['mode']}**; model: `{meta['model']}`; run: {meta['date']}.",
+        f"- Recordings: `{meta['recordings']}`. Gold answers computed from the graph when the run was scored.",
+        f"- Pause between questions: {meta.get('pause', 0)} s.",
+        *([f"- **Note:** {meta['note']}"] if meta.get("note") else []),
+        "",
+        *summary_lines(rows),
+        "",
+        "| Id | Category | Kind | Correct | Tools | Fallback | Downgraded | 429s | Caught by / error | Gold |",
+        "| --- | --- | --- | :---: | :---: | ---: | ---: | ---: | --- | --- |",
     ]
     for r in rows:
-        mark = lambda ok: "yes" if ok else "**no**"  # noqa: E731  pylint: disable=unnecessary-lambda-assignment
         gold = ", ".join(str(g) for g in r["gold"])[:60]
+        note = r.get("error") or r["caughtBy"] or ""
         lines.append(
             f"| {r['id']} | {r['category']} | {r['kind']} | {mark(r['correct'])} | {mark(r['toolsOk'])} "
-            + f"| {r['fallback']} | {r['downgraded']}/{r['checkableClaims']} | {r['caughtBy'] or ''} | {gold} |"
+            + f"| {r['fallback']} | {r['downgraded']}/{r['checkableClaims']} | {r.get('rateLimited', 0)} "
+            + f"| {note[:80]} | {gold} |"
         )
     return "\n".join(lines) + "\n"
 
 
+def write_index() -> None:
+    """docs/agent_eval.md: one line per run, oldest first (runs are never overwritten)."""
+    lines = [
+        "# Agent evaluation runs",
+        "",
+        "Each run is kept; live runs are listed separately from replays (re-scoring recorded turns).",
+        "",
+        "| Run | Mode | Model | Date | Accuracy | Tools | Adversarial safe | 429-affected | Note |",
+        "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |",
+    ]
+    for path in sorted(RUNS.glob("*.json")):
+        run = json.loads(path.read_text(encoding="utf-8"))
+        rows, meta = run["rows"], run["meta"]
+        adversarial = [r for r in rows if r["category"] == "adversarial"]
+        lines.append(
+            f"| [{meta['label']}](agent_eval/{meta['label']}.md) | {meta['mode']} | `{meta['model']}` | {meta['date']} "
+            + f"| {percent(sum(r['correct'] for r in rows), len(rows))} "
+            + f"| {percent(sum(r['toolsOk'] for r in rows), len(rows))} "
+            + f"| {percent(sum(bool(r['safe']) for r in adversarial), len(adversarial))} "
+            + f"| {sum(r.get('rateLimited', 0) > 0 for r in rows)} | {meta.get('note', '')} |"
+        )
+    if ABORTED.exists():
+        lines += ["", "## Aborted attempts and diagnostic calls (no scored results)", ""]
+        lines += ["| Date | Model | Reason |", "| --- | --- | --- |"]
+        attempts = json.loads(ABORTED.read_text(encoding="utf-8"))
+        lines += [f"| {a['date']} | `{a['model']}` | {a['reason']} |" for a in attempts]
+    DOC.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+
+
+def record_abort(model: str, reason: str) -> None:
+    """Keep a trace of a live run that stopped before producing results."""
+    attempts = json.loads(ABORTED.read_text(encoding="utf-8")) if ABORTED.exists() else []
+    attempts.append({"date": f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC", "model": model, "reason": reason})
+    ABORTED.write_text(json.dumps(attempts, indent=2), encoding="utf-8", newline="\n")
+    write_index()
+
+
+def parse_args() -> argparse.Namespace:
+    """Command-line options."""
+    parser = argparse.ArgumentParser(description="Evaluate the NetRank agent.")
+    parser.add_argument("--replay", default="", help="label of a live run whose recordings are replayed")
+    parser.add_argument("--label", default="", help="name of this run (default: mode and timestamp)")
+    parser.add_argument("--only", default="", help="comma-separated question ids (not saved as a run)")
+    parser.add_argument("--pause", type=float, default=0.0, help="seconds between live questions (rate limits)")
+    parser.add_argument("--note", default="", help="caveat shown with the run in the reports")
+    return parser.parse_args()
+
+
+def evaluate_one(db: Neo4jClient, question: dict, mode: dict) -> dict:
+    """Gold, integrity snapshot, agent run and score for one question."""
+    gold = gold_values(db, question)
+    before = db.read(INTEGRITY)[0]
+    try:
+        response, info = run_one(db, question, mode)
+    except LLMConfigurationError as exc:
+        record_abort(get_settings().groq_model, f"{question['id']}: {exc}")
+        raise
+    counters = {"retries": info.get("retries", 0), "rateLimited": info.get("rateLimited", 0)}
+    if response is None:
+        return failed_row(question, info["error"], counters["retries"], counters["rateLimited"])
+    return {**score(question, response, gold, (before, db.read(INTEGRITY)[0])), **counters}
+
+
+def save_run(rows: list[dict], meta: dict) -> None:
+    """Keep the run (JSON + Markdown) and refresh the index."""
+    RUNS.mkdir(parents=True, exist_ok=True)
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps({"meta": meta, "rows": rows}, indent=2, default=str)
+    (RUNS / f"{meta['label']}.json").write_text(payload, encoding="utf-8", newline="\n")
+    (REPORTS / f"{meta['label']}.md").write_text(render(rows, meta), encoding="utf-8", newline="\n")
+    write_index()
+
+
 def main() -> None:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(description="Evaluate the NetRank agent.")
-    parser.add_argument("--replay", action="store_true", help="use eval/recordings instead of calling Groq")
-    parser.add_argument("--only", default="", help="comma-separated question ids")
-    args = parser.parse_args()
+    args = parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+    now = datetime.now(timezone.utc)
+    mode = "replay" if args.replay else "live"
+    label = args.label or f"{now:%Y%m%d-%H%M}-{mode}"
+    recordings = RECORDINGS / (args.replay or label)
     questions = json.loads(QUESTIONS.read_text(encoding="utf-8"))
     if args.only:
         questions = [q for q in questions if q["id"] in args.only.split(",")]
@@ -240,17 +368,20 @@ def main() -> None:
     rows = []
     try:
         for question in questions:
-            gold = gold_values(db, question)
-            before = db.read(INTEGRITY)[0]
-            response = run_one(db, question, args.replay)
-            rows.append(score(question, response, gold, (before, db.read(INTEGRITY)[0])))
-            log.info(f"{question['id']}: correct={rows[-1]['correct']} tools={rows[-1]['toolsOk']}")
+            rows.append(evaluate_one(db, question, {"replay": bool(args.replay), "recordings": recordings}))
+            log.info(f"{question['id']}: correct={rows[-1]['correct']} kind={rows[-1]['kind']}")
+            if args.pause and not args.replay:
+                time.sleep(args.pause)
     finally:
         db.close()
-    model = "replay of recordings" if args.replay else get_settings().groq_model
-    RESULTS.write_text(json.dumps(rows, indent=2, default=str), encoding="utf-8", newline="\n")
-    if not args.only:
-        DOC.write_text(render(rows, model), encoding="utf-8", newline="\n")
+    if args.only:
+        log.info(json.dumps(rows, indent=2, default=str))
+        return
+    save_run(rows, {
+        "label": label, "mode": mode, "date": f"{now:%Y-%m-%d %H:%M} UTC", "recordings": recordings.as_posix(),
+        "pause": args.pause, "note": args.note,
+        "model": f"replay of {args.replay}" if args.replay else get_settings().groq_model,
+    })
 
 
 if __name__ == "__main__":
