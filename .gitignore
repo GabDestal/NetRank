@@ -38,4 +38,4 @@ Thumbs.db
 data/processed/
 
 # Trained model artifacts (make train)
-models/
+/models/
