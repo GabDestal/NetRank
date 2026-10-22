@@ -1,5 +1,7 @@
 [run]
-source = app
+source =
+    app
+    scripts
 branch = true
 # Required by the coverage-comment action in CI.
 relative_files = true

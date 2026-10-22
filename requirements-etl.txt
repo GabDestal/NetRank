@@ -1,0 +1,4 @@
+# Download, exploration and ingestion scripts (run on the host, not in the API image).
+pandas==3.1.0
+openpyxl==3.1.5
+xlrd==2.0.2
