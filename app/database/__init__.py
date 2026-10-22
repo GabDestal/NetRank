@@ -1,1 +1,1 @@
-"""Neo4j driver management and graph schema (constraints and indexes)."""
+"""Neo4j driver lifecycle and the FastAPI dependency that hands it to routers."""

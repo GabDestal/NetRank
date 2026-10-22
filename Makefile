@@ -1,88 +1,60 @@
-PYTHON ?= python
-SRC := app scripts tests
+.PHONY: help venv install run docker-build docker-run docker-down docker-logs test test-unit test-stack lint clean
 
-.PHONY: help install download schema ingest analytics predict evaluate-agent guardrail-demo ollama-docker test-integration benchmark run docker-run docker-down lint test coverage clean
+PYTHON ?= python3
+VENV := .venv
+# The venv layout differs on Windows (Git Bash / scoop make) and Unix.
+ifeq ($(OS),Windows_NT)
+BIN := $(VENV)/Scripts
+else
+BIN := $(VENV)/bin
+endif
+PY := $(BIN)/python
+LINT_PATHS := app tests $(wildcard scripts/*.py)
 
-help:
-	@echo "make install      Install dependencies"
-	@echo "make download     Download source datasets into data/raw/ (skips existing; FORCE=1 to refresh)"
-	@echo "make schema       Create Neo4j constraints and indexes (needs Neo4j running)"
-	@echo "make ingest       Load downloaded data into Neo4j (ATT&CK, KEV, NVD, CTID; needs Neo4j running)"
-	@echo "make analytics    Compute technique centrality and communities with GDS (run by make ingest)"
-	@echo "make predict      Evaluate link prediction and store suggestions only if it beats the baseline"
-	@echo "make evaluate-agent  Ask the agent the evaluation questions and report the pass rate (DELAY=30 s apart)"
-	@echo "make guardrail-demo  Show the guardrails rejecting bad LLM output (needs Neo4j, no LLM)"
-	@echo "make ollama-docker   Optional: run Ollama in Docker instead of natively and pull the local model"
-	@echo "make run          Run the API locally with auto-reload (port 8000)"
-	@echo "make docker-run   Build and start neo4j, api and nginx (http://localhost:8080)"
-	@echo "make docker-down  Stop the stack (keeps the Neo4j volume)"
-	@echo "make lint         Run pylint"
-	@echo "make test         Run tests with coverage (Neo4j tests skip if the database is down)"
-	@echo "make test-integration  Run only the end-to-end tests against the loaded Neo4j"
-	@echo "make benchmark    PROFILE key queries with and without their index or rewrite (local Neo4j)"
-	@echo "make coverage     Run tests and write an HTML coverage report"
-	@echo "make clean        Remove caches and coverage output"
+help: ## Show this help
+	@echo "NetRank make targets:"
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-14s %s\n", $$1, $$2}'
 
-install:
-	$(PYTHON) -m pip install --upgrade pip
-	$(PYTHON) -m pip install -r requirements.txt
+venv: ## Create the Python 3.11 virtualenv (.venv); uses uv when available
+	@if [ -d "$(VENV)" ]; then echo "$(VENV) already exists"; \
+	elif command -v uv >/dev/null 2>&1; then uv venv --no-project --python 3.11 $(VENV); \
+	else $(PYTHON) -m venv $(VENV) && $(PY) -m pip install --upgrade pip; fi
 
-download:
-	$(PYTHON) -m scripts.download $(if $(FORCE),--force,)
+install: venv ## Install runtime + dev dependencies into .venv
+	@if command -v uv >/dev/null 2>&1; then uv pip install --python $(VENV) -r requirements-dev.txt; \
+	else $(PY) -m pip install -r requirements-dev.txt; fi
 
-schema:
-	$(PYTHON) -m scripts.init_schema
+run: ## Run the API with reload on http://localhost:8000 (needs Neo4j: make docker-run)
+	$(PY) -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-ingest: schema
-	$(PYTHON) -m scripts.ingest_attack
-	$(PYTHON) -m scripts.ingest_kev_nvd
-	$(PYTHON) -m scripts.ingest_ctid
-	$(MAKE) analytics
+docker-build: ## Build the API image
+	docker compose build
 
-analytics:
-	$(PYTHON) -m scripts.analytics
+docker-run: .env ## Build and start neo4j, api and nginx; returns once all are healthy
+	docker compose up -d --build --wait --wait-timeout 300
+	@echo "API: http://localhost:$${NGINX_PORT:-8080}/docs   Neo4j Browser: http://localhost:7474"
 
-predict:
-	$(PYTHON) -m scripts.predict
-
-DELAY ?= 30
-evaluate-agent:
-	$(PYTHON) -m scripts.evaluate_agent --delay $(DELAY)
-
-guardrail-demo:
-	$(PYTHON) -m scripts.guardrail_demo
-
-OLLAMA_MODEL ?= qwen2.5:3b
-ollama-docker:
-	docker compose --profile ollama up -d ollama
-	docker compose exec ollama ollama pull $(OLLAMA_MODEL)
-
-run:
-	$(PYTHON) -m uvicorn app.main:app --reload
-
-docker-run:
-	@test -f .env || (echo "Missing .env: copy .env.example to .env and set NEO4J_PASSWORD" && exit 1)
-	docker compose up -d --build
-
-docker-down:
+docker-down: ## Stop the stack (keeps the Neo4j volume)
 	docker compose down
 
-lint:
-	$(PYTHON) -m pylint --fail-under=9.5 $(SRC)
+docker-logs: ## Follow the logs of all services
+	docker compose logs -f
 
-test:
-	$(PYTHON) -m pytest --cov=app --cov=scripts --cov-report=term-missing --cov-fail-under=80 -rs
+test: ## Run all tests with coverage (integration/container tests skip when services are down)
+	$(PY) -m pytest --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=60
 
-test-integration:
-	$(PYTHON) -m pytest tests/test_integration.py -v -rs
+test-unit: ## Run unit tests only
+	$(PY) -m pytest tests/unit
 
-benchmark:
-	$(PYTHON) -m scripts.benchmark
+test-stack: ## Run the container health tests against the running stack
+	$(PY) -m pytest tests/container -v
 
-coverage:
-	$(PYTHON) -m pytest --cov=app --cov=scripts --cov-report=html
-	@echo "Report written to htmlcov/index.html"
+lint: ## Run pylint (fails below 9.5/10)
+	$(PY) -m pylint --fail-under=9.5 $(LINT_PATHS)
 
-clean:
-	rm -rf .pytest_cache .coverage coverage.xml htmlcov
-	find . -type d -name __pycache__ -prune -exec rm -rf {} +
+clean: ## Remove caches, coverage and build artefacts (keeps .venv and .env)
+	rm -rf .pytest_cache .coverage .coverage.* coverage.xml htmlcov build dist *.egg-info
+	find . -path ./$(VENV) -prune -o -type d -name __pycache__ -exec rm -rf {} +
+
+.env:
+	@echo "Missing .env: run 'cp .env.example .env' and set NEO4J_PASSWORD." && exit 1

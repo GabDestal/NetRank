@@ -1,32 +1,37 @@
-"""Liveness and database health endpoints."""
+"""Health endpoints used by Docker healthchecks, nginx and the container tests."""
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
-from neo4j import Driver
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from neo4j.exceptions import AuthError, ServiceUnavailable, SessionExpired
 
-from app.database.connection import get_driver
-from app.models.common import ErrorResponse
-from app.models.health import DatabaseHealthResponse, HealthResponse
-from app.services.health import neo4j_components
+from app.database.client import Neo4jClient, get_db
+from app.models.health import HealthResponse, ReadinessResponse
+from app.services import health
 
-router = APIRouter(tags=["health"])
+router = APIRouter(prefix="/api/health", tags=["health"])
 
 
-@router.get("/health", response_model=HealthResponse)
-def health() -> HealthResponse:
-    """Report that the API process is up."""
-    return HealthResponse(status="ok")
+@router.get("", response_model=HealthResponse)
+def liveness() -> HealthResponse:
+    """Liveness probe. Does not touch Neo4j, so a database outage does not restart the API."""
+    return HealthResponse()
 
 
 @router.get(
-    "/health/db",
-    response_model=DatabaseHealthResponse,
-    responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ErrorResponse,
-                                                     "description": "Neo4j is unreachable or rejected the login"}},
+    "/ready",
+    response_model=ReadinessResponse,
+    responses={503: {"description": "Neo4j is unreachable, rejects the credentials, or GDS is missing."}},
 )
-def database_health(driver: Annotated[Driver, Depends(get_driver)]) -> DatabaseHealthResponse:
-    """Report whether Neo4j answers, with its version and edition. Neo4j errors become a 503 (see app.main)."""
-    components = neo4j_components(driver)
-    return DatabaseHealthResponse(status="ok", neo4j_version=components["version"],
-                                  neo4j_edition=components["edition"])
+def readiness(response: Response, db: Annotated[Neo4jClient, Depends(get_db)]) -> ReadinessResponse:
+    """Readiness probe: Neo4j answers and GDS is installed."""
+    try:
+        result = health.check_database(db)
+    except (ServiceUnavailable, SessionExpired, AuthError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Neo4j unavailable ({type(exc).__name__})",
+        ) from exc
+    if result.status != "ok":
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    return result

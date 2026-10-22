@@ -1,12 +1,4 @@
-.git
-.github
-.venv
-venv
-.env
-__pycache__
-.pytest_cache
-.coverage
-htmlcov
-data
-tests
-*.ipynb
+*
+!app/
+!requirements.txt
+**/__pycache__

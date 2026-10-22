@@ -1,17 +1,33 @@
-"""Database health checks."""
+"""Readiness check: is Neo4j reachable, and is the GDS plugin loaded?"""
 
-from neo4j import Driver, RoutingControl
+from neo4j.exceptions import ClientError
 
-# dbms.components() is a read-only system procedure that reports the server name, version and
-# edition. It touches no graph data, so its cost does not grow with the graph.
-COMPONENTS_QUERY = (
-    "CALL dbms.components() YIELD name, versions, edition "
-    "RETURN name, versions[0] AS version, edition"
-)
+from app.database.client import Neo4jClient
+from app.models.health import ReadinessResponse
+
+SERVER_INFO = """
+CALL dbms.components() YIELD name, versions, edition
+WHERE name = 'Neo4j Kernel'
+RETURN versions[0] AS version, edition
+"""
+
+GDS_VERSION = "RETURN gds.version() AS version"
 
 
-def neo4j_components(driver: Driver) -> dict[str, str]:
-    """Return the Neo4j server's version and edition. Raises the driver's error if unreachable."""
-    records, _, _ = driver.execute_query(COMPONENTS_QUERY, routing_=RoutingControl.READ)
-    kernel = next((r for r in records if r["name"] == "Neo4j Kernel"), records[0])
-    return {"version": kernel["version"], "edition": kernel["edition"]}
+def check_database(db: Neo4jClient) -> ReadinessResponse:
+    """Query the server version, then the GDS version.
+
+    Connection and authentication errors propagate to the caller. A missing GDS plugin is
+    reported as a 'degraded' status rather than an error, since Neo4j itself is up.
+    """
+    server = db.read(SERVER_INFO)[0]
+    try:
+        gds_version = db.read(GDS_VERSION)[0]["version"]
+    except ClientError:
+        gds_version = None
+    return ReadinessResponse(
+        status="ok" if gds_version else "degraded",
+        neo4j_version=server["version"],
+        neo4j_edition=server["edition"],
+        gds_version=gds_version,
+    )

@@ -1,1 +1,1 @@
-"""Pydantic request and response schemas."""
+"""Pydantic schemas for every endpoint's input and output."""

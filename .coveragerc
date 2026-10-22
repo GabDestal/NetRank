@@ -1,0 +1,9 @@
+[run]
+source = app
+branch = true
+# Required by the coverage-comment action in CI.
+relative_files = true
+
+[report]
+show_missing = true
+skip_covered = false

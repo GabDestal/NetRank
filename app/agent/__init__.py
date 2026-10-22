@@ -1,1 +1,1 @@
-"""LangGraph agent: natural-language questions answered with graph tools and cited facts (D19)."""
+"""LangGraph agent over the tennis graph: graph.py, tools.py and guardrails.py (Phase 6)."""
