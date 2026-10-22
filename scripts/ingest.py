@@ -156,7 +156,7 @@ def main() -> None:
         raw = load_sackmann(db)
         odds, links, stats = load_odds(db, raw)
         report.write_logs(odds, links)
-        report.DOC.write_text(report.build(raw, odds, links, stats), encoding="utf-8")
+        report.DOC.write_text(report.build(raw, odds, links, stats), encoding="utf-8", newline="\n")
         log.info(f"report written to {report.DOC}")
         log.info(f"graph: {db.read(COUNTS)[0]}")
     finally:
