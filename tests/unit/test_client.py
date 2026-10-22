@@ -1,12 +1,14 @@
 """Unit tests for Neo4jClient with the driver replaced by a stub."""
 
+from datetime import date
 from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 from neo4j import NotificationMinimumSeverity, RoutingControl
+from neo4j.time import Date
 
 from app.config import Settings
-from app.database.client import Neo4jClient
+from app.database.client import Neo4jClient, to_native
 from app.main import app
 
 
@@ -42,6 +44,21 @@ def test_write_routes_to_writer(driver):
     Neo4jClient("bolt://db", ("u", "p"), "neo4j").write("CREATE ()")
     assert driver.execute_query.call_args.kwargs["routing_"] == RoutingControl.WRITE
     assert driver.execute_query.call_args.args[1] == {}
+
+
+def test_profile_prefixes_query_and_returns_plan(driver):
+    """profile() runs PROFILE on a reader and returns rows plus the plan tree."""
+    summary = MagicMock(profile={"operatorType": "ProduceResults"})
+    driver.execute_query.return_value = ([make_record({"n": 1})], summary, None)
+    rows, plan = Neo4jClient("bolt://db", ("u", "p"), "neo4j").profile("RETURN 1 AS n")
+    assert rows == [{"n": 1}] and plan == {"operatorType": "ProduceResults"}
+    assert driver.execute_query.call_args.args[0] == "PROFILE RETURN 1 AS n"
+
+
+def test_to_native_converts_nested_neo4j_temporals():
+    """neo4j.time values inside dicts and lists become datetime.date."""
+    value = {"d": Date(2019, 7, 14), "items": [{"d": Date(2000, 1, 3)}], "n": 3}
+    assert to_native(value) == {"d": date(2019, 7, 14), "items": [{"d": date(2000, 1, 3)}], "n": 3}
 
 
 def test_verify_and_close_delegate_to_driver(driver):
