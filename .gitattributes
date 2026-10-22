@@ -1,0 +1,4 @@
+# Keep LF in the repo and in containers (shell scripts, nginx.conf, Makefile).
+* text=auto eol=lf
+*.png binary
+*.ipynb text eol=lf
