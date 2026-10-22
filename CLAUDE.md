@@ -40,6 +40,11 @@ prediction benchmarked against bookmaker odds, and a LangGraph agent answering q
 - KNN and Louvain must run with concurrency 1 (randomSeed rule, stable styleIds); PageRank/FastRP use
   GDS_CONCURRENCY. FastRP only via fastrp_embeddings(cutoff) for leakage-free ML features (Phase 5).
 - Phase 7 notebook MUST include the Louvain-on-BEAT vs style-Louvain comparison (numbers in D42).
+- ML (Phase 5, D50-D59): app/ml/features.py is shared by scripts/train.py and /api/predict. Features are
+  p1-p2 differences from a season snapshot (Jan 1) + history strictly before the match date; never use
+  stored Player.prestige as a feature (leaks). The test set (2022+) is frozen: never tune on it.
+  Model = logistic JSON in models/ (gitignored, mounted into api). make train runs GDS_CONCURRENCY=1.
+  Probabilities are tagged: model "predicted", odds/results "verified" (reuse in the agent, Phase 6).
 - Entity resolution window is [tourney_date, +16] as the user specified (not [-2, +16]).
 - GDS: PageRank, FastRP, KNN, Louvain. ML: scikit-learn winner classifier on FastRP, PageRank,
   head-to-head; temporal train/test split; benchmark vs bookmaker implied probabilities.
@@ -73,12 +78,12 @@ schema; LIMIT enforced; Pydantic output tagging each claim verified / predicted 
 
 ## Phases
 0 reset ✔ → 1 scaffold ✔ → 2 data exploration + ingestion ✔ →
-3 Cypher endpoints + PROFILE before/after benchmarks ✔ → 4 GDS endpoints ✔ → 5 ML → 6 agent + guardrails →
+3 Cypher endpoints + PROFILE before/after benchmarks ✔ → 4 GDS endpoints ✔ → 5 ML ✔ → 6 agent + guardrails →
 7 docs + demo.ipynb.
 
 ## Commands
 `make install` (uv if present, Python 3.11), `make docker-run` (waits for healthy), `make download`,
-`make ingest` (~1 min, regenerates docs/data_exploration.md), `make gds` (~5 s), `make benchmark` (~2 min, docs/benchmarks.md),
+`make ingest` (~1 min, regenerates docs/data_exploration.md), `make gds` (~5 s), `make train` (~1 min), `make benchmark` (~2 min, docs/benchmarks.md),
 `make test`, `make test-stack`, `make lint`.
 - API conventions: services raise NotFoundError/InvalidRequestError (app/errors.py), mapped in app/main.py;
   lists return Page[T] (app/models/common.py) with page/size from app/routers/params.py. Local `.venv` is at `.venv/Scripts` on Windows, `.venv/bin` elsewhere.

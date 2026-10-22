@@ -13,7 +13,7 @@ verified, predicted or interpreted.
 Course project, GraphDB (AIDAMS 3A, CentraleSupélec), Level 3 — Advanced graph & GDS.
 Spec and grading checklist: [docs/guidelines.md](docs/guidelines.md).
 
-> **Status:** Phase 4 (Graph Data Science). Match prediction (ML) and the agent arrive in later phases.
+> **Status:** Phase 5 (match-outcome model). The agent arrives in the next phase.
 
 ## Quick start
 
@@ -27,6 +27,7 @@ make download                 # Sackmann files, verified against the pinned comm
 # tennis-data.co.uk files: download by hand, see "Datasets" below
 make ingest                   # load Neo4j (~1 min) and regenerate docs/data_exploration.md
 make gds                      # PageRank prestige, style similarity (KNN) and styles (Louvain), ~5 s
+make train                    # match-outcome model -> models/, docs/model_report.md, ~1 min
 curl http://localhost:8080/api/health/ready
 ```
 
@@ -63,6 +64,7 @@ Every list is paginated (`page`, `size` <= 100, response carries `total`). Error
 | `GET /api/players/{id}/similar` | Players with the closest playing style | KNN on standardised serve/return features |
 | `GET /api/styles`, `GET /api/styles/{id}` | Playing-style communities with readable traits and members | Louvain on the KNN graph |
 | `POST /api/admin/gds/refresh` | Recompute prestige, similarity and styles (header `X-API-Key`) | Projections, write mode |
+| `GET /api/predict?p1=&p2=&surface=` | P(p1 wins) from graph features, tagged `predicted`; with `match_id`, bookmaker odds and result tagged `verified` | Leakage-free PageRank / FastRP snapshots + history |
 
 ```bash
 curl "localhost:8080/api/players?q=federer&size=1"
@@ -102,6 +104,29 @@ curl -X POST -H "X-API-Key: $ADMIN_API_KEY" localhost:8080/api/admin/gds/refresh
 Similarity means playing style, not network position: Louvain on the who-beat-whom graph only
 recovers generations (debut year explains 91% of its partition), while the style communities explain
 50% of the style features. See D41–D42 in [docs/decision_log.md](docs/decision_log.md).
+
+### Match-outcome model
+
+`make train` builds one row per played match since 1995 from graph features computed **only from
+earlier matches** (season snapshots of PageRank and FastRP, head-to-head and surface record before the
+match date), trains a logistic regression (train 1995-2018, validation 2019-2021) and evaluates it
+once on 2022-2026 against the bookmakers. Full report: [docs/model_report.md](docs/model_report.md).
+
+| Test 2022-2026, 9,923 identical matches | Log loss | Brier | Accuracy |
+| --- | ---: | ---: | ---: |
+| Pinnacle (margin removed) | 0.586 | 0.2015 | 68.1% |
+| Bet365 (margin removed) | 0.587 | 0.2017 | 67.8% |
+| Ranking baseline (ATP ranks) | 0.632 | 0.2209 | 63.9% |
+| Graph model (graph features only) | 0.638 | 0.2232 | 64.0% |
+
+The market wins clearly; graph features alone reach the level of ATP rankings, which also count
+matches below tour level that this graph does not contain.
+
+```bash
+curl "localhost:8080/api/predict?p1=103819&p2=104745&match_id=2019-540-225"
+# Wimbledon 2019 SF re-predicted as of 2019-07-01: model 0.39 for Federer ("predicted"),
+# Pinnacle 0.43 and Bet365 0.45 ("verified"); result: Federer won ("verified")
+```
 
 ### Query performance
 
@@ -180,6 +205,7 @@ exactly on both players' ranks. Each `Match` records how its odds were linked (`
 | `make download` | Download the Sackmann files and verify them against commit `712be0c5` |
 | `make ingest` | Load Neo4j from `data/raw/` and regenerate `docs/data_exploration.md` |
 | `make gds` | Recompute prestige, style similarity and styles (same as the admin endpoint) |
+| `make train` | Train and evaluate the match-outcome model (`models/`, `docs/model_report.md`) |
 | `make benchmark` | PROFILE before/after benchmarks, written to `docs/benchmarks.md` |
 | `make docker-run` | Build and start the stack, wait until every service is healthy |
 | `make docker-down` | Stop the stack (Neo4j data volume kept) |
