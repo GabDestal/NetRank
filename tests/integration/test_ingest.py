@@ -86,7 +86,7 @@ def test_side_properties_land_on_the_relationships(loaded):
     )[0]
     assert row["winner"] == "TEST Winner" and row["winnerAces"] == 9
     assert row["loser"] == "TEST Loser" and row["loserRank"] == 40
-    assert row["date"].to_native() == date(2000, 1, 3)
+    assert row["date"] == date(2000, 1, 3)  # converted to a Python date by the client
 
 
 def test_prices_and_market_odds_attach_to_the_match(loaded):

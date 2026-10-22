@@ -29,6 +29,10 @@ prediction benchmarked against bookmaker odds, and a LangGraph agent answering q
 - Scope: tour-level G/M/A/F from 1991-01-01. Match.walkover / Match.retired flags; walkovers must be
   excluded from the GDS projection (Player)-[:LOST_TO {weight}]->(Player).
 - Constraints: Player.id, Match.id, Tournament.id, Bookmaker.name. Indexes: Match.date, Player.name.
+- Derived (Player)-[:BEAT {wins, firstWin, lastWin}]->(Player), all-time, walkovers excluded, rebuilt by
+  make ingest (D32). Path/nemesis/triangles use BEAT; era-filtered queries must traverse Match.
+  GDS LOST_TO can be a native projection of BEAT reversed with weight = wins.
+- Full-text index player_name_ft (standard-folding) backs /api/players?q=.
 - Communities = Louvain on the beat graph, described as competition clusters, not playing styles.
 - Entity resolution window is [tourney_date, +16] as the user specified (not [-2, +16]).
 - GDS: PageRank, FastRP, KNN, Louvain. ML: scikit-learn winner classifier on FastRP, PageRank,
@@ -63,12 +67,15 @@ schema; LIMIT enforced; Pydantic output tagging each claim verified / predicted 
 
 ## Phases
 0 reset ✔ → 1 scaffold ✔ → 2 data exploration + ingestion ✔ →
-3 Cypher endpoints + PROFILE before/after benchmarks → 4 GDS endpoints → 5 ML → 6 agent + guardrails →
+3 Cypher endpoints + PROFILE before/after benchmarks ✔ → 4 GDS endpoints → 5 ML → 6 agent + guardrails →
 7 docs + demo.ipynb.
 
 ## Commands
 `make install` (uv if present, Python 3.11), `make docker-run` (waits for healthy), `make download`,
-`make ingest` (~1 min, regenerates docs/data_exploration.md), `make test`, `make test-stack`, `make lint`. Local `.venv` is at `.venv/Scripts` on Windows, `.venv/bin` elsewhere.
+`make ingest` (~1 min, regenerates docs/data_exploration.md), `make benchmark` (~2 min, docs/benchmarks.md),
+`make test`, `make test-stack`, `make lint`.
+- API conventions: services raise NotFoundError/InvalidRequestError (app/errors.py), mapped in app/main.py;
+  lists return Page[T] (app/models/common.py) with page/size from app/routers/params.py. Local `.venv` is at `.venv/Scripts` on Windows, `.venv/bin` elsewhere.
 
 ## Layout
 ```

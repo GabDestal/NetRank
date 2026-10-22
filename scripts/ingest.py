@@ -23,7 +23,27 @@ SCHEMA = [
     "CREATE CONSTRAINT bookmaker_name IF NOT EXISTS FOR (b:Bookmaker) REQUIRE b.name IS UNIQUE",
     "CREATE INDEX match_date IF NOT EXISTS FOR (m:Match) ON (m.date)",
     "CREATE INDEX player_name IF NOT EXISTS FOR (p:Player) ON (p.name)",
+    # Accent- and case-insensitive name search for /api/players?q= (decision log D31).
+    "CREATE FULLTEXT INDEX player_name_ft IF NOT EXISTS FOR (p:Player) ON EACH [p.name] "
+    + "OPTIONS {indexConfig: {`fulltext.analyzer`: 'standard-folding'}}",
 ]
+
+# BEAT is derived from matches (decision log D32): one relationship per ordered pair of players
+# with at least one played (non-walkover) win. Rebuilt from scratch on every ingest.
+DELETE_BEAT_BATCH = """
+MATCH ()-[b:BEAT]->()
+WITH b LIMIT 20000
+DELETE b
+RETURN count(*) AS deleted
+"""
+
+DERIVE_BEAT = """
+MATCH (w:Player)-[:WON]->(m:Match)<-[:LOST]-(l:Player)
+WHERE NOT m.walkover
+WITH w, l, count(m) AS wins, min(m.date) AS firstWin, max(m.date) AS lastWin
+CREATE (w)-[:BEAT {wins: wins, firstWin: firstWin, lastWin: lastWin}]->(l)
+RETURN count(*) AS created
+"""
 
 MERGE_PLAYERS = """
 UNWIND $rows AS row
@@ -83,7 +103,8 @@ CALL () { MATCH (b:Bookmaker) RETURN count(b) AS bookmakers }
 CALL () { MATCH ()-[r:WON]->() RETURN count(r) AS won }
 CALL () { MATCH ()-[r:LOST]->() RETURN count(r) AS lost }
 CALL () { MATCH ()-[r:PRICED]->() RETURN count(r) AS priced }
-RETURN players, tournaments, matches, bookmakers, won, lost, priced
+CALL () { MATCH ()-[r:BEAT]->() RETURN count(r) AS beat }
+RETURN players, tournaments, matches, bookmakers, won, lost, priced, beat
 """
 
 log = logging.getLogger(__name__)
@@ -131,6 +152,15 @@ def load_sackmann(db: Neo4jClient) -> dict:
     }
 
 
+def derive_beat(db: Neo4jClient) -> int:
+    """Drop every BEAT relationship (in batches), then rebuild them from the matches."""
+    while db.write(DELETE_BEAT_BATCH)[0]["deleted"]:
+        pass
+    created = db.write(DERIVE_BEAT)[0]["created"]
+    log.info(f"BEAT: {created} relationships derived")
+    return created
+
+
 def load_odds(db: Neo4jClient, raw: dict) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """Resolve tennis-data rows to matches, then load bookmakers, prices and market odds."""
     links, odds = resolve.resolve(tennis_data.read_odds(), raw["sack"])
@@ -148,12 +178,13 @@ def load_odds(db: Neo4jClient, raw: dict) -> tuple[pd.DataFrame, pd.DataFrame, d
 
 
 def main() -> None:
-    """CLI entry point: schema, Sackmann, odds, then the exploration report."""
+    """CLI entry point: schema, Sackmann, derived BEAT, odds, then the exploration report."""
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     db = Neo4jClient.from_settings(get_settings())
     try:
         ensure_schema(db)
         raw = load_sackmann(db)
+        derive_beat(db)
         odds, links, stats = load_odds(db, raw)
         report.write_logs(odds, links)
         report.DOC.write_text(report.build(raw, odds, links, stats), encoding="utf-8", newline="\n")

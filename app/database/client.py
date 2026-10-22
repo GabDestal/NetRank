@@ -39,6 +39,13 @@ class Neo4jClient:
         """Run a write query (routed to the writer) and return each record as a dict."""
         return self._run(query, params, RoutingControl.WRITE)
 
+    def profile(self, query: str, params: dict[str, Any] | None = None) -> tuple[list[dict[str, Any]], dict]:
+        """Run `PROFILE <query>` (read routing); return the rows and the profiled plan tree."""
+        records, summary, _ = self._driver.execute_query(
+            "PROFILE " + query, params or {}, database_=self._database, routing_=RoutingControl.READ
+        )
+        return [to_native(record.data()) for record in records], summary.profile
+
     def verify(self) -> None:
         """Raise if the server is unreachable or the credentials are rejected."""
         self._driver.verify_connectivity()
@@ -51,7 +58,18 @@ class Neo4jClient:
         records, _, _ = self._driver.execute_query(
             query, params or {}, database_=self._database, routing_=routing
         )
-        return [record.data() for record in records]
+        return [to_native(record.data()) for record in records]
+
+
+def to_native(value: Any) -> Any:
+    """Recursively turn Neo4j temporal values (neo4j.time.Date, DateTime...) into Python ones."""
+    if isinstance(value, dict):
+        return {key: to_native(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [to_native(item) for item in value]
+    if hasattr(value, "to_native"):
+        return value.to_native()
+    return value
 
 
 def get_db(request: Request) -> Neo4jClient:
