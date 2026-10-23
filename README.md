@@ -5,269 +5,196 @@
 [![Docker](https://github.com/GabDestal/NetRank/actions/workflows/docker.yml/badge.svg)](https://github.com/GabDestal/NetRank/actions/workflows/docker.yml)
 [![Coverage](https://raw.githubusercontent.com/GabDestal/NetRank/python-coverage-comment-action-data/badge.svg)](https://github.com/GabDestal/NetRank/tree/python-coverage-comment-action-data)
 
-A tennis knowledge graph on Neo4j + Graph Data Science. NetRank ranks ATP players by prestige
-(PageRank on who-beat-whom), finds playing-style communities, predicts match outcomes against
-bookmaker odds, and answers questions through a LangGraph agent whose claims are tagged as
-verified, predicted or interpreted.
+NetRank is a tennis knowledge graph built with Neo4j. It uses ATP matches from 1991 to 2026 to:
 
-Course project, GraphDB (AIDAMS 3A, CentraleSupélec), Level 3 — Advanced graph & GDS.
-Spec and grading checklist: [docs/guidelines.md](docs/guidelines.md).
-
-> **Status:** Phase 6 (LangGraph agent with guardrails). Documentation and the demo notebook come next.
+- rank players by "prestige" (PageRank on who beat whom),
+- group players by playing style,
+- predict who wins a match and compares with the bookmakers,
+- answers questions using a LangGraph agent.
 
 ## Quick start
 
-Requirements: Docker with Compose v2, GNU make, Python 3.11 (or [uv](https://docs.astral.sh/uv/)).
+Requires: Docker (w/ Compose v2), make and Python 3.11.
 
 ```bash
-cp .env.example .env          # then set NEO4J_PASSWORD (>= 8 letters/digits)
-make install                  # .venv with runtime + dev dependencies
-make docker-run               # neo4j + api + nginx, returns once all three are healthy
-make download                 # Sackmann files, verified against the pinned commit
-# tennis-data.co.uk files: download by hand, see "Datasets" below
-make ingest                   # load Neo4j (~1 min) and regenerate docs/data_exploration.md
-make gds                      # PageRank prestige, style similarity (KNN) and styles (Louvain), ~5 s
-make train                    # match-outcome model -> models/, docs/model_report.md, ~1 min
-curl http://localhost:8080/api/health/ready
+cp .env.example .env    # set NEO4J_PASSWORD, ADMIN_API_KEY and GROQ_API_KEY
+make install            # create .venv and install dependencies
+make docker-run         # start neo4j, api and nginx
+make download           # get the Sackmann files
+# download the tennis-data.co.uk files by hand (see Datasets)
+make ingest             # load the data into Neo4j (~1 min)
+make gds                # compute prestige, similarity and styles
+make train              # train the match model (~1 min)
 ```
 
-| URL | What |
-| --- | --- |
-| http://localhost:8080/docs | Swagger UI (through nginx) |
-| http://localhost:8080/api/health/ready | Readiness: Neo4j + GDS versions |
-| http://localhost:7474 | Neo4j Browser (localhost only) |
+API docs: <http://localhost:8080/docs>.
 
-## Services
+## Architecture
 
-| Service | Image | Host port | Healthcheck |
-| --- | --- | --- | --- |
-| `neo4j` | `neo4j:5.26.32` + GDS plugin | 7474, 7687 (127.0.0.1) | `cypher-shell 'RETURN gds.version()'` |
-| `api` | [`ghcr.io/gabdestal/netrank-api`](https://github.com/GabDestal/NetRank/pkgs/container/netrank-api) (built from `Dockerfile`) | none (behind nginx) | `GET /api/health` |
-| `nginx` | `nginx:1.30.6-alpine` | `${NGINX_PORT:-8080}` | `GET /nginx-health` |
+The project runs as three Docker services:
 
-## API
-
-Every list is paginated (`page`, `size` <= 100, response carries `total`). Errors return
-`{"detail": "..."}` with 400 (inconsistent parameters), 404 (unknown player, no chain), 422
-(invalid parameter) or 503 (Neo4j down). Full schemas at <http://localhost:8080/docs>.
-
-| Endpoint | What it answers | Graph technique |
+| Service | Role | Port |
 | --- | --- | --- |
-| `GET /api/players?q=` | Find a player by name (accents and case ignored) | Full-text index |
-| `GET /api/players/{id}` | Career record, titles, best rank, per surface | Subqueries, conditional aggregation |
-| `GET /api/players/{id}/matches` | Match history with odds; `surface`, `since`, `until` filters | Anchored traversal, pagination |
-| `GET /api/h2h?p1=&p2=` | Head-to-head overall and per surface | Pattern anchored at both players |
-| `GET /api/players/{id}/nemesis` | Who beats this player; non-transitive triangles | 3-cycles on `BEAT` |
-| `GET /api/path?from=&to=` | Shortest "beat chain", each hop backed by a match | `SHORTEST` path, bounded |
-| `GET /api/players/{id}/prestige?era=` | Prestige score and rank, all-time or in an era (`2000s`, `2004-2008`) | PageRank (native or per-era Cypher projection) |
-| `GET /api/prestige?era=` | Prestige leaderboard | PageRank |
-| `GET /api/players/{id}/similar` | Players with the closest playing style | KNN on standardised serve/return features |
-| `GET /api/styles`, `GET /api/styles/{id}` | Playing-style communities with readable traits and members | Louvain on the KNN graph |
-| `POST /api/admin/gds/refresh` | Recompute prestige, similarity and styles (header `X-API-Key`) | Projections, write mode |
-| `GET /api/predict?p1=&p2=&surface=` | P(p1 wins) from graph features, tagged `predicted`; with `match_id`, bookmaker odds and result tagged `verified` | Leakage-free PageRank / FastRP snapshots + history |
+| `neo4j` | Neo4j 5.26 with the GDS plugin | 7474, 7687 (localhost only) |
+| `api` | FastAPI app ([image on GHCR](https://github.com/GabDestal/NetRank/pkgs/container/netrank-api)) | behind nginx |
+| `nginx` | Reverse proxy, the only public entry point | 8080 |
 
-```bash
-curl "localhost:8080/api/players?q=federer&size=1"
-# {"items":[{"id":103819,"name":"Roger Federer",...}],"page":1,"size":1,"total":1}
+<!-- TODO: add docs/diagrams/architecture.png (services, ports, data flows) -->
+![Architecture](docs/diagrams/architecture.png)
 
-curl "localhost:8080/api/h2h?p1=104925&p2=104745"
-# Djokovic vs Nadal: {"player1Wins":30,"player2Wins":28,"bySurface":[...],"matches":[...]}
+## Graph schema
 
-curl "localhost:8080/api/path?from=100532&to=103819"
-# Johan Kriek > Fabrice Santoro > Roger Federer, 2 hops, with the match behind each hop
+<!-- TODO: add docs/diagrams/schema.png (draw.io) -->
+![Graph schema](docs/diagrams/schema.png)
 
-curl "localhost:8080/api/players/103819/nemesis?size=3&triangles=2"
-# Djokovic (27-22) and Nadal (24-16) lead; 783 non-transitive triangles, the strongest:
-# Federer leads Agassi 8-3, Agassi leads Rafter 10-5, Rafter leads Federer 3-0
-```
-
-### Graph Data Science
-
-`make gds` (or `POST /api/admin/gds/refresh` with `X-API-Key: $ADMIN_API_KEY`) writes the results the
-API reads, then drops its in-memory projections, so a Neo4j restart loses nothing. Era prestige is the
-only computation done per request: a projection of the matches in the window, PageRank streamed,
-cached per era. Missing results answer 503 with the command to run.
-
-```bash
-curl "localhost:8080/api/players/104925/prestige?era=2010s"
-# Djokovic: rank 1 of 774 players active in 2010-2019
-
-curl "localhost:8080/api/players/103819/similar?size=3"
-# closest style to Federer: Jannik Sinner (0.98), ...
-
-curl "localhost:8080/api/styles?size=3"
-# style 3: "risky second serve", "dominant first serve", "big server" -> Ivanisevic, Rusedski, Rosset
-
-curl -X POST -H "X-API-Key: $ADMIN_API_KEY" localhost:8080/api/admin/gds/refresh   # 401 without, 403 wrong key
-```
-
-Similarity means playing style, not network position: Louvain on the who-beat-whom graph only
-recovers generations (debut year explains 91% of its partition), while the style communities explain
-50% of the style features. See D41–D42 in [docs/decision_log.md](docs/decision_log.md).
-
-### Match-outcome model
-
-`make train` builds one row per played match since 1995 from graph features computed **only from
-earlier matches** (season snapshots of PageRank and FastRP, head-to-head and surface record before the
-match date), trains a logistic regression (train 1995-2018, validation 2019-2021) and evaluates it
-once on 2022-2026 against the bookmakers. Full report: [docs/model_report.md](docs/model_report.md).
-
-| Test 2022-2026, 9,923 identical matches | Log loss | Brier | Accuracy |
-| --- | ---: | ---: | ---: |
-| Pinnacle (margin removed) | 0.586 | 0.2015 | 68.1% |
-| Bet365 (margin removed) | 0.587 | 0.2017 | 67.8% |
-| Ranking baseline (ATP ranks) | 0.632 | 0.2209 | 63.9% |
-| Graph model (graph features only) | 0.638 | 0.2232 | 64.0% |
-
-The market wins clearly; graph features alone reach the level of ATP rankings, which also count
-matches below tour level that this graph does not contain.
-
-```bash
-curl "localhost:8080/api/predict?p1=103819&p2=104745&match_id=2019-540-225"
-# Wimbledon 2019 SF re-predicted as of 2019-07-01: model 0.39 for Federer ("predicted"),
-# Pinnacle 0.43 and Bet365 0.45 ("verified"); result: Federer won ("verified")
-```
-
-### Agent (`POST /api/agent/ask`)
-
-A LangGraph agent answers questions in natural language with the endpoints above as tools, and
-free, read-only Cypher only as a last resort. The response contains the answer, **every claim tagged**
-`verified` (read from the graph, numbers checked against the cited tool results), `predicted`
-(from the match-outcome model) or `interpreted` (the LLM's own wording), and the **full tool-call
-trace**. Set `GROQ_API_KEY` (and optionally `GROQ_MODEL`, default `openai/gpt-oss-120b`) in `.env`.
-
-```bash
-curl -X POST localhost:8080/api/agent/ask -H "Content-Type: application/json" \
-     -d '{"question": "What is the head-to-head record between Novak Djokovic and Rafael Nadal?"}'
-```
-
-How the LLM is constrained:
-
-- **Names are resolved first** through the full-text search, using the name as the user wrote it;
-  an ambiguous name ("Zverev", "Medvedev") ends in a clarification question, never a guess, and
-  tools refuse player ids that were not resolved.
-- **Generated Cypher passes five layers**: no write clauses, LOAD CSV, multiple statements or
-  non-allow-listed procedures; labels and relationship types checked against the schema; EXPLAIN
-  (syntax, write operators, unknown labels/properties); LIMIT enforced (max 50); execution in a
-  read-only transaction with a timeout. One retry after a rejection, then a clean failure.
-- **A verifier** downgrades any `verified` claim whose numbers are not in the tool results it cites.
-- **Scope**: at most 8 steps; questions outside ATP tour-level data are refused.
-
-Evaluation: 20 questions with gold answers computed from the graph, every run kept with its model
-and date (live runs and replays separately): [docs/agent_eval.md](docs/agent_eval.md).
-
-> **Disclaimer: no betting advice.** NetRank is coursework for analysis and education. It reports
-> the model's probability and the bookmakers' margin-free probabilities as information only; it never
-> recommends a bet, a side or a stake, and requests for betting tips are refused before reaching the
-> LLM. The model is less accurate than the bookmakers (see the model report). Gambling involves risk
-> of loss.
-
-### Query performance
-
-`make benchmark` profiles each optimisation before and after and writes
-[docs/benchmarks.md](docs/benchmarks.md). Highlights on the loaded graph:
-
-| Case | db hits before → after | latency before → after |
-| --- | ---: | ---: |
-| Beat cycles through Djokovic (`BEAT` instead of `Match` hops) | 71.2M → 23k | 10.0 s → 7 ms |
-| Beat chain, 3 hops (`SHORTEST` on `BEAT`) | 335k → 365 | 123 ms → 3 ms |
-| Career totals (one subquery instead of chained `OPTIONAL MATCH`) | 983k → 7.4k | 229 ms → 4 ms |
-| Matches in one week (`Match.date` index) | 205k → 130 | 39 ms → 3 ms |
-
-## Datasets
-
-Two independent sources, linked by entity resolution. Full profile, match rates per year and per
-tournament series, and the validation are in [docs/data_exploration.md](docs/data_exploration.md).
-
-### Jeff Sackmann — ATP results and players
-
-- **What:** tour-level ATP matches (Grand Slams, Masters, ATP Tour, Tour Finals) from 1991-01-01
-  to 8 June 2026, with both players' serve statistics, ranks, seeds and ages; player birth dates,
-  handedness, height and country.
-- **Where it comes from now:** the original repository `github.com/JeffSackmann/tennis_atp` has been
-  **removed from GitHub**. Its final commit,
-  [`712be0c5`](https://github.com/Kadantte/tennis_atp/tree/712be0c5ade693cdab9e69c23a71a0edf5a23c44)
-  ("thru 8 jun 2026", authored by Jeff Sackmann), survives unchanged in many forks; we download from
-  the fork [`Kadantte/tennis_atp`](https://github.com/Kadantte/tennis_atp) **pinned to that commit**.
-- **Integrity:** `make download` checks every file against its Git blob hash from the commit's tree,
-  so the bytes are provably identical to Sackmann's last upstream version, whichever fork serves
-  them. The hashes are written to `data/raw/sackmann/manifest.json`.
-- **Licence:** [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), which still
-  applies to every copy. Attribution: *Tennis databases, files, and algorithms* by
-  [Jeff Sackmann / Tennis Abstract](http://www.tennisabstract.com/). Non-commercial use only; this
-  project is coursework.
-
-### tennis-data.co.uk — results with bookmaker odds
-
-- **What:** ATP match results with closing odds from several bookmakers, 2000 to 2026.
-- **How to get it:** download by hand. The site allows use by private individuals but forbids
-  automated downloads, bots and AI tools, so this repository contains no scraper. Open
-  <https://www.tennis-data.co.uk/alldata.php>, download the ATP files for 2000–2026 (27 files; not
-  the women's files, whose paths contain `w`) and save them unrenamed in `data/raw/tennis_data/`
-  (`2000.xls` … `2012.xls`, `2013.xlsx` … `2026.xlsx`). The files and anything derived from them
-  row by row stay out of Git.
-- **Copyright:** tennis-data.co.uk keeps copyright over the files; only aggregates are published here.
-
-### Linking the two
-
-Each odds row is linked to one Sackmann match when the odds date falls in
-[tournament start, start + 16 days], both players' names agree, and the round and tournament break
-ties. Rows after Sackmann's cutoff (8 June 2026) are reported as out of coverage. Current result:
-**98.74%** of in-coverage odds rows linked; on links where both sources give ATP ranks, 98–99% agree
-exactly on both players' ranks. Each `Match` records how its odds were linked (`oddsLinkMethod`).
-
-### Graph after `make ingest`
+- **Nodes:** `Player`, `Match`, `Tournament`, `Bookmaker`
+- **Relationships:** `(Player)-[:WON]->(Match)`, `(Player)-[:LOST]->(Match)`,
+  `(Match)-[:PART_OF]->(Tournament)`, `(Bookmaker)-[:PRICED]->(Match)`
+- **Derived:** `(Player)-[:BEAT {wins}]->(Player)`, rebuilt from the matches at each ingest
 
 | Element | Count |
 | --- | ---: |
-| `Player` | 2,316 |
-| `Tournament` (yearly edition) | 2,494 |
-| `Match` | 102,417 |
-| `Bookmaker` | 4 (Bet365, Pinnacle, Expekt, Ladbrokes) |
-| `WON` / `LOST` | 102,417 each |
-| `PART_OF` | 102,417 |
-| `PRICED` | 181,474 |
-| `BEAT` (derived: who beat whom, with win counts) | 66,624 |
+| Players | 2,316 |
+| Tournaments (one per yearly edition) | 2,494 |
+| Matches | 102,417 |
+| Bookmaker prices | 181,474 |
+| `BEAT` edges | 66,624 |
+
+### Modeling choices
+
+<!-- TODO: write the modeling rationale (from docs/decision_log.md) -->
+
+## Datasets
+
+**Jeff Sackmann, ATP results.** All tour-level matches from 1991 to 8 June 2026, with player stats.
+(NOTE: The original repo was removed from GitHub, so I download it from a fork pinned to his last commit)
+([`712be0c5`](https://github.com/Kadantte/tennis_atp/tree/712be0c5ade693cdab9e69c23a71a0edf5a23c44)).
+`make download` checks every file against that commit, so the data is identical to his.
+Licence: [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), non-commercial use only.
+
+**tennis-data.co.uk, bookmaker odds.** ATP results with odds from 2000 to 2026. The site does not
+allow automated downloads, so you'll have to get the files manually:
+
+<https://www.tennis-data.co.uk/alldata.php>.
+
+These files are not in the repo, and only aggregates are published.
+
+**Linking the two.** An odds row is matched to a Sackmann match when the dates fit the tournament
+and both player names agree. 98.74% of the odds rows are linked. Details are in
+[docs/data_exploration.md](docs/data_exploration.md).
+
+## API
+
+All lists are paginated (`page`, `size`). Full docs at <http://localhost:8080/docs>.
+
+| Endpoint | What it does |
+| --- | --- |
+| `GET /api/players?q=` | Search a player by name |
+| `GET /api/players/{id}` | Career record, titles and best rank |
+| `GET /api/players/{id}/matches` | Match history with odds |
+| `GET /api/h2h?p1=&p2=` | Head-to-head, overall and per surface |
+| `GET /api/players/{id}/nemesis` | Who beats this player, and non-transitive triangles |
+| `GET /api/path?from=&to=` | Shortest "beat chain" between two players |
+| `GET /api/players/{id}/prestige?era=` | Prestige rank (PageRank), all-time or for an era |
+| `GET /api/players/{id}/similar` | Players with the closest playing style (KNN) |
+| `GET /api/styles` | Playing-style groups (Louvain) |
+| `GET /api/predict?p1=&p2=` | Chance that p1 wins |
+| `POST /api/agent/ask` | Ask the agent a question |
+| `POST /api/admin/gds/refresh` | Recompute the GDS results (needs `X-API-Key`) |
+
+Examples:
+
+```bash
+curl "localhost:8080/api/h2h?p1=104925&p2=104745"
+# Djokovic vs Nadal: 30-28
+
+curl "localhost:8080/api/path?from=100532&to=103819"
+# Johan Kriek beat Fabrice Santoro, who beat Roger Federer
+
+curl "localhost:8080/api/players/104925/prestige?era=2010s"
+# Djokovic is #1 of 774 players in the 2010s
+```
+
+## Results
+
+**Match prediction.** I trained a logistic regression on graph features only, using matches up to
+2021, and tested it on 9,923 matches from 2022 to 2026. Every feature only uses matches played
+before the match being predicted. The bookmakers do better, but the graph model reaches the same
+level as the ATP ranking.
+
+| Method | Log loss | Accuracy |
+| --- | ---: | ---: |
+| Pinnacle | 0.586 | 68.1% |
+| Bet365 | 0.587 | 67.8% |
+| ATP ranking | 0.632 | 63.9% |
+| Graph model | 0.638 | 64.0% |
+
+Full report: [docs/model_report.md](docs/model_report.md).
+
+**Query optimisation.** I measured each query with PROFILE before and after optimising it.
+
+| Query | Before | After |
+| --- | ---: | ---: |
+| Beat cycles through Djokovic | 10.0 s | 7 ms |
+| Beat chain, 3 steps | 123 ms | 3 ms |
+| Career totals | 229 ms | 4 ms |
+| Matches in one week | 39 ms | 3 ms |
+
+Full report: [docs/benchmarks.md](docs/benchmarks.md).
+
+## Agent
+
+The agent is built with LangGraph and uses an LLM from Groq. It answers questions by calling tools
+that query the graph, and it shows every tool call it made.
+
+Guardrails:
+
+- It uses typed tools first (Free Cypher is only a fallback)
+- Generated Cypher is checked before running: no writes, only known labels, `EXPLAIN` must pass,
+  and a `LIMIT` is added.
+- Queries run in a read-only transaction w/ a timeout.
+- Each claim in an answer is tagged **verified** (from the graph), **predicted** (from the model)
+  or **interpreted** (from the LLM). A number tagged verified must appear in a tool result.
+- Ambiguous player names lead to a clarification question.
+
+<!-- TODO: add the evaluation result from docs/agent_eval.md -->
+The agent is tested on 20 questions with answers computed from the graph. Run it with `make eval`.
+
+> **Disclaimer:** NetRank is a school project. It does not give betting advice, and the agent
+> refuses to recommend bets.
+
+## Screenshots
+
+<!-- TODO: Swagger UI, an agent answer with its tool calls, a guardrail rejection -->
 
 ## Makefile
 
-| Command | Does |
+| Command | What it does |
 | --- | --- |
-| `make help` | List all targets |
-| `make install` | Create `.venv` (Python 3.11) and install `requirements-dev.txt` |
-| `make run` | Run the API on :8000 with reload (needs Neo4j from `make docker-run`) |
-| `make download` | Download the Sackmann files and verify them against commit `712be0c5` |
-| `make ingest` | Load Neo4j from `data/raw/` and regenerate `docs/data_exploration.md` |
-| `make gds` | Recompute prestige, style similarity and styles (same as the admin endpoint) |
-| `make train` | Train and evaluate the match-outcome model (`models/`, `docs/model_report.md`) |
-| `make eval` | Live 20-question agent evaluation on Groq, recorded (needs `GROQ_API_KEY`; `--label`) |
-| `make eval-replay RUN=<label>` | Re-score a recorded live run without calling Groq |
-| `make benchmark` | PROFILE before/after benchmarks, written to `docs/benchmarks.md` |
-| `make docker-run` | Build and start the stack, wait until every service is healthy |
-| `make docker-down` | Stop the stack (Neo4j data volume kept) |
-| `make test` | All tests with coverage (fails under 60%); integration/container tests skip if services are down |
-| `make test-stack` | Container health tests against the running stack |
-| `make lint` | pylint on `app/`, `tests/`, `scripts/` (fails under 9.5) |
-| `make clean` | Remove caches and coverage files |
+| `make help` | List all commands |
+| `make install` | Create `.venv` and install dependencies |
+| `make run` | Run the API locally on port 8000 |
+| `make docker-run` | Start the three services |
+| `make docker-down` | Stop the services (data is kept) |
+| `make download` | Download the Sackmann files |
+| `make ingest` | Load the data into Neo4j |
+| `make gds` | Compute prestige, similarity and styles |
+| `make train` | Train and test the match model |
+| `make benchmark` | Run the PROFILE benchmarks |
+| `make eval` | Run the agent evaluation |
+| `make test` | Run the tests with coverage |
+| `make lint` | Run pylint (must stay above 9.5) |
+| `make clean` | Remove caches |
 
 ## Tests
 
-- `tests/unit` — API, driver wrapper, download verification, loaders, name keys, entity resolution
-  and report, all without services.
-- `tests/integration` — Cypher tests on a live server: parameterised round trip, GDS presence,
-  constraints and indexes, idempotent loads, relationship properties, `PRICED` and constraint
-  violations (on throwaway `TEST-` records).
-- `tests/container` — nginx → api → neo4j chain and `docker compose ps` health for all three services.
+The tests are split into unit tests, Cypher tests on a live Neo4j, and container health tests.
+CI runs lint, tests with coverage, and the full Docker stack on every push
 
-CI runs lint, unit + integration tests (Neo4j service container) with coverage, and the full compose
-stack. In CI, `NETRANK_REQUIRE_SERVICES=1` turns "service down" skips into failures.
+## Contributions
 
-## Project layout
+Solo project so all contributions are mine
 
-```text
-app/            FastAPI app: routers/, services/ (Cypher), models/ (Pydantic), database/, agent/
-scripts/        download and ingestion scripts
-tests/          unit/, integration/, container/
-nginx/          reverse-proxy config
-docs/           guidelines, decision log, diagrams
-```
+## Appendix: my schema vs an AI-generated schema
+
+<!-- TODO: compare with a basic schema generated by an AI assistant and explain the differences -->
