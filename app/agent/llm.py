@@ -1,5 +1,6 @@
 """The agent's LLM: Groq, configured from the environment, with counted retry and backoff (decision log D66)."""
 
+import logging
 import random
 import re
 import time
@@ -19,6 +20,10 @@ RETRYABLE = (groq.RateLimitError, groq.APIConnectionError, groq.APITimeoutError,
 CONFIGURATION = (groq.NotFoundError, groq.AuthenticationError, groq.PermissionDeniedError)
 BASE_DELAY, MAX_DELAY = 2.0, 60.0
 DURATION_PART = re.compile(r"(\d+(?:\.\d+)?)(ms|h|m|s)")
+# Groq names the exhausted limit in the 429 message, e.g. "on tokens per day (TPD): Limit 200000, ...".
+DAILY_LIMIT = re.compile(r"per day|\((?:TPD|RPD)\)", re.IGNORECASE)
+
+log = logging.getLogger(__name__)
 
 
 def parse_duration(text: str) -> float | None:
@@ -49,8 +54,36 @@ class LLMConfigurationError(AgentUnavailableError):
     """The provider rejected the model or the key (e.g. a retired Groq model)."""
 
 
+class DailyQuotaError(AgentUnavailableError):
+    """A per-day limit (tokens or requests) is exhausted: retrying within minutes cannot help."""
+
+
 class ToolCallRejectedError(Exception):
-    """The provider rejected the model's tool call because its arguments did not match the schema."""
+    """The provider rejected the model's tool call because its arguments did not match the schema.
+
+    `generation` is the model's full failed output (Groq's failed_generation), kept so a well-formed
+    answer sent to a non-existent tool can be recovered (decision log D71).
+    """
+
+    def __init__(self, message: str, generation: str = "") -> None:
+        """Message for the model and the trace, plus the raw failed output."""
+        super().__init__(message)
+        self.generation = generation
+
+
+def rate_limit_details(exc: Exception) -> dict:
+    """The 429 message and Groq's rate-limit headers, as logged and kept in evaluation rows."""
+    response = getattr(exc, "response", None)
+    headers = response.headers if response is not None else {}
+    kept = {k: v for k, v in headers.items() if k.startswith("x-ratelimit") or k == "retry-after"}
+    return {"message": str(getattr(exc, "message", exc)), "headers": kept}
+
+
+def failed_generation(exc: groq.BadRequestError) -> str:
+    """The model's full failed output from a 400 body, if any."""
+    body = exc.body if isinstance(exc.body, dict) else {}
+    error = body.get("error", body)
+    return str(error.get("failed_generation", "")) if isinstance(error, dict) else ""
 
 
 def rejected_tool_call(exc: groq.BadRequestError) -> str | None:
@@ -84,15 +117,22 @@ class RetryingLLM:
         self.sleep = sleep
         self.retries = 0
         self.rate_limited = 0
+        self.last_rate_limit: dict | None = None
+        self.prompt_tokens = 0
+        self.completion_tokens = 0
 
     def invoke(self, messages: list) -> AIMessage:
         """One model turn; raises AgentUnavailableError once every attempt failed."""
         for attempt in range(1, self.max_attempts + 1):
             try:
-                return self.llm.invoke(messages)
+                message = self.llm.invoke(messages)
+                usage = getattr(message, "usage_metadata", None) or {}
+                self.prompt_tokens += usage.get("input_tokens", 0)
+                self.completion_tokens += usage.get("output_tokens", 0)
+                return message
             except groq.BadRequestError as exc:
                 if message := rejected_tool_call(exc):
-                    raise ToolCallRejectedError(message) from exc
+                    raise ToolCallRejectedError(message, failed_generation(exc)) from exc
                 raise
             except CONFIGURATION as exc:
                 raise LLMConfigurationError(
@@ -100,7 +140,14 @@ class RetryingLLM:
                     + "check GROQ_MODEL and GROQ_API_KEY"
                 ) from exc
             except RETRYABLE as exc:
-                self.rate_limited += isinstance(exc, groq.RateLimitError)
+                if isinstance(exc, groq.RateLimitError):
+                    self.rate_limited += 1
+                    self.last_rate_limit = rate_limit_details(exc)
+                    log.warning(f"Groq 429 (attempt {attempt}): {self.last_rate_limit['message']} "
+                                + f"headers={self.last_rate_limit['headers']}")
+                    if DAILY_LIMIT.search(self.last_rate_limit["message"]):
+                        message = self.last_rate_limit["message"][:300]
+                        raise DailyQuotaError(f"Groq daily limit reached: {message}") from exc
                 if attempt == self.max_attempts:
                     raise AgentUnavailableError(
                         f"LLM provider failed after {attempt} attempts ({type(exc).__name__})"

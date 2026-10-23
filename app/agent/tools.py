@@ -23,7 +23,16 @@ from app.models.players import Surface
 from app.services import analytics, graph, players, predict
 from app.text import fold
 
-LLM_LIST_LIMIT = 10
+LLM_LIST_LIMIT = 5
+BIOGRAPHY = frozenset({"hand", "dob", "height", "wikidataId"})
+# Fields the model does not need for any question, per tool; list sizes where 5 items are too few.
+LLM_OMIT = {
+    "similar_players": frozenset({"features"}),
+    "list_styles": frozenset({"feature"}),
+    "get_style": frozenset({"feature"}),
+    "predict_match": frozenset({"modelVersion"}),
+}
+LLM_LIMITS = {"list_styles": 10}
 MAX_CYPHER_REJECTIONS = 2
 
 log = logging.getLogger(__name__)
@@ -99,22 +108,22 @@ class NoArgs(BaseModel):
 
 
 TOOL_DESCRIPTIONS = {
-    "search_player": "Resolve a player name to an id. Always call this before any tool that takes a player id.",
-    "get_player": "Career record: matches, wins, losses, titles, best rank, record per surface.",
-    "head_to_head": "Every meeting between two players with overall and per-surface records.",
-    "nemesis": "Opponents who beat a player most often, and non-transitive triangles through the player.",
-    "beat_chain": "Shortest chain from one player to another where each player beat the next.",
-    "prestige": "PageRank prestige score and rank of a player, all-time or within an era.",
-    "prestige_leaderboard": "Most prestigious players, all-time or within an era.",
-    "similar_players": "Players with the most similar playing style (serve/return statistics).",
-    "list_styles": "Playing-style communities with their traits.",
-    "get_style": "One playing-style community: traits and best-known members.",
-    "predict_match": "Model probability that player 1 beats player 2; with match_id also bookmaker odds and result.",
-    "run_readonly_cypher": "LAST RESORT for questions no other tool answers. Read-only Cypher over labels "
-    + "Player, Match, Tournament, Bookmaker and relationships WON, LOST, PART_OF, PRICED, BEAT, SIMILAR_STYLE. "
-    + "Writes are rejected. Example: MATCH (w:Player)-[:WON]->(m:Match {round: 'F'})-[:PART_OF]->"
-    + "(t:Tournament {name: 'Wimbledon', year: 2019}) RETURN w.name, m.score",
-    "submit_answer": "Finish: give the structured answer. Call exactly once, at the end.",
+    "search_player": "Resolve a player name to an id. Call before any tool that takes a player id.",
+    "get_player": "Career record: matches, wins, losses, titles, best rank, per surface.",
+    "head_to_head": "Meetings between two players, overall and per surface.",
+    "nemesis": "Opponents who beat a player most often; non-transitive triangles.",
+    "beat_chain": "Shortest chain from one player to another where each beat the next.",
+    "prestige": "PageRank prestige score and rank, all-time or in an era.",
+    "prestige_leaderboard": "Most prestigious players, all-time or in an era.",
+    "similar_players": "Players with the most similar playing style.",
+    "list_styles": "Playing-style communities and their traits.",
+    "get_style": "One style community: traits and best-known members.",
+    "predict_match": "Model probability that player 1 beats player 2; with match_id also odds and result.",
+    "run_readonly_cypher": "LAST RESORT when no other tool answers. Read-only Cypher. Labels: Player, Match, "
+    + "Tournament, Bookmaker. Relationships: (Player)-[:WON|LOST]->(Match)-[:PART_OF]->(Tournament), "
+    + "(Bookmaker)-[:PRICED]->(Match), (Player)-[:BEAT]->(Player), SIMILAR_STYLE. Example: MATCH (w:Player)-[:WON]->"
+    + "(m:Match {round: 'F'})-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019}) RETURN w.name, m.score",
+    "submit_answer": "Finish with the structured answer. Call exactly once, at the end.",
 }
 
 TOOL_ARGS: dict[str, type[BaseModel]] = {
@@ -134,6 +143,30 @@ TOOL_ARGS: dict[str, type[BaseModel]] = {
 }
 
 
+def compact_schema(node: Any) -> Any:
+    """JSON schema without what the model does not need: titles, model docstrings, null defaults.
+
+    `anyOf: [X, null]` becomes X with a nullable type. The tool specs are sent on every turn, so
+    this is most of the prompt-size cut of decision log D72.
+    """
+    if isinstance(node, list):
+        return [compact_schema(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    out = {key: compact_schema(value) for key, value in node.items()
+           if key != "title" and not (key == "description" and "properties" in node)
+           and not (key == "default" and value is None)}
+    options = out.get("anyOf")
+    if isinstance(options, list) and len(options) == 2 and {"type": "null"} in options:
+        kept = dict(next(option for option in options if option != {"type": "null"}))
+        if "enum" in kept:
+            kept["enum"] = [*kept["enum"], None]
+        if isinstance(kept.get("type"), str):
+            kept["type"] = [kept["type"], "null"]
+        out = {**{k: v for k, v in out.items() if k != "anyOf"}, **kept}
+    return out
+
+
 def tool_specs() -> list[dict]:
     """OpenAI-style function specs for bind_tools (also used by the scripted test LLM)."""
     return [
@@ -142,7 +175,7 @@ def tool_specs() -> list[dict]:
             "function": {
                 "name": name,
                 "description": TOOL_DESCRIPTIONS[name],
-                "parameters": schema.model_json_schema(),
+                "parameters": compact_schema(schema.model_json_schema()),
             },
         }
         for name, schema in TOOL_ARGS.items()
@@ -174,13 +207,22 @@ def names_in(value: Any) -> list[str]:
     return []
 
 
-def trim_for_llm(value: Any) -> Any:
-    """Copy of a result with long lists cut to LLM_LIST_LIMIT items (the trace keeps everything)."""
+def trim_for_llm(value: Any, omit: frozenset[str] = frozenset(), limit: int = LLM_LIST_LIMIT, depth: int = 0) -> Any:
+    """What the LLM sees of a result; the trace (and so the verifier) keeps the full result.
+
+    Lists are cut to `limit` items, null values dropped, floats rounded to 4 decimals (the verifier
+    rounds the full value to the precision the model writes, so cited numbers still match), player
+    biography fields dropped below the top level, and the tool's `omit` keys left out (decision log D72).
+    """
     if isinstance(value, dict):
-        return {key: trim_for_llm(item) for key, item in value.items()}
+        hidden = omit | (BIOGRAPHY if depth else frozenset())
+        return {key: trim_for_llm(item, omit, limit, depth + 1) for key, item in value.items()
+                if key not in hidden and item is not None}
     if isinstance(value, list):
-        trimmed = [trim_for_llm(item) for item in value[:LLM_LIST_LIMIT]]
-        return trimmed + ([f"... {len(value) - LLM_LIST_LIMIT} more"] if len(value) > LLM_LIST_LIMIT else [])
+        trimmed = [trim_for_llm(item, omit, limit, depth + 1) for item in value[:limit]]
+        return trimmed + ([f"... {len(value) - limit} more"] if len(value) > limit else [])
+    if isinstance(value, float):
+        return round(value, 4)
     return value
 
 
@@ -293,7 +335,8 @@ class ToolBox:
             data = result.model_dump(mode="json") if isinstance(result, BaseModel) else result
             record.success, record.result = True, data
             self.resolved |= ids_in(data) - (self.ambiguous if name == "search_player" else set())
-            content = {"toolCallId": call_id, "result": trim_for_llm(data)}
+            shown = trim_for_llm(data, LLM_OMIT.get(name, frozenset()), LLM_LIMITS.get(name, LLM_LIST_LIMIT))
+            content = {"toolCallId": call_id, "result": shown}
         except guardrails.GuardrailError as exc:
             record.error, record.guardrail = str(exc), exc.layer
             content = {"toolCallId": call_id, "error": f"Guardrail rejected the query: {exc}"}
@@ -308,6 +351,12 @@ class ToolBox:
         call_id = f"t{len(self.trace) + 1}"
         self.trace.append(ToolCallRecord(id=call_id, tool="(rejected model output)", arguments={}, success=False,
                                          error=message[:500]))
+
+    def record_recovery(self, tool: str, payload: dict) -> None:
+        """Keep, next to the rejection, that its payload was accepted as the answer (decision log D71)."""
+        call_id = f"t{len(self.trace) + 1}"
+        self.trace.append(ToolCallRecord(id=call_id, tool=f"(recovered answer sent to '{tool}')", arguments=payload,
+                                         success=True))
 
     def results_by_id(self) -> dict[str, ToolCallRecord]:
         """Trace records keyed by call id."""

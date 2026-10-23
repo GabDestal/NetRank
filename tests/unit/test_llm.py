@@ -7,6 +7,7 @@ from langchain_core.messages import AIMessage
 
 from app.agent.llm import (
     AgentUnavailableError,
+    DailyQuotaError,
     LLMConfigurationError,
     RetryingLLM,
     ToolCallRejectedError,
@@ -110,3 +111,52 @@ def test_rate_limit_waits_for_the_token_window():
     assert sleeps == [pytest.approx(42.0)]
     retry_after = httpx.Response(429, request=request, headers={"retry-after": "12"})
     assert server_wait(groq.RateLimitError("x", response=retry_after, body=None)) == 12.0
+
+
+def test_daily_limit_stops_at_once_and_is_logged(caplog):
+    """A 429 naming a per-day limit raises DailyQuotaError without retrying; message and headers are kept."""
+    request = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
+    headers = {"x-ratelimit-remaining-requests": "940", "retry-after": "420", "content-type": "application/json"}
+    message = "Rate limit reached for model `openai/gpt-oss-120b` on tokens per day (TPD): Limit 200000, Used 199500"
+    daily = groq.RateLimitError(message, response=httpx.Response(429, request=request, headers=headers), body=None)
+    llm = RetryingLLM(Flaky([daily]), max_attempts=6, sleep=lambda s: None)
+    with caplog.at_level("WARNING"), pytest.raises(DailyQuotaError, match="tokens per day"):
+        llm.invoke([])
+    assert llm.retries == 0 and llm.rate_limited == 1
+    assert llm.last_rate_limit["headers"] == {"x-ratelimit-remaining-requests": "940", "retry-after": "420"}
+    assert "tokens per day" in caplog.text and "x-ratelimit-remaining-requests" in caplog.text
+
+
+def test_per_minute_limit_is_logged_and_retried(caplog):
+    """A per-minute 429 is retried; its message is logged with the headers."""
+    with caplog.at_level("WARNING"):
+        RetryingLLM(Flaky([rate_limit()]), max_attempts=3, sleep=lambda s: None).invoke([])
+    assert "Groq 429 (attempt 1): rate limited" in caplog.text
+
+
+def test_rejection_keeps_the_full_failed_output():
+    """The whole failed_generation travels with the rejection (needed to recover a misrouted answer)."""
+    request = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
+    generation = '{"name": "json", "arguments": {"kind": "answer", "summary": "' + "x" * 500 + '"}}'
+    body = {"error": {"code": "tool_use_failed", "message": "attempted to call tool 'json'",
+                      "failed_generation": generation}}
+    rejected = groq.BadRequestError("bad", response=httpx.Response(400, request=request), body=body)
+    with pytest.raises(ToolCallRejectedError) as caught:
+        RetryingLLM(Flaky([rejected]), max_attempts=3, sleep=lambda s: None).invoke([])
+    assert caught.value.generation == generation
+
+
+def test_token_usage_is_summed():
+    """Groq's own token counts are added up per question."""
+    class Counted:
+        """Answers with usage metadata."""
+
+        def invoke(self, _messages):
+            """One turn."""
+            return AIMessage(content="ok", usage_metadata={"input_tokens": 1200, "output_tokens": 80,
+                                                           "total_tokens": 1280})
+
+    llm = RetryingLLM(Counted(), max_attempts=2)
+    llm.invoke([])
+    llm.invoke([])
+    assert (llm.prompt_tokens, llm.completion_tokens) == (2400, 160)

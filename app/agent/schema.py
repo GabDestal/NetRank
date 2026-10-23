@@ -3,6 +3,7 @@
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 Tag = Literal["verified", "predicted", "interpreted"]
 Kind = Literal["answer", "clarification", "refusal", "failure"]
@@ -45,23 +46,22 @@ class AgentAnswer(BaseModel):
 class DraftClaim(BaseModel):
     """What the LLM writes for one claim (the verifier adds provenance and downgrade fields)."""
 
-    # The live runs showed gpt-oss-120b naming these fields inconsistently ("type" or "tag",
-    # "text" or "statement"), and Groq rejects a call whose arguments miss a required property
-    # before we ever see it. Both spellings are therefore accepted and merged below; a claim
-    # still needs one of each (decision log D65). The API response always uses text and tag.
-    text: str | None = Field(default=None, max_length=600, description="One short factual statement.")
-    statement: str | None = Field(default=None, max_length=600, description="Same as text (either is accepted).")
-    type: Tag | None = Field(
-        default=None, description="verified (tool result), predicted (predict_match), interpreted."
-    )
-    tag: Tag | None = Field(default=None, description="Same as type (either is accepted).")
-    sources: list[str] = Field(default_factory=list, description="Tool call ids like 't2' (strings only).")
-    matchIds: list[str] = Field(default_factory=list, description="Match ids from the cited results, if any.")
+    # The live runs showed gpt-oss-120b naming these fields inconsistently: "type" or "tag", and
+    # "text", "statement" or "claim". Every observed spelling is accepted and merged below; a claim
+    # still needs one statement and one type (decision log D65). The alternatives are left out of
+    # the JSON schema the model sees (fewer tokens per turn); the API response uses text and tag.
+    text: str | None = Field(default=None, max_length=600, description="One short statement.")
+    statement: SkipJsonSchema[str | None] = Field(default=None, max_length=600)
+    claim: SkipJsonSchema[str | None] = Field(default=None, max_length=600)
+    type: Tag | None = None
+    tag: SkipJsonSchema[Tag | None] = None
+    sources: list[str] = Field(default_factory=list, description="Tool call ids, e.g. 't2'.")
+    matchIds: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def merge_spellings(self) -> "DraftClaim":
         """Require one statement and one tag, whichever spelling the model used."""
-        self.text = self.text or self.statement
+        self.text = self.text or self.statement or self.claim
         self.type = self.type or self.tag
         if not self.text or not self.type:
             raise ValueError("each claim needs a statement (text) and a type (verified/predicted/interpreted)")
@@ -84,6 +84,17 @@ class DraftAnswer(BaseModel):
         """The response answer."""
         return AgentAnswer(kind=self.kind, summary=self.summary, claims=[c.to_claim() for c in self.claims],
                            candidates=self.candidates)
+
+    @classmethod
+    def unknown_fields(cls, data: dict) -> list[str]:
+        """Keys of a payload that are not submit_answer fields (used before accepting a misrouted answer)."""
+        nested = {"claims": DraftClaim, "candidates": Candidate}
+        unknown = [key for key in data if key not in set(cls.model_fields.keys())]
+        for key, model in nested.items():
+            items = data.get(key) if isinstance(data.get(key), list) else []
+            unknown += [f"{key}.{field}" for item in items if isinstance(item, dict)
+                        for field in item if field not in set(model.model_fields.keys())]
+        return unknown
 
 
 class ToolCallRecord(BaseModel):
@@ -114,5 +125,8 @@ class AgentResponse(BaseModel):
     fallbackCypherCalls: int
     guardrailRejections: int
     invalidToolCalls: int = Field(description="Model tool calls rejected for not matching their schema.")
+    recoveredCalls: int = Field(
+        default=0, description="Rejected calls whose payload was a valid answer sent to a non-existent tool."
+    )
     downgradedClaims: int
     model: str

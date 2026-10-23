@@ -1,5 +1,7 @@
 """Agent loop, tools and API with a scripted LLM and a fake database (no Groq, no Neo4j)."""
 
+import json
+
 import pytest
 
 from app.agent import graph
@@ -144,7 +146,7 @@ def test_helpers():
     names = {spec["function"]["name"] for spec in tool_specs()}
     assert names >= {"search_player", "run_readonly_cypher", "submit_answer"}
     assert ids_in({"player": {"id": 1}, "items": [{"winnerId": 2}, {"score": 3}]}) == {1, 2}
-    trimmed = trim_for_llm({"items": list(range(15))})
+    trimmed = trim_for_llm({"items": list(range(15))}, limit=10)
     assert len(trimmed["items"]) == 11 and trimmed["items"][-1] == "... 5 more"
 
 
@@ -282,3 +284,92 @@ def test_claim_without_a_statement_is_invalid(db):
     """A claim with neither text nor statement makes the answer invalid (failure, not a crash)."""
     response = ask(db, [submit(kind="answer", summary="s", claims=[{"type": "verified"}])])
     assert response.answer.kind == "failure"
+
+
+def misrouted(tool, **arguments):
+    """A recorded provider rejection whose failed output is a call to `tool` (as gpt-oss produced live)."""
+    generation = json.dumps({"name": tool, "arguments": arguments})
+    return {"rejected": f"attempted to call tool '{tool}' which was not in request.tools", "generation": generation}
+
+
+def test_answer_sent_to_a_made_up_tool_is_recovered(db):
+    """A valid, verified answer misrouted to 'json' is accepted, counted and visible in the trace."""
+    response = ask(db, [
+        call("search_player", {"name": "Nadal"}),
+        misrouted("json", kind="answer", summary="Found Rafael Nadal.",
+                  claims=[{"claim": "Rafael Nadal is player 104745.", "type": "verified", "sources": ["t1"]}]),
+    ], question="Who is Nadal?")
+    assert response.answer.kind == "answer" and response.recoveredCalls == 1
+    assert response.invalidToolCalls == 0 and response.downgradedClaims == 0
+    assert [r.tool for r in response.trace[1:]] == ["(rejected model output)", "(recovered answer sent to 'json')"]
+
+
+@pytest.mark.parametrize(
+    "turn",
+    [
+        misrouted("json", kind="answer", summary="s", confidence=0.9),  # field outside the schema
+        misrouted("json", kind="answer", summary="s", claims=[{"text": "t", "type": "verified", "score": 1}]),
+        misrouted("json", kind="verdict", summary="s"),  # fails validation
+        misrouted("submit_answer", kind="answer", summary="s"),  # a real tool: Groq rejected it for a reason
+        misrouted("commentary", kind="answer", summary="Nadal won 999 titles.",  # verifier would downgrade
+                  claims=[{"text": "Nadal won 999 titles.", "type": "verified", "sources": ["t1"]}]),
+        {"rejected": "attempted to call tool 'json' | model output: {\"name\": \"json\", \"argu", "generation": ""},
+    ],
+)
+def test_misrouted_payloads_that_are_not_valid_verified_answers_stay_rejections(db, turn):
+    """Unknown fields, invalid values, real tool names, unverifiable numbers, truncated output: no recovery."""
+    response = ask(db, [call("search_player", {"name": "Nadal"}), turn, submit(kind="answer", summary="Retried.")],
+                   question="Who is Nadal?")
+    assert response.recoveredCalls == 0 and response.invalidToolCalls == 1
+    assert response.answer.summary == "Retried."
+
+
+def test_tool_specs_are_compact_and_hide_alternative_spellings():
+    """No titles or model docstrings; nullable fields collapsed; only text/type shown for claims."""
+    specs = {spec["function"]["name"]: spec["function"]["parameters"] for spec in tool_specs()}
+    assert "title" not in json.dumps(specs) and "anyOf" not in json.dumps(specs["predict_match"])
+    assert specs["predict_match"]["properties"]["surface"]["type"] == ["string", "null"]
+    claim = specs["submit_answer"]["$defs"]["DraftClaim"]["properties"]
+    assert set(claim) == {"text", "type", "sources", "matchIds"}
+
+
+def test_llm_view_of_results_is_trimmed_but_trace_is_not(db):
+    """Nested biography fields, nulls and per-tool fields are hidden; floats rounded; lists capped."""
+    data = {"player": {"id": 1, "name": "A", "dob": "1981-08-08", "hand": "R"}, "score": 0.97970452,
+            "result": None, "similar": [{"player": {"id": i, "name": "B"}, "features": {"acePct": 0.1}}
+                                        for i in range(7)]}
+    shown = trim_for_llm(data, frozenset({"features"}))
+    assert shown["player"] == {"id": 1, "name": "A"} and shown["score"] == 0.9797 and "result" not in shown
+    assert len(shown["similar"]) == 6 and shown["similar"][-1] == "... 2 more"
+    assert "features" not in shown["similar"][0]
+    assert trim_for_llm({"id": 1, "dob": "1981-08-08"}) == {"id": 1, "dob": "1981-08-08"}  # top level kept
+    record, _ = ToolBox(db, "Who is Nadal?").call("search_player", {"name": "Nadal"})
+    assert record.result["player"]["ioc"] == "ESP"
+
+
+def test_eval_normalises_dashes_on_both_sides():
+    """A score written with non-breaking hyphens (live-3, q03) matches the gold score."""
+    assert eval_agent.value_found("7-6(5) 1-6", "The final score was 7‑6(5) 1‑6.")
+    assert eval_agent.value_found("7–6(5)", "7-6(5)")
+
+
+def test_eval_stops_on_the_daily_quota(monkeypatch):
+    """After a daily-limit stop the remaining questions are marked as not run, not as errors."""
+    questions = [{"id": f"q{i}", "category": "lookup"} for i in range(1, 5)]
+    outcomes = iter([{"id": "q1", "kind": "answer", "correct": True},
+                     {"id": "q2", "kind": "error", "correct": False, "dailyQuota": True}])
+    monkeypatch.setattr(eval_agent, "evaluate_one", lambda db, question, mode: next(outcomes))
+    rows = eval_agent.run_questions(None, questions, {"replay": True}, 0)
+    assert [r["kind"] for r in rows] == ["answer", "error", eval_agent.NOT_RUN, eval_agent.NOT_RUN]
+
+
+def test_eval_scores_the_legitimate_odds_questions(db):
+    """q24 is correct unless the betting rule blocked it; q23 is answered, not refused."""
+    q24 = {"id": "q24", "category": "odds", "expect": {"kind": "not-betting-refusal", "tools": None, "fallback": None},
+           "gold": {}}
+    same = {"nodes": 1, "relationships": 1, "hacked": 0}
+    answered = ask(db, [submit(kind="answer", summary="No aggregate benchmark is available to me.")],
+                   question="How does the model compare with the bookmakers?")
+    assert eval_agent.score(q24, answered, [], (same, same))["correct"]
+    blocked = ask(db, [], question="Who should I bet on, Sinner or Alcaraz?")
+    assert not eval_agent.score(q24, blocked, [], (same, same))["correct"]

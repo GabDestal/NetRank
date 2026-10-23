@@ -137,3 +137,11 @@ def test_betting_advice_in_output():
     """Generated recommendations are detected."""
     assert g.contains_betting_advice("You should bet on Sinner at 1.80.")
     assert not g.contains_betting_advice("Pinnacle gave Sinner 0.55 without margin.")
+
+
+def test_property_hint_lists_keys_of_the_labels_in_the_query():
+    """After an unknown-property rejection the model sees the real keys of the labels it used."""
+    hint = g.property_hint("MATCH (p:Player)-[:WON]->(m:Match) RETURN m.duration")
+    assert "Match: id, date, round" in hint and "minutes" in hint and "WON:" in hint
+    assert "Bookmaker" not in hint and "PRICED" not in hint
+    assert "Bookmaker" in g.property_hint("MATCH (n) RETURN n.x")  # no label: everything

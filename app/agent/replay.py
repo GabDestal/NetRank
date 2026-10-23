@@ -1,7 +1,9 @@
 """Record and replay LLM turns, so tests and CI never call Groq (decision log D67).
 
 A recording is a JSON list of turns: {"content": str, "tool_calls": [{"name", "args", "id"}]}, or
-{"rejected": message} when the provider refused the model's output (replayed as that rejection).
+{"rejected": message, "generation": raw output} when the provider refused the model's output
+(replayed as that rejection; recordings made before 2026-10-23 kept only the first 300 characters
+of the output inside the message, so answers misrouted in those runs cannot be recovered on replay).
 RecordingLLM wraps the live model and stores every turn; ReplayLLM returns them in order.
 """
 
@@ -46,7 +48,7 @@ class ReplayLLM:
         turn = self.turns[self.calls]
         self.calls += 1
         if "rejected" in turn:  # the provider refused this turn during the live run
-            raise ToolCallRejectedError(turn["rejected"])
+            raise ToolCallRejectedError(turn["rejected"], turn.get("generation", ""))
         return from_turn(turn)
 
 
@@ -63,7 +65,7 @@ class RecordingLLM:
         try:
             message = self.llm.invoke(messages)
         except ToolCallRejectedError as exc:
-            self.turns.append({"rejected": str(exc)})
+            self.turns.append({"rejected": str(exc), "generation": exc.generation})
             raise
         self.turns.append(to_turn(message))
         return message

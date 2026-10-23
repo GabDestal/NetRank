@@ -21,6 +21,20 @@ TIMEOUT_SECONDS = 5.0
 LABELS = frozenset({"Player", "Match", "Tournament", "Bookmaker"})
 RELATIONSHIP_TYPES = frozenset({"WON", "LOST", "PART_OF", "PRICED", "BEAT", "SIMILAR_STYLE"})
 ALLOWED_PROCEDURES = frozenset({"db.index.fulltext.querynodes", "db.labels", "db.relationshiptypes"})
+# Property keys as loaded (Player style features and provenance fields left out): shown to the LLM only
+# when EXPLAIN reports an unknown property, so its one retry can use a real key.
+PROPERTY_KEYS = {
+    "Player": "id, name, firstName, lastName, ioc, hand, dob, height, prestige, prestigeRank, styleId",
+    "Match": "id, date, round, score, surface, bestOf, minutes, walkover, retired, "
+    + "marketAvgWinnerOdds, marketAvgLoserOdds, marketMaxWinnerOdds, marketMaxLoserOdds",
+    "Tournament": "id, name, year, level (G, M, A, F), levelName, surface, drawSize, startDate",
+    "Bookmaker": "name, code",
+    "WON": "rank, rankPoints, seed, entry, age, aces, doubleFaults, servePoints, firstServesIn, firstServeWon, "
+    + "secondServeWon, serviceGames, breakPointsSaved, breakPointsFaced (same on LOST)",
+    "PRICED": "winnerOdds, loserOdds, overround",
+    "BEAT": "wins, firstWin, lastWin",
+    "SIMILAR_STYLE": "score",
+}
 
 WRITE_CLAUSES = re.compile(
     r"""\b(
@@ -117,7 +131,17 @@ def explain_check(db: Neo4jClient, query: str) -> None:
     if writes := [op for op in operators(plan) if op.startswith(WRITE_OPERATORS)]:
         raise GuardrailError("explain", f"plan contains write operators {writes}")
     if unknown := [description for code, description in notifications if code in SCHEMA_NOTIFICATIONS]:
-        raise GuardrailError("explain", "server reports: " + "; ".join(sorted(set(unknown))))
+        message = "server reports: " + "; ".join(sorted({u.rstrip(". ") for u in unknown}))
+        if any(code == "01N52" for code, _ in notifications):
+            message += ". Known properties: " + property_hint(query)
+        raise GuardrailError("explain", message)
+
+
+def property_hint(query: str) -> str:
+    """Property keys of the labels and relationship types the query mentions (all of them if none)."""
+    code = strip_literals_and_comments(query)
+    used = [name for name in PROPERTY_KEYS if re.search(r":\s*`?" + name + r"(?!\w)", code)] or list(PROPERTY_KEYS)
+    return "; ".join(f"{name}: {PROPERTY_KEYS[name]}" for name in used)
 
 
 def check(db: Neo4jClient, query: str) -> CheckedQuery:
