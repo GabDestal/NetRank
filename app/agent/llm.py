@@ -21,6 +21,8 @@ CONFIGURATION = (groq.NotFoundError, groq.AuthenticationError, groq.PermissionDe
 BASE_DELAY, MAX_DELAY = 2.0, 60.0
 DURATION_PART = re.compile(r"(\d+(?:\.\d+)?)(ms|h|m|s)")
 # Groq names the exhausted limit in the 429 message, e.g. "on tokens per day (TPD): Limit 200000, ...".
+# Account identifiers in provider messages are not secrets, but are not needed in logs or reports.
+ORGANIZATION = re.compile(r"org_[A-Za-z0-9]+")
 DAILY_LIMIT = re.compile(r"per day|\((?:TPD|RPD)\)", re.IGNORECASE)
 
 log = logging.getLogger(__name__)
@@ -76,7 +78,7 @@ def rate_limit_details(exc: Exception) -> dict:
     response = getattr(exc, "response", None)
     headers = response.headers if response is not None else {}
     kept = {k: v for k, v in headers.items() if k.startswith("x-ratelimit") or k == "retry-after"}
-    return {"message": str(getattr(exc, "message", exc)), "headers": kept}
+    return {"message": ORGANIZATION.sub("org_<redacted>", str(getattr(exc, "message", exc))), "headers": kept}
 
 
 def failed_generation(exc: groq.BadRequestError) -> str:
