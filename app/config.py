@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     # Winner model written by make train (mounted read-only into the API container).
     model_path: str = "models/winner_model.json"
 
+    # Agent (Groq free tier). Without a key POST /api/agent/ask answers 503.
+    groq_api_key: SecretStr | None = None
+    groq_model: str = "openai/gpt-oss-120b"
+    agent_max_steps: int = Field(default=8, ge=2, le=20)
+    llm_max_attempts: int = Field(default=6, ge=1, le=10)
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -1,4 +1,4 @@
-.PHONY: help venv install run download ingest gds train benchmark docker-build docker-run docker-down docker-logs test test-unit test-stack lint clean
+.PHONY: help venv install run download ingest gds train eval eval-replay demo-guardrail benchmark docker-build docker-run docker-down docker-logs test test-unit test-stack lint clean
 
 PYTHON ?= python3
 VENV := .venv
@@ -10,6 +10,9 @@ BIN := $(VENV)/bin
 endif
 PY := $(BIN)/python
 LINT_PATHS := app tests $(wildcard scripts/*.py)
+# make eval: free-tier pacing between questions (seconds) and an optional run label.
+PAUSE ?= 60
+LABEL ?=
 
 help: ## Show this help
 	@echo "NetRank make targets:"
@@ -40,6 +43,15 @@ train: ## Train and evaluate the match-outcome model -> models/, docs/model_repo
 	# One GDS thread: parallel PageRank sums in varying order (~1e-14), which moved weights by ~1e-10
 	# and changed the model version between identical runs.
 	GDS_CONCURRENCY=1 $(PY) -m scripts.train
+
+eval: ## Live agent evaluation on eval/questions_v2.json (needs GROQ_API_KEY): make eval LABEL=live-N
+	$(PY) -m scripts.eval_agent $(if $(LABEL),--label $(LABEL),) --pause $(PAUSE)
+
+eval-replay: ## Re-score a live run's recordings without Groq: make eval-replay RUN=<live label>
+	$(PY) -m scripts.eval_agent --replay $(RUN)
+
+demo-guardrail: ## Replay recorded model Cypher through the guardrails, offline (REC=<recording> optional)
+	$(PY) -m scripts.demo_guardrail $(if $(REC),--recording $(REC),)
 
 benchmark: ## PROFILE before/after query benchmarks -> docs/benchmarks.md (needs the loaded graph)
 	$(PY) -m scripts.benchmark

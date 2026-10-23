@@ -7,7 +7,7 @@ The API owns one driver (one connection pool) for its whole lifetime. Every quer
 from typing import Any
 
 from fastapi import Request
-from neo4j import Driver, GraphDatabase, NotificationMinimumSeverity, RoutingControl
+from neo4j import READ_ACCESS, Driver, GraphDatabase, NotificationMinimumSeverity, RoutingControl, unit_of_work
 
 from app.config import Settings
 
@@ -45,6 +45,37 @@ class Neo4jClient:
             "PROFILE " + query, params or {}, database_=self._database, routing_=RoutingControl.READ
         )
         return [to_native(record.data()) for record in records], summary.profile
+
+    def read_only(self, query: str, params: dict[str, Any], timeout: float, max_rows: int) -> list[dict[str, Any]]:
+        """Run untrusted Cypher in a READ-mode transaction (the server rejects any write).
+
+        The transaction is aborted by the server after `timeout` seconds; at most `max_rows` rows are read.
+        """
+
+        @unit_of_work(timeout=timeout)
+        def work(tx):
+            result = tx.run(query, params)
+            rows = []
+            for record in result:
+                rows.append(to_native(record.data()))
+                if len(rows) >= max_rows:
+                    break
+            return rows
+
+        with self._driver.session(database=self._database, default_access_mode=READ_ACCESS) as session:
+            return session.execute_read(work)
+
+    def explain(self, query: str, params: dict[str, Any]) -> tuple[dict, list[tuple[str, str]]]:
+        """EXPLAIN in a READ-mode transaction: the plan tree and the server's notifications as
+        (GQL status code, description), e.g. ("01N50", "warn: label does not exist...")."""
+
+        def work(tx):
+            summary = tx.run("EXPLAIN " + query, params).consume()
+            notes = [(s.gql_status, s.status_description) for s in summary.gql_status_objects if s.is_notification]
+            return summary.plan, notes
+
+        with self._driver.session(database=self._database, default_access_mode=READ_ACCESS) as session:
+            return session.execute_read(work)
 
     def verify(self) -> None:
         """Raise if the server is unreachable or the credentials are rejected."""

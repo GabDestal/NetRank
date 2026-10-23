@@ -1,0 +1,32 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_753abc18-1cac-4e52-a981-6fb4519644c7"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "get_player",
+        "args": {
+          "player_id": 103819
+        },
+        "id": "fc_d474df45-e6a4-49f5-821c-c1f27299dc78"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'commentary' which was not in request.tools | model output: {\"name\": \"commentary\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Roger Federer has won 103 titles in the NetRank data.\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"statement\": \"Roger Federer has won 103 titles.\",\n      \"sources\": [\"t2\"]\n    }\n  ]\n}}"
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: parameters for tool submit_answer did not match schema: errors: [`/claims/0`: missing properties: 'text'] | model output: {\"name\": \"submit_answer\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Roger Federer has won 103 titles in the NetRank data.\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"statement\": \"Roger Federer has won 103 titles.\",\n      \"sources\": [\"t2\"]\n    }\n  ]\n}}"
+  }
+]

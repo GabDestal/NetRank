@@ -1,0 +1,32 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_84bb1a40-db4b-4810-8467-e73b3f92d67d"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "nemesis",
+        "args": {
+          "player_id": 103819
+        },
+        "id": "fc_6d154107-160a-477d-9cef-d38406f8c543"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Novak Djokovic has defeated Roger Federer the most often, beating him 27 times in ATP tour\u2011level matches.\",\n  \"claims\": [\n    {\n      \"claim\": \"Novak Djokovic has beaten Roger Federer 27 times, the highest number of wins any opponent "
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: parameters for tool submit_answer did not match schema: errors: [`/claims/0`: missing properties: 'text'] | model output: {\"name\": \"submit_answer\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Novak Djokovic has defeated Roger Federer the most times, beating him 27 times in ATP tour\u2011level matches.\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"claim\": \"Novak Djokovic has beaten Roger Federer 27 times, the h"
+  }
+]

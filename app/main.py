@@ -12,7 +12,7 @@ from app import __version__
 from app.config import get_settings
 from app.database.client import Neo4jClient
 from app.errors import GdsUnavailableError, InvalidRequestError, NotFoundError
-from app.routers import analytics, graph, health, players, predict
+from app.routers import agent, analytics, graph, health, players, predict
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ app.include_router(players.router)
 app.include_router(graph.router)
 app.include_router(analytics.router)
 app.include_router(predict.router)
+app.include_router(agent.router)
 app.include_router(analytics.admin)
 
 

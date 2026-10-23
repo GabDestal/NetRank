@@ -1,0 +1,68 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Novak Djokovic"
+        },
+        "id": "fc_f4b5fc8b-e7f0-49ab-99c7-8a8d0d6f6f75"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_ff632bf4-14b1-4d7b-af0f-e53ecbffadb4"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "head_to_head",
+        "args": {
+          "player1_id": 104925,
+          "player2_id": 104745
+        },
+        "id": "fc_db6f63c7-fdf6-4d1c-9172-4fdef9711b84"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t3"
+              ],
+              "statement": "Novak Djokovic has 30 wins and Rafael Nadal has 28 wins in their head\u2011to\u2011head record.",
+              "type": "verified"
+            },
+            {
+              "sources": [
+                "t3"
+              ],
+              "statement": "On hard courts Djokovic leads 20\u20117, on clay Nadal leads 19\u20118, and on grass they are tied 2\u20112.",
+              "type": "verified"
+            }
+          ],
+          "kind": "answer",
+          "summary": "Novak Djokovic leads his head\u2011to\u2011head against Rafael Nadal 30\u201128 overall. By surface, Djokovic leads on hard courts 20\u20117, trails on clay 8\u201119, and they are tied on grass 2\u20112."
+        },
+        "id": "fc_71ed0208-0109-40c6-9a96-9ffc612bbed8"
+      }
+    ]
+  }
+]

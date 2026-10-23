@@ -1,0 +1,67 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_ab3d28b9-bebd-431d-9cbb-83847674ae81"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "nemesis",
+        "args": {
+          "player_id": 104745
+        },
+        "id": "fc_cc8f1bab-0a74-4088-a065-faf5698745f6"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "prestige",
+        "args": {
+          "player_id": 104925
+        },
+        "id": "fc_bda59481-f621-44d3-9abe-d505282ebbfa"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t2"
+              ],
+              "tag": "verified",
+              "text": "Novak Djokovic has defeated Rafael Nadal more times than any other opponent, with 30 wins over Nadal."
+            },
+            {
+              "sources": [
+                "t3"
+              ],
+              "tag": "verified",
+              "text": "Novak Djokovic holds the number\u20111 all\u2011time prestige rank in the NetRank system."
+            }
+          ],
+          "kind": "answer",
+          "summary": "Novak Djokovic has beaten Rafael Nadal more often than any other player (30 wins) and holds the number\u20111 all\u2011time prestige rank."
+        },
+        "id": "fc_5bc316e9-1bab-4f71-beec-e8dda400b49f"
+      }
+    ]
+  }
+]

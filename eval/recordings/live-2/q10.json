@@ -1,0 +1,33 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Novak Djokovic"
+        },
+        "id": "fc_0a5a57d9-e72f-42fb-8930-14b4c820c2dc"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "prestige",
+        "args": {
+          "era": null,
+          "player_id": 104925
+        },
+        "id": "fc_d641b450-3ab8-48d5-b6a0-86ed0af86e21"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Novak Djokovic holds the top all\u2011time prestige rank (rank\u202f1).\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"statement\": \"Novak Djokovic is ranked #1 in the all\u2011time prestige ranking.\",\n      \"sources\": [\"t2\"]\n    }\n  ]\n}}"
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Novak Djokovic holds the top all\u2011time prestige rank (rank\u202f1).\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"statement\": \"Novak Djokovic is ranked #1 in the all\u2011time prestige ranking.\",\n      \"sources\": [\"t2\"]\n    }\n  ]\n}}"
+  }
+]

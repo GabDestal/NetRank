@@ -1,0 +1,40 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "prestige_leaderboard",
+        "args": {
+          "era": "1990s",
+          "size": 1
+        },
+        "id": "fc_c819d928-1239-4934-b52c-4b5516312518"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'commentary' which was not in request.tools | model output: {\"name\": \"commentary\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Pete Sampras was the most prestigious player of the 1990s according to NetRank.\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"statement\": \"Pete Sampras was ranked #1 in NetRank prestige for the era 1991\u20111999.\",\n      \"s"
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t1"
+              ],
+              "statement": "Pete Sampras was ranked #1 in NetRank prestige for the era 1991\u20111999.",
+              "type": "verified"
+            }
+          ],
+          "kind": "answer",
+          "summary": "Pete Sampras was the most prestigious player of the 1990s according to NetRank."
+        },
+        "id": "fc_835e9644-84fd-434d-8936-6def29b62b0b"
+      }
+    ]
+  }
+]

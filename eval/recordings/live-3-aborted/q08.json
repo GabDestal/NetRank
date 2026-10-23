@@ -1,0 +1,26 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_9180089f-0171-4975-b79b-d7e3fdd61b29"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "nemesis",
+        "args": {
+          "player_id": 104745
+        },
+        "id": "fc_75a15b85-88f5-4949-ae52-8fcf04b0f6e4"
+      }
+    ]
+  }
+]

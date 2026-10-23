@@ -1,0 +1,14 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Andy Murray"
+        },
+        "id": "fc_40b93f3d-9062-4c42-880e-9a01c1db37c0"
+      }
+    ]
+  }
+]

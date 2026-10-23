@@ -1,0 +1,26 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_fca865a7-8c81-44d3-94f8-a48cdc9fdbf0"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "nemesis",
+        "args": {
+          "player_id": 103819
+        },
+        "id": "fc_fc3f32d4-d779-44ee-9022-3cafa98d657b"
+      }
+    ]
+  }
+]

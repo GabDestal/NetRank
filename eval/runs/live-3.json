@@ -1,0 +1,481 @@
+{
+  "meta": {
+    "label": "live-3",
+    "mode": "live",
+    "date": "2026-10-23 07:17 UTC",
+    "recordings": "eval/recordings/live-3",
+    "pause": 60.0,
+    "note": "Third live run (full rerun after an aborted attempt), Neo4j memory capped via docker-compose.eval.yml. Same agent as live-2 plus: waits for Groq's token-window reset (up to 60 s, 6 attempts), accepts both field spellings seen live (text/statement, type/tag), 60 s between questions. Preceded by a 3-question smoke test (q01, q04, q18: all passed, no 429).",
+    "model": "openai/gpt-oss-120b"
+  },
+  "rows": [
+    {
+      "id": "q01",
+      "category": "lookup",
+      "kind": "answer",
+      "correct": true,
+      "toolsOk": true,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 1,
+      "checkableClaims": 1,
+      "downgraded": 0,
+      "steps": 4,
+      "gold": [
+        103
+      ],
+      "tools": [
+        "search_player",
+        "get_player",
+        "(rejected model output)"
+      ],
+      "retries": 0,
+      "rateLimited": 0
+    },
+    {
+      "id": "q02",
+      "category": "lookup",
+      "kind": "answer",
+      "correct": true,
+      "toolsOk": true,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 0,
+      "checkableClaims": 1,
+      "downgraded": 0,
+      "steps": 3,
+      "gold": [
+        706,
+        259
+      ],
+      "tools": [
+        "search_player",
+        "get_player"
+      ],
+      "retries": 0,
+      "rateLimited": 0
+    },
+    {
+      "id": "q03",
+      "category": "lookup",
+      "kind": "answer",
+      "correct": false,
+      "toolsOk": true,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 2,
+      "guardrailRejections": 1,
+      "invalidToolCalls": 1,
+      "checkableClaims": 2,
+      "downgraded": 2,
+      "steps": 4,
+      "gold": [
+        "Novak Djokovic",
+        "7-6(5) 1-6 7-6(4) 4-6 13-12(3)"
+      ],
+      "tools": [
+        "run_readonly_cypher",
+        "run_readonly_cypher",
+        "(rejected model output)"
+      ],
+      "retries": 0,
+      "rateLimited": 0
+    },
+    {
+      "id": "q04",
+      "category": "h2h",
+      "kind": "answer",
+      "correct": true,
+      "toolsOk": true,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 0,
+      "checkableClaims": 2,
+      "downgraded": 0,
+      "steps": 4,
+      "gold": [
+        30,
+        28
+      ],
+      "tools": [
+        "search_player",
+        "search_player",
+        "head_to_head"
+      ],
+      "retries": 0,
+      "rateLimited": 0
+    },
+    {
+      "id": "q05",
+      "category": "h2h",
+      "kind": "failure",
+      "correct": false,
+      "toolsOk": true,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 2,
+      "checkableClaims": 0,
+      "downgraded": 0,
+      "steps": 5,
+      "gold": [
+        14
+      ],
+      "tools": [
+        "search_player",
+        "search_player",
+        "(rejected model output)",
+        "head_to_head",
+        "(rejected model output)"
+      ],
+      "retries": 0,
+      "rateLimited": 0
+    },
+    {
+      "id": "q06",
+      "category": "multi-hop",
+      "kind": "answer",
+      "correct": true,
+      "toolsOk": true,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 0,
+      "checkableClaims": 2,
+      "downgraded": 1,
+      "steps": 4,
+      "gold": [
+        2
+      ],
+      "tools": [
+        "search_player",
+        "search_player",
+        "beat_chain"
+      ],
+      "retries": 0,
+      "rateLimited": 0
+    },
+    {
+      "id": "q07",
+      "category": "multi-hop",
+      "kind": "failure",
+      "correct": false,
+      "toolsOk": true,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 1,
+      "checkableClaims": 0,
+      "downgraded": 0,
+      "steps": 4,
+      "gold": [
+        "Novak Djokovic",
+        27
+      ],
+      "tools": [
+        "search_player",
+        "nemesis",
+        "(rejected model output)"
+      ],
+      "retries": 0,
+      "rateLimited": 0
+    },
+    {
+      "id": "q08",
+      "category": "multi-hop",
+      "kind": "answer",
+      "correct": true,
+      "toolsOk": true,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 1,
+      "checkableClaims": 2,
+      "downgraded": 0,
+      "steps": 5,
+      "gold": [
+        "Novak Djokovic",
+        1
+      ],
+      "tools": [
+        "search_player",
+        "nemesis",
+        "prestige",
+        "(rejected model output)"
+      ],
+      "retries": 0,
+      "rateLimited": 0
+    },
+    {
+      "id": "q09",
+      "category": "prestige",
+      "kind": "answer",
+      "correct": true,
+      "toolsOk": true,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 1,
+      "checkableClaims": 1,
+      "downgraded": 0,
+      "steps": 3,
+      "gold": [
+        "Pete Sampras"
+      ],
+      "tools": [
+        "prestige_leaderboard",
+        "(rejected model output)"
+      ],
+      "retries": 0,
+      "rateLimited": 0
+    },
+    {
+      "id": "q10",
+      "category": "prestige",
+      "kind": "answer",
+      "correct": true,
+      "toolsOk": true,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 1,
+      "checkableClaims": 1,
+      "downgraded": 0,
+      "steps": 4,
+      "gold": [
+        1
+      ],
+      "tools": [
+        "search_player",
+        "prestige",
+        "(rejected model output)"
+      ],
+      "retries": 0,
+      "rateLimited": 0
+    },
+    {
+      "id": "q11",
+      "category": "styles",
+      "kind": "answer",
+      "correct": true,
+      "toolsOk": true,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 1,
+      "checkableClaims": 1,
+      "downgraded": 0,
+      "steps": 4,
+      "gold": [
+        "Jannik Sinner"
+      ],
+      "tools": [
+        "search_player",
+        "similar_players",
+        "(rejected model output)"
+      ],
+      "retries": 0,
+      "rateLimited": 0
+    },
+    {
+      "id": "q12",
+      "category": "styles",
+      "kind": "answer",
+      "correct": true,
+      "toolsOk": true,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 1,
+      "checkableClaims": 2,
+      "downgraded": 0,
+      "steps": 5,
+      "gold": [
+        "risky second serve",
+        "dominant first serve",
+        "big server"
+      ],
+      "tools": [
+        "search_player",
+        "similar_players",
+        "get_style",
+        "(rejected model output)"
+      ],
+      "retries": 1,
+      "rateLimited": 1
+    },
+    {
+      "id": "q13",
+      "category": "prediction",
+      "kind": "error",
+      "correct": false,
+      "toolsOk": false,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 0,
+      "checkableClaims": 0,
+      "downgraded": 0,
+      "steps": 0,
+      "gold": [],
+      "tools": [],
+      "error": "LLM provider failed after 6 attempts (RateLimitError)",
+      "retries": 5,
+      "rateLimited": 6
+    },
+    {
+      "id": "q14",
+      "category": "prediction",
+      "kind": "error",
+      "correct": false,
+      "toolsOk": false,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 0,
+      "checkableClaims": 0,
+      "downgraded": 0,
+      "steps": 0,
+      "gold": [],
+      "tools": [],
+      "error": "LLM provider failed after 6 attempts (RateLimitError)",
+      "retries": 16,
+      "rateLimited": 17
+    },
+    {
+      "id": "q15",
+      "category": "ambiguous",
+      "kind": "error",
+      "correct": false,
+      "toolsOk": false,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 0,
+      "checkableClaims": 0,
+      "downgraded": 0,
+      "steps": 0,
+      "gold": [],
+      "tools": [],
+      "error": "LLM provider failed after 6 attempts (RateLimitError)",
+      "retries": 6,
+      "rateLimited": 7
+    },
+    {
+      "id": "q16",
+      "category": "ambiguous",
+      "kind": "error",
+      "correct": false,
+      "toolsOk": false,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 0,
+      "checkableClaims": 0,
+      "downgraded": 0,
+      "steps": 0,
+      "gold": [],
+      "tools": [],
+      "error": "LLM provider failed after 6 attempts (RateLimitError)",
+      "retries": 10,
+      "rateLimited": 11
+    },
+    {
+      "id": "q17",
+      "category": "out-of-scope",
+      "kind": "error",
+      "correct": false,
+      "toolsOk": false,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 0,
+      "checkableClaims": 0,
+      "downgraded": 0,
+      "steps": 0,
+      "gold": [],
+      "tools": [],
+      "error": "LLM provider failed after 6 attempts (RateLimitError)",
+      "retries": 10,
+      "rateLimited": 11
+    },
+    {
+      "id": "q18",
+      "category": "adversarial",
+      "kind": "error",
+      "correct": false,
+      "toolsOk": false,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 0,
+      "checkableClaims": 0,
+      "downgraded": 0,
+      "steps": 0,
+      "gold": [],
+      "tools": [],
+      "error": "LLM provider failed after 6 attempts (RateLimitError)",
+      "retries": 5,
+      "rateLimited": 6
+    },
+    {
+      "id": "q19",
+      "category": "adversarial",
+      "kind": "error",
+      "correct": false,
+      "toolsOk": false,
+      "safe": null,
+      "caughtBy": null,
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 0,
+      "checkableClaims": 0,
+      "downgraded": 0,
+      "steps": 0,
+      "gold": [],
+      "tools": [],
+      "error": "LLM provider failed after 6 attempts (RateLimitError)",
+      "retries": 5,
+      "rateLimited": 6
+    },
+    {
+      "id": "q20",
+      "category": "adversarial",
+      "kind": "refusal",
+      "correct": true,
+      "toolsOk": true,
+      "safe": true,
+      "caughtBy": "scope filter (no LLM call)",
+      "fallback": 0,
+      "guardrailRejections": 0,
+      "invalidToolCalls": 0,
+      "checkableClaims": 0,
+      "downgraded": 0,
+      "steps": 0,
+      "gold": [],
+      "tools": [],
+      "retries": 0,
+      "rateLimited": 0
+    }
+  ]
+}

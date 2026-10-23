@@ -1,0 +1,49 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Novak Djokovic"
+        },
+        "id": "fc_e6060833-2099-42b7-b342-02521e613df6"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "prestige",
+        "args": {
+          "era": null,
+          "player_id": 104925
+        },
+        "id": "fc_bb2fda0e-06a4-4a1d-9283-c5f0cfb407f9"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t2"
+              ],
+              "tag": "verified",
+              "text": "Novak Djokovic is ranked #1 in the all-time prestige ranking."
+            }
+          ],
+          "kind": "answer",
+          "summary": "Novak Djokovic holds the #1 all-time prestige rank."
+        },
+        "id": "fc_d82f025d-fe7d-4072-8e80-53010eff9892"
+      }
+    ]
+  }
+]

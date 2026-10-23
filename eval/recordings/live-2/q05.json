@@ -1,0 +1,45 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_4ff98647-f088-4528-99f1-c5d916625691"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_2587dfa4-ea5a-4ca5-93e1-03297efcd2de"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "head_to_head",
+        "args": {
+          "player1_id": 104745,
+          "player2_id": 103819
+        },
+        "id": "fc_eea78983-0ad6-41e6-ad1c-bf1c70d5878b"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Rafael Nadal has beaten Roger Federer 14 times on clay.\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"claim\": \"Rafael Nadal beat Roger Federer 14 times on clay.\",\n      \"sources\": [\"t3\"]\n    }\n  ]\n}}"
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: parameters for tool submit_answer did not match schema: errors: [`/claims/0`: missing properties: 'text'] | model output: {\"name\": \"submit_answer\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Rafael Nadal has beaten Roger Federer 14 times on clay.\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"claim\": \"Rafael Nadal beat Roger Federer 14 times on clay.\",\n      \"sources\": [\"t3\"]\n    }\n  ]\n}}"
+  }
+]

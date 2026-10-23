@@ -1,0 +1,43 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Jannik Sinner"
+        },
+        "id": "fc_021117c1-e88b-4f99-8b3f-66f20a7950d5"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Carlos Alcaraz"
+        },
+        "id": "fc_3b400a64-1e84-47e6-88bc-7b8ce2de9285"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "predict_match",
+        "args": {
+          "player1_id": 206173,
+          "player2_id": 207989,
+          "surface": "Clay"
+        },
+        "id": "fc_0f4d7ba2-217b-4152-8e44-1c3aec0d7e05"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'commentary' which was not in request.tools | model output: {\"name\": \"commentary\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"The model predicts that Jannik Sinner has a 37.99% chance of beating Carlos Alcaraz on clay (Alcaraz\u2019s win probability is 62.01%).\",\n  \"claims\": [\n    {\n      \"type\": \"predicted\",\n      \"statement\": \"Jannik Sinner\u2019s win probabil"
+  }
+]

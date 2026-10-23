@@ -158,7 +158,9 @@ Guardrails:
 - Ambiguous player names lead to a clarification question.
 
 <!-- TODO: add the evaluation result from docs/agent_eval.md -->
-The agent is tested on 20 questions with answers computed from the graph. Run it with `make eval`.
+The agent is tested on 24 questions with answers computed from the graph. Run it with `make eval`.
+The score of every run is in [docs/agent_eval.md](docs/agent_eval.md).
+`make demo-guardrail` replays a write query through the guardrails without calling the LLM.
 
 > **Disclaimer:** NetRank is a school project. It does not give betting advice, and the agent
 > refuses to recommend bets.
@@ -182,6 +184,8 @@ The agent is tested on 20 questions with answers computed from the graph. Run it
 | `make train` | Train and test the match model |
 | `make benchmark` | Run the PROFILE benchmarks |
 | `make eval` | Run the agent evaluation |
+| `make eval-replay RUN=<label>` | Re-score a recorded run without calling Groq |
+| `make demo-guardrail` | Show the guardrails rejecting a write query (offline) |
 | `make test` | Run the tests with coverage |
 | `make lint` | Run pylint (must stay above 9.5) |
 | `make clean` | Remove caches |

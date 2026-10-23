@@ -1,0 +1,32 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (m:Match)-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019}) WHERE m.round = 'F' RETURN m.winner AS winner, m.score AS score"
+        },
+        "id": "fc_525174f4-ce42-4a53-8c26-1d77867c2284"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p:Player)-[:WON]->(m:Match)-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019}) WHERE m.round = 'F' RETURN p.name AS winner, m.score AS score"
+        },
+        "id": "fc_2b44e8d8-3795-486b-83e4-d120a2e22cea"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Novak Djokovic won the 2019 Wimbledon final, defeating his opponent with a score of 7\u20116(5)\u202f1\u20116\u202f7\u20116(4)\u202f4\u20116\u202f13\u201112(3).\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"statement\": \"Novak Djokovic won the 2019 Wimbledon final.\",\n   "
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: parameters for tool submit_answer did not match schema: errors: [`/claims/0`: missing properties: 'text', `/claims/1`: missing properties: 'text'] | model output: {\"name\": \"submit_answer\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Novak Djokovic won the 2019 Wimbledon final, defeating his opponent 7\u20116(5)\u202f1\u20116\u202f7\u20116(4)\u202f4\u20116\u202f13\u201112(3).\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"statement\": \"Novak Djokovic won the 2019 Wimbledon final.\",\n      \"sou"
+  }
+]

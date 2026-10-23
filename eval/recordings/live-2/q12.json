@@ -1,0 +1,41 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Goran Ivanisevic"
+        },
+        "id": "fc_9a5787ed-09d9-42d5-853c-0d5c723986db"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "similar_players",
+        "args": {
+          "player_id": 101964
+        },
+        "id": "fc_120920bb-6e81-4098-bfd4-6ee55b92e78b"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "get_style",
+        "args": {
+          "style_id": 3
+        },
+        "id": "fc_f84ac887-6919-484d-add2-89e2d67c5f3b"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: parameters for tool submit_answer did not match schema: errors: [`/claims/0`: missing properties: 'text', `/claims/1`: missing properties: 'text', `/claims/2`: missing properties: 'text'] | model output: {\"name\": \"submit_answer\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Goran Ivanisevic belongs to style community 3, a group of big servers with a dominant first serve and a relatively risky second serve.\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"statement\": \"Style community 3 is d"
+  }
+]

@@ -1,0 +1,45 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Novak Djokovic"
+        },
+        "id": "fc_d579df1b-2347-4c97-9593-88d9afe16928"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_810541ce-e4cf-48cd-a0f9-d924f0144fb1"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "head_to_head",
+        "args": {
+          "player1_id": 104925,
+          "player2_id": 104745
+        },
+        "id": "fc_3878ed4f-2eaa-4daf-8900-11092bee8b5e"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Novak Djokovic leads his head\u2011to\u2011head against Rafael Nadal 30\u201128 overall. On clay Nadal leads 19\u20118, on grass they are tied 2\u20112, and on hard courts Djokovic leads 20\u20117.\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"claim\": \"No"
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: parameters for tool submit_answer did not match schema: errors: [`/claims/0`: missing properties: 'text', `/claims/1`: missing properties: 'text', `/claims/2`: missing properties: 'text', `/claims/3`: missing properties: 'text'] | model output: {\"name\": \"submit_answer\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Novak Djokovic leads his head\u2011to\u2011head against Rafael Nadal 30\u201128 overall. On clay Nadal leads 19\u20118, on grass they are tied 2\u20112, and on hard courts Djokovic leads 20\u20117.\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"cl"
+  }
+]

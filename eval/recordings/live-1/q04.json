@@ -1,0 +1,89 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Novak Djokovic"
+        },
+        "id": "fc_ca45c56b-d1db-4c0a-be69-7d69c9068d37"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_402906bd-5672-4439-a1a6-9c10742fbe74"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "head_to_head",
+        "args": {
+          "player1_id": 104925,
+          "player2_id": 104745
+        },
+        "id": "fc_8013517a-774f-44ba-9593-be60c16a7782"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t3"
+              ],
+              "tag": "verified",
+              "text": "Novak Djokovic and Rafael Nadal have played 58 matches against each other."
+            },
+            {
+              "sources": [
+                "t3"
+              ],
+              "tag": "verified",
+              "text": "Djokovic has won 30 matches and Nadal has won 28 matches in their head\u2011to\u2011head record."
+            },
+            {
+              "sources": [
+                "t3"
+              ],
+              "tag": "verified",
+              "text": "On hard courts, Djokovic leads 20\u20137."
+            },
+            {
+              "sources": [
+                "t3"
+              ],
+              "tag": "verified",
+              "text": "On clay courts, Nadal leads 19\u20138."
+            },
+            {
+              "sources": [
+                "t3"
+              ],
+              "tag": "verified",
+              "text": "On grass courts, the record is tied 2\u20132."
+            }
+          ],
+          "kind": "answer",
+          "summary": "Novak Djokovic and Rafael Nadal have faced each other 58 times, with Djokovic leading 30\u201328 overall. Djokovic leads on hard courts (20\u20137), trails on clay (8\u201319), and they are tied on grass (2\u20132)."
+        },
+        "id": "fc_bcb29923-c142-4278-83c6-315cdabe813a"
+      }
+    ]
+  }
+]

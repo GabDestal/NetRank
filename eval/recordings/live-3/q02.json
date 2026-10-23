@@ -1,0 +1,48 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Andy Murray"
+        },
+        "id": "fc_e0fa3b77-a27f-40f9-9a39-32c78f558244"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "get_player",
+        "args": {
+          "player_id": 104918
+        },
+        "id": "fc_d6ce639c-0cd4-4d32-b073-ec213bc0e2ae"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t2"
+              ],
+              "statement": "Andy Murray's win\u2011loss record in tour\u2011level matches is 706\u2011259.",
+              "type": "verified"
+            }
+          ],
+          "kind": "answer",
+          "summary": "Andy Murray has a career tour\u2011level record of 706 wins and 259 losses (981 matches total)."
+        },
+        "id": "fc_4a35db35-5d71-4e68-80eb-c1295ec3426f"
+      }
+    ]
+  }
+]

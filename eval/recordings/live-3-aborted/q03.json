@@ -1,0 +1,14 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p1:Player)-[r1:BEAT]->(p2:Player)-[m:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019}) WHERE m.round = 'F' RETURN p1.name AS winner, p2.name AS loser, m.score AS score"
+        },
+        "id": "fc_b25f13fe-3add-48fb-8bfb-736e4d39defc"
+      }
+    ]
+  }
+]

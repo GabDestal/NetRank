@@ -1,0 +1,61 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Alexander Zverev"
+        },
+        "id": "fc_6160c4f0-22c7-49db-81ff-b43d7cb5cb9b"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Daniil Medvedev"
+        },
+        "id": "fc_c532260e-dddf-4375-a9f5-32a2e27730c2"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "head_to_head",
+        "args": {
+          "player1_id": 100644,
+          "player2_id": 106421
+        },
+        "id": "fc_9550c943-9935-44f8-acb7-43e04cc9c908"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t3"
+              ],
+              "tag": "verified",
+              "text": "Alexander Zverev leads 8\u201314 against Daniil Medvedev (Zverev 8 wins, Medvedev 14 wins)."
+            }
+          ],
+          "kind": "answer",
+          "summary": "Alexander Zverev has faced Daniil Medvedev 22 times, winning 8 matches while Medvedev has won 14."
+        },
+        "id": "fc_d58d027d-a0c1-4dd0-915e-54a0797c8818"
+      }
+    ]
+  }
+]

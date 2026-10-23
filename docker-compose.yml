@@ -40,6 +40,9 @@ services:
       ADMIN_API_KEY: ${ADMIN_API_KEY:-}
       GDS_CONCURRENCY: ${GDS_CONCURRENCY:-4}
       STYLE_MIN_MATCHES: ${STYLE_MIN_MATCHES:-50}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
+      AGENT_MAX_STEPS: ${AGENT_MAX_STEPS:-8}
     volumes:
       # Model written by `make train` on the host; /api/predict answers 503 until it exists.
       - ./models:/srv/models:ro

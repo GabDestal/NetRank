@@ -1,0 +1,51 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_c328dc4b-ad9c-4f25-90c6-ae728e6058a6"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "get_player",
+        "args": {
+          "player_id": 103819
+        },
+        "id": "fc_98d9f161-ad86-4b70-b48c-7402e24503b1"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Roger Federer has won 103 titles in the NetRank data.\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"statement\": \"Roger Federer has won 103 titles.\",\n      \"sources\": [\"t2\"]\n    }\n  ]\n}}"
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t2"
+              ],
+              "statement": "Roger Federer has won 103 titles.",
+              "type": "verified"
+            }
+          ],
+          "kind": "answer",
+          "summary": "Roger Federer has won 103 titles in the NetRank data."
+        },
+        "id": "fc_cf0e5579-268e-4509-a5aa-e4cff6a61a1b"
+      }
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_991402a8-6513-4b13-8601-9d0245f9009c"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "similar_players",
+        "args": {
+          "player_id": 103819
+        },
+        "id": "fc_3c86e250-cdf9-431e-93f5-e7f57a9a13b5"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "similar_players",
+        "args": {
+          "player_id": 103819
+        },
+        "id": "fc_ecf77b6d-7801-487b-9581-83cb24f98589"
+      }
+    ]
+  }
+]

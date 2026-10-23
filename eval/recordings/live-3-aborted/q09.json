@@ -1,0 +1,15 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "prestige_leaderboard",
+        "args": {
+          "era": "1990s",
+          "size": 1
+        },
+        "id": "fc_73a4e999-380d-41d2-a9c8-311fc3edda86"
+      }
+    ]
+  }
+]
