@@ -185,6 +185,7 @@ The score of every run is in [docs/agent_eval.md](docs/agent_eval.md).
 | `make eval` | Run the agent evaluation |
 | `make eval-replay RUN=<label>` | Re-score a recorded run without calling Groq |
 | `make demo-guardrail` | Show the guardrails rejecting a write query (offline) |
+| `make notebook` | Re-run `demo.ipynb` against the running stack |
 | `make test` | Run the tests with coverage |
 | `make lint` | Run pylint (must stay above 9.5) |
 | `make hooks` | Install the git hooks (pre-commit checks; pylint and unit tests before a push) |
