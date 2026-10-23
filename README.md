@@ -7,16 +7,14 @@
 
 NetRank is a tennis knowledge graph built with Neo4j. It uses ATP matches from 1991 to 2026 to:
 
-- rank players by prestige (PageRank on who beat whom),
+- rank players by "prestige" (PageRank on who beat whom),
 - group players by playing style,
-- predict who wins a match and compare with the bookmakers,
-- answer questions in plain English with a LangGraph agent.
-
-This is a solo project for the Graph Database & Knowledge course (AIDAMS, CentraleSupélec).
+- predict who wins a match and compares with the bookmakers,
+- answers questions using a LangGraph agent.
 
 ## Quick start
 
-You need Docker (with Compose v2), make and Python 3.11.
+Requires: Docker (w/ Compose v2), make and Python 3.11.
 
 ```bash
 cp .env.example .env    # set NEO4J_PASSWORD, ADMIN_API_KEY and GROQ_API_KEY
@@ -29,7 +27,7 @@ make gds                # compute prestige, similarity and styles
 make train              # train the match model (~1 min)
 ```
 
-Then open the API docs at <http://localhost:8080/docs>.
+API docs: <http://localhost:8080/docs>.
 
 ## Architecture
 
@@ -69,17 +67,15 @@ The project runs as three Docker services:
 ## Datasets
 
 **Jeff Sackmann, ATP results.** All tour-level matches from 1991 to 8 June 2026, with player stats.
-The original repo was removed from GitHub, so I download it from a fork pinned to his last commit
+(NOTE: The original repo was removed from GitHub, so I download it from a fork pinned to his last commit)
 ([`712be0c5`](https://github.com/Kadantte/tennis_atp/tree/712be0c5ade693cdab9e69c23a71a0edf5a23c44)).
 `make download` checks every file against that commit, so the data is identical to his.
 Licence: [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), non-commercial use only.
 
 **tennis-data.co.uk, bookmaker odds.** ATP results with odds from 2000 to 2026. The site does not
-allow automated downloads, so you have to get the files by hand:
+allow automated downloads, so you'll have to get the files manually:
 
-1. Open <https://www.tennis-data.co.uk/alldata.php>.
-2. Download the 27 men's files for 2000 to 2026.
-3. Save them without renaming in `data/raw/tennis_data/`.
+<https://www.tennis-data.co.uk/alldata.php>.
 
 These files are not in the repo, and only aggregates are published.
 
@@ -153,10 +149,10 @@ that query the graph, and it shows every tool call it made.
 
 Guardrails:
 
-- It uses typed tools first. Free Cypher is only a fallback.
+- It uses typed tools first (Free Cypher is only a fallback)
 - Generated Cypher is checked before running: no writes, only known labels, `EXPLAIN` must pass,
   and a `LIMIT` is added.
-- Queries run in a read-only transaction with a timeout.
+- Queries run in a read-only transaction w/ a timeout.
 - Each claim in an answer is tagged **verified** (from the graph), **predicted** (from the model)
   or **interpreted** (from the LLM). A number tagged verified must appear in a tool result.
 - Ambiguous player names lead to a clarification question.
@@ -193,12 +189,11 @@ The agent is tested on 20 questions with answers computed from the graph. Run it
 ## Tests
 
 The tests are split into unit tests, Cypher tests on a live Neo4j, and container health tests.
-CI runs lint, tests with coverage, and the full Docker stack on every push.
+CI runs lint, tests with coverage, and the full Docker stack on every push
 
 ## Contributions
 
-This is a solo project, so all commits and pull requests are mine (Gabriel, GabDestal).
-Each phase was built on its own feature branch and merged through a reviewed pull request.
+Solo project so all contributions are mine
 
 ## Appendix: my schema vs an AI-generated schema
 
