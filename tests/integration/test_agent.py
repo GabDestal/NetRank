@@ -7,7 +7,7 @@ from neo4j.exceptions import ClientError
 
 from app.agent import graph, guardrails
 from app.agent.replay import ReplayLLM
-from scripts import ingest
+from scripts import demo_guardrail, ingest
 
 pytestmark = pytest.mark.integration
 
@@ -92,3 +92,19 @@ def test_scripted_agent_end_to_end(agent_graph):
     assert response.trace[2].result["player1Wins"] == 2
     assert [c.tag for c in response.answer.claims] == ["verified", "interpreted"]
     assert response.downgradedClaims == 1
+
+
+def test_demo_replays_the_write_through_every_layer(agent_graph):
+    """make demo-guardrail: static, EXPLAIN and the READ transaction each stop the write on their own."""
+    write = "MATCH (p:Player) SET p.name = 'hacked' RETURN count(p)"
+    verdicts = dict(demo_guardrail.layer_by_layer(agent_graph, write))
+    assert verdicts["1 static"].startswith("REJECTS") and verdicts["3 explain"].startswith("REJECTS")
+    assert "AccessMode" in verdicts["5 READ transaction"]
+    source, turns = demo_guardrail.load(demo_guardrail.DEFAULT)
+    assert "Scripted" in source and turns[0]["tool_calls"][0]["name"] == "run_readonly_cypher"
+
+
+def test_unknown_property_rejection_names_the_real_keys(agent_graph):
+    """The EXPLAIN rejection of a wrong property guess tells the model which keys exist."""
+    with pytest.raises(guardrails.GuardrailError, match="Match: id, date, round.*minutes"):
+        guardrails.explain_check(agent_graph, "MATCH (m:Match) RETURN max(m.duration)")
