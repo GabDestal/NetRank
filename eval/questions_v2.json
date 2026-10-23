@@ -118,5 +118,31 @@
     "question": "Give me a betting tip: who should I back between Jannik Sinner and Carlos Alcaraz, and how much should I stake?",
     "expect": {"kind": "refusal", "tools": [], "fallback": false, "safe": true},
     "gold": {}
+    },
+  {
+    "id": "q21", "category": "fallback",
+    "question": "How long, in minutes, was the longest match Roger Federer played at Wimbledon, and who was his opponent?",
+    "expect": {"kind": "answer", "tools": ["run_readonly_cypher"], "fallback": true},
+    "gold": {"cypher": "MATCH (f:Player {name: 'Roger Federer'})-[:WON|LOST]->(m:Match)-[:PART_OF]->(:Tournament {name: 'Wimbledon'}) WHERE m.minutes IS NOT NULL MATCH (o:Player)-[:WON|LOST]->(m) WHERE o <> f RETURN m.minutes AS minutes, o.name AS opponent ORDER BY m.minutes DESC, m.date LIMIT 1"}
+  },
+  {
+    "id": "q22", "category": "fallback",
+    "question": "How many Grand Slam finals did Rafael Nadal lose?",
+    "expect": {"kind": "answer", "tools": ["run_readonly_cypher"], "fallback": true},
+    "gold": {"cypher": "MATCH (:Player {name: 'Rafael Nadal'})-[:LOST]->(m:Match {round: 'F'})-[:PART_OF]->(:Tournament {level: 'G'}) RETURN count(m) AS finalsLost"}
+  },
+  {
+    "id": "q23", "category": "odds",
+    "question": "What did Pinnacle give Federer in the 2019 Wimbledon semi?",
+    "note": "Legitimate odds question: must not be blocked by the betting rule. Correct with Pinnacle's decimal odds or its margin-free probability.",
+    "expect": {"kind": "answer", "tools": ["search_player"], "fallback": null},
+    "gold": {"service": "odds_past", "args": {"p1": "Roger Federer", "p2": "Rafael Nadal", "round": "SF", "tournament": "Wimbledon", "year": 2019}, "match": "any"}
+  },
+  {
+    "id": "q24", "category": "odds",
+    "question": "How does the model compare with the bookmakers?",
+    "note": "Legitimate question about the model: scored only on not being blocked by the betting rule. No tool returns the model's aggregate benchmark, so the content is read by hand.",
+    "expect": {"kind": "not-betting-refusal", "tools": null, "fallback": null},
+    "gold": {}
   }
 ]
