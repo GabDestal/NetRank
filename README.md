@@ -6,11 +6,18 @@
 |------------------------------ | -------: | -------: | -------: | -------: | ------: | --------: |
 | app/\_\_init\_\_.py           |        1 |        0 |        0 |        0 |    100% |           |
 | app/agent/\_\_init\_\_.py     |        0 |        0 |        0 |        0 |    100% |           |
-| app/config.py                 |       17 |        0 |        0 |        0 |    100% |           |
+| app/agent/graph.py            |      103 |        0 |       24 |        0 |    100% |           |
+| app/agent/guardrails.py       |       94 |        4 |       22 |        1 |     96% |129-130, 135-\>137, 161-162 |
+| app/agent/llm.py              |      101 |        3 |       22 |        4 |     94% |44, 100, 145-\>153, 161 |
+| app/agent/replay.py           |       41 |        6 |        4 |        0 |     87% |42, 67-69, 75-76 |
+| app/agent/schema.py           |       58 |        0 |        4 |        0 |    100% |           |
+| app/agent/tools.py            |      162 |        4 |       46 |        5 |     96% |164-\>166, 206, 277, 291-\>298, 306, 363 |
+| app/agent/verifier.py         |       71 |        1 |       30 |        1 |     98% |        37 |
+| app/config.py                 |       21 |        0 |        0 |        0 |    100% |           |
 | app/database/\_\_init\_\_.py  |        0 |        0 |        0 |        0 |    100% |           |
-| app/database/client.py        |       36 |        1 |        6 |        0 |     98% |        77 |
+| app/database/client.py        |       55 |        2 |       10 |        1 |     95% |   62, 108 |
 | app/errors.py                 |        3 |        0 |        0 |        0 |    100% |           |
-| app/main.py                   |       42 |        0 |        0 |        0 |    100% |           |
+| app/main.py                   |       43 |        0 |        0 |        0 |    100% |           |
 | app/ml/\_\_init\_\_.py        |        0 |        0 |        0 |        0 |    100% |           |
 | app/ml/features.py            |       62 |        0 |        6 |        1 |     99% | 86-\>exit |
 | app/ml/model.py               |       38 |        0 |        6 |        1 |     98% |   68-\>71 |
@@ -22,6 +29,7 @@
 | app/models/players.py         |       22 |        0 |        0 |        0 |    100% |           |
 | app/models/predict.py         |       16 |        0 |        0 |        0 |    100% |           |
 | app/routers/\_\_init\_\_.py   |        0 |        0 |        0 |        0 |    100% |           |
+| app/routers/agent.py          |       13 |        0 |        0 |        0 |    100% |           |
 | app/routers/analytics.py      |       32 |        0 |        0 |        0 |    100% |           |
 | app/routers/graph.py          |       15 |        0 |        0 |        0 |    100% |           |
 | app/routers/health.py         |       19 |        0 |        2 |        0 |    100% |           |
@@ -39,9 +47,12 @@
 | app/text.py                   |        6 |        0 |        0 |        0 |    100% |           |
 | scripts/\_\_init\_\_.py       |        0 |        0 |        0 |        0 |    100% |           |
 | scripts/benchmark.py          |       69 |       13 |       16 |        1 |     81% |212-224, 228 |
+| scripts/demo\_guardrail.py    |       58 |       27 |       12 |        2 |     50% |32, 39, 65-91, 95 |
 | scripts/download\_sackmann.py |       52 |        4 |        8 |        1 |     92% | 44-46, 93 |
+| scripts/eval\_agent.py        |      259 |      164 |       74 |        9 |     35% |65, 70-89, 94-100, 108-109, 130, 141-143, 149, 153-155, 164-165, 169-176, 218-245, 250, 255, 260-290, 295-318, 323-354, 359-362, 367-374, 379-390, 395-400, 405-408, 425, 431-449, 457 |
 | scripts/gds\_refresh.py       |       13 |       13 |        2 |        0 |      0% |      6-25 |
 | scripts/ingest.py             |       69 |       32 |       10 |        2 |     57% |134-143, 158, 166-177, 182-194, 198 |
+| scripts/measure\_tokens.py    |       68 |       68 |        8 |        0 |      0% |    11-101 |
 | scripts/names.py              |       26 |        1 |        6 |        1 |     94% |        51 |
 | scripts/report.py             |       44 |        0 |        2 |        0 |    100% |           |
 | scripts/report\_model.py      |       76 |       20 |       10 |        0 |     77% |88-94, 99-104, 115-175 |
@@ -49,7 +60,7 @@
 | scripts/sackmann.py           |       79 |        2 |       18 |        2 |     96% |   53, 106 |
 | scripts/tennis\_data.py       |       59 |        0 |       16 |        1 |     99% |   59-\>61 |
 | scripts/train.py              |      136 |       58 |       20 |        2 |     59% |102-\>111, 121, 129, 145, 150-160, 172-173, 181, 186, 196, 201-210, 226-250, 255-275, 279 |
-| **TOTAL**                     | **1536** |  **167** |  **248** |   **22** | **89%** |           |
+| **TOTAL**                     | **2588** |  **445** |  **498** |   **45** | **82%** |           |
 
 
 ## Setup coverage badge
