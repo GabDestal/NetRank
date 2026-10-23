@@ -159,6 +159,7 @@ Guardrails:
 
 <!-- TODO: add the evaluation result from docs/agent_eval.md -->
 The agent is tested on 24 questions with answers computed from the graph. Run it with `make eval`.
+The score of every run is in [docs/agent_eval.md](docs/agent_eval.md).
 `make demo-guardrail` replays a write query through the guardrails without calling the LLM.
 
 > **Disclaimer:** NetRank is a school project. It does not give betting advice, and the agent

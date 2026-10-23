@@ -87,7 +87,7 @@ schema; LIMIT enforced; Pydantic output tagging each claim verified / predicted 
 
 ## Phases
 0 reset ✔ → 1 scaffold ✔ → 2 data exploration + ingestion ✔ →
-3 Cypher endpoints + PROFILE before/after benchmarks ✔ → 4 GDS endpoints ✔ → 5 ML ✔ → 6 agent + guardrails (draft PR, waiting on live-3) →
+3 Cypher endpoints + PROFILE before/after benchmarks ✔ → 4 GDS endpoints ✔ → 5 ML ✔ → 6 agent + guardrails (PR #33 in review; live-5 scored in a later docs: PR) →
 7 docs + demo.ipynb.
 
 ## Commands
