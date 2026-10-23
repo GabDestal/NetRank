@@ -73,4 +73,4 @@ class RecordingLLM:
     def save(self, path: Path) -> None:
         """Write the recording."""
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(self.turns, indent=2, default=str), encoding="utf-8", newline="\n")
+        path.write_text(json.dumps(self.turns, indent=2, default=str) + "\n", encoding="utf-8", newline="\n")

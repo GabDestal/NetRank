@@ -377,7 +377,7 @@ def record_abort(model: str, reason: str) -> None:
     """Keep a trace of a live run that stopped before producing results."""
     attempts = json.loads(ABORTED.read_text(encoding="utf-8")) if ABORTED.exists() else []
     attempts.append({"date": f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC", "model": model, "reason": reason})
-    ABORTED.write_text(json.dumps(attempts, indent=2), encoding="utf-8", newline="\n")
+    ABORTED.write_text(json.dumps(attempts, indent=2) + "\n", encoding="utf-8", newline="\n")
     write_index()
 
 
@@ -416,7 +416,7 @@ def save_run(rows: list[dict], meta: dict) -> None:
     """Keep the run (JSON + Markdown) and refresh the index."""
     RUNS.mkdir(parents=True, exist_ok=True)
     REPORTS.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps({"meta": meta, "rows": rows}, indent=2, default=str)
+    payload = json.dumps({"meta": meta, "rows": rows}, indent=2, default=str) + "\n"
     (RUNS / f"{meta['label']}.json").write_text(payload, encoding="utf-8", newline="\n")
     (REPORTS / f"{meta['label']}.md").write_text(render(rows, meta), encoding="utf-8", newline="\n")
     write_index()
