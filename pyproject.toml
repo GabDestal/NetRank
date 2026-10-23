@@ -1,0 +1,5 @@
+# Tool settings only (dependencies are pinned in requirements*.txt).
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
