@@ -1,0 +1,52 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Andy Murray"
+        },
+        "id": "fc_9f886477-e23d-4740-935d-50f2fa81fce2"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "get_player",
+        "args": {
+          "player_id": 104918
+        },
+        "id": "fc_a0b0b636-1942-46ea-a438-e8393fac6b1c"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: parameters for tool submit_answer did not match schema: errors: [`/claims/0`: missing properties: 'text'] | model output: {\"name\": \"submit_answer\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Andy Murray has a career tour\u2011level record of 706 wins and 259 losses (981 matches total).\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"statement\": \"Andy Murray's win\u2011loss record in tour\u2011level matches is 706\u2011259 (98"
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t1",
+                "t2"
+              ],
+              "text": "Andy Murray's win\u2011loss record in tour\u2011level matches is 706\u2011259 (981 matches total).",
+              "type": "verified"
+            }
+          ],
+          "kind": "answer",
+          "summary": "Andy Murray has a career tour\u2011level record of 706 wins and 259 losses (981 matches total)."
+        },
+        "id": "fc_a198aa2d-80ab-488f-8c72-6df279803256"
+      }
+    ]
+  }
+]

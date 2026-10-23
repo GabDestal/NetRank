@@ -1,0 +1,54 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger"
+        },
+        "id": "fc_10883c5a-64ff-4e6f-b35d-9b5232b0def5"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "candidates": [
+            {
+              "id": 103819,
+              "ioc": "SUI",
+              "name": "Roger Federer"
+            },
+            {
+              "id": 104273,
+              "ioc": "FRA",
+              "name": "Edouard Roger-Vasselin"
+            },
+            {
+              "id": 104297,
+              "ioc": "BRA",
+              "name": "Rogerio Dutra Silva"
+            },
+            {
+              "id": 100997,
+              "ioc": "BAH",
+              "name": "Roger Smith"
+            },
+            {
+              "id": 101580,
+              "ioc": "AUS",
+              "name": "Roger Rasheed"
+            }
+          ],
+          "kind": "clarification",
+          "summary": "Multiple players match the name \"Roger\". Please select the intended player."
+        },
+        "id": "fc_69a06e38-3400-416a-8196-ee4a2018a8d5"
+      }
+    ]
+  }
+]

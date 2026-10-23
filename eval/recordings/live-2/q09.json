@@ -1,0 +1,21 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "prestige_leaderboard",
+        "args": {
+          "era": "1990s",
+          "size": 1
+        },
+        "id": "fc_89b995bd-b493-4e24-9671-5079bbd905a4"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"According to NetRank, the most prestigious player of the 1990s was Pete Sampras.\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"statement\": \"Pete Sampras was ranked #1 in prestige for the era 1991\u20111999.\",\n      \"sources\": [\"t1"
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"According to NetRank, the most prestigious player of the 1990s was Pete Sampras.\",\n  \"claims\": [\n    {\n      \"type\": \"verified\",\n      \"statement\": \"Pete Sampras was ranked #1 in prestige for the era 1991\u20111999.\",\n      \"sources\": [\"t1"
+  }
+]

@@ -1,0 +1,40 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Johan Kriek"
+        },
+        "id": "fc_058f6104-24da-4740-ab1f-412f35f3a2e5"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_738acd45-1d86-4abf-97ce-41781fd0f653"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "beat_chain",
+        "args": {
+          "from_id": 100532,
+          "max_hops": 6,
+          "to_id": 103819
+        },
+        "id": "fc_21b7634e-db12-47e1-ac62-4c1195751156"
+      }
+    ]
+  }
+]

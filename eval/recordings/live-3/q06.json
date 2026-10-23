@@ -1,0 +1,14 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Johan Kriek"
+        },
+        "id": "fc_8f5189f6-6815-4b06-80bf-47d50830cd14"
+      }
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p1:Player)-[w1:WON]->(m:Match {round: 'F'})-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019})<-[:PART_OF]-(t2) WHERE (p1)-[:WON]->(m) WITH p1, m MATCH (p2:Player)-[w2:WON]->(m) WHERE w2 IS NULL RETURN p1.name AS winner, m.score AS score"
+        },
+        "id": "fc_024433dd-3f90-4a6f-a675-96a48d6fd9df"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (t:Tournament {name:'Wimbledon', year:2019})<-[:PART_OF]-(m:Match {round:'F'})<-[:WON]-(p:Player) RETURN p.name AS winner, m.score AS score"
+        },
+        "id": "fc_c852dccd-bb86-4d1f-ae8b-16d148724988"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (t:Tournament {name:'Wimbledon', year:2019})<-[:PART_OF]-(m:Match {round:'F'})<-[:WON]-(p:Player) RETURN p.name AS winner, m.score AS score"
+        },
+        "id": "fc_1b09c061-e199-4beb-b702-aaefefb084a3"
+      }
+    ]
+  }
+]

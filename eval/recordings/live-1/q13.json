@@ -1,0 +1,54 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Jannik Sinner"
+        },
+        "id": "fc_3fa58726-de84-4491-b839-19f03257a56e"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Carlos Alcaraz"
+        },
+        "id": "fc_1a9f6877-97c5-46fe-bdc1-0320836aa24a"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "predict_match",
+        "args": {
+          "player1_id": 206173,
+          "player2_id": 207989,
+          "surface": "Clay"
+        },
+        "id": "fc_7cdb77a1-385d-4033-843c-e4afe274890a"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "predict_match",
+        "args": {
+          "player1_id": 206173,
+          "player2_id": 207989,
+          "surface": "Clay"
+        },
+        "id": "fc_d83cb6d5-c319-4239-9d02-5c7664e0e504"
+      }
+    ]
+  }
+]

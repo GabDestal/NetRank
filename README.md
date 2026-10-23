@@ -13,7 +13,7 @@ verified, predicted or interpreted.
 Course project, GraphDB (AIDAMS 3A, CentraleSupélec), Level 3 — Advanced graph & GDS.
 Spec and grading checklist: [docs/guidelines.md](docs/guidelines.md).
 
-> **Status:** Phase 5 (match-outcome model). The agent arrives in the next phase.
+> **Status:** Phase 6 (LangGraph agent with guardrails). Documentation and the demo notebook come next.
 
 ## Quick start
 
@@ -128,6 +128,40 @@ curl "localhost:8080/api/predict?p1=103819&p2=104745&match_id=2019-540-225"
 # Pinnacle 0.43 and Bet365 0.45 ("verified"); result: Federer won ("verified")
 ```
 
+### Agent (`POST /api/agent/ask`)
+
+A LangGraph agent answers questions in natural language with the endpoints above as tools, and
+free, read-only Cypher only as a last resort. The response contains the answer, **every claim tagged**
+`verified` (read from the graph, numbers checked against the cited tool results), `predicted`
+(from the match-outcome model) or `interpreted` (the LLM's own wording), and the **full tool-call
+trace**. Set `GROQ_API_KEY` (and optionally `GROQ_MODEL`, default `openai/gpt-oss-120b`) in `.env`.
+
+```bash
+curl -X POST localhost:8080/api/agent/ask -H "Content-Type: application/json" \
+     -d '{"question": "What is the head-to-head record between Novak Djokovic and Rafael Nadal?"}'
+```
+
+How the LLM is constrained:
+
+- **Names are resolved first** through the full-text search, using the name as the user wrote it;
+  an ambiguous name ("Zverev", "Medvedev") ends in a clarification question, never a guess, and
+  tools refuse player ids that were not resolved.
+- **Generated Cypher passes five layers**: no write clauses, LOAD CSV, multiple statements or
+  non-allow-listed procedures; labels and relationship types checked against the schema; EXPLAIN
+  (syntax, write operators, unknown labels/properties); LIMIT enforced (max 50); execution in a
+  read-only transaction with a timeout. One retry after a rejection, then a clean failure.
+- **A verifier** downgrades any `verified` claim whose numbers are not in the tool results it cites.
+- **Scope**: at most 8 steps; questions outside ATP tour-level data are refused.
+
+Evaluation: 20 questions with gold answers computed from the graph, every run kept with its model
+and date (live runs and replays separately): [docs/agent_eval.md](docs/agent_eval.md).
+
+> **Disclaimer: no betting advice.** NetRank is coursework for analysis and education. It reports
+> the model's probability and the bookmakers' margin-free probabilities as information only; it never
+> recommends a bet, a side or a stake, and requests for betting tips are refused before reaching the
+> LLM. The model is less accurate than the bookmakers (see the model report). Gambling involves risk
+> of loss.
+
 ### Query performance
 
 `make benchmark` profiles each optimisation before and after and writes
@@ -206,6 +240,8 @@ exactly on both players' ranks. Each `Match` records how its odds were linked (`
 | `make ingest` | Load Neo4j from `data/raw/` and regenerate `docs/data_exploration.md` |
 | `make gds` | Recompute prestige, style similarity and styles (same as the admin endpoint) |
 | `make train` | Train and evaluate the match-outcome model (`models/`, `docs/model_report.md`) |
+| `make eval` | Live 20-question agent evaluation on Groq, recorded (needs `GROQ_API_KEY`; `--label`) |
+| `make eval-replay RUN=<label>` | Re-score a recorded live run without calling Groq |
 | `make benchmark` | PROFILE before/after benchmarks, written to `docs/benchmarks.md` |
 | `make docker-run` | Build and start the stack, wait until every service is healthy |
 | `make docker-down` | Stop the stack (Neo4j data volume kept) |

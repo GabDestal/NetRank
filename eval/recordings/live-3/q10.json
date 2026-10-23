@@ -1,0 +1,14 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Novak Djokovic"
+        },
+        "id": "fc_961e497e-fe0e-44f4-a180-98aff2b552a9"
+      }
+    ]
+  }
+]

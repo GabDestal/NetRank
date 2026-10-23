@@ -1,0 +1,28 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "prestige_leaderboard",
+        "args": {
+          "era": "1990s",
+          "size": 1
+        },
+        "id": "fc_b882233a-636c-4153-9609-546b5c3eca42"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "prestige_leaderboard",
+        "args": {
+          "era": "1990s",
+          "size": 1
+        },
+        "id": "fc_a30aa831-c28b-4a0b-9970-61a2ce6e7262"
+      }
+    ]
+  }
+]

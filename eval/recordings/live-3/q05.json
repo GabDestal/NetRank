@@ -1,0 +1,14 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_a50f55ac-0a80-4568-b828-0e7bf2d05831"
+      }
+    ]
+  }
+]

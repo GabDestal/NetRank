@@ -1,0 +1,52 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_475f8f6f-3b7e-4358-8c27-9c9933e908b5"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_56a0654f-7061-4887-aa4f-68afd867de5d"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "head_to_head",
+        "args": {
+          "player1_id": 104745,
+          "player2_id": 103819
+        },
+        "id": "fc_0527dfac-26dd-4592-837a-137fef6c2619"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "head_to_head",
+        "args": {
+          "player1_id": 104745,
+          "player2_id": 103819
+        },
+        "id": "fc_8b37334c-d4f0-4e3d-be79-eaf8a47bb8c3"
+      }
+    ]
+  }
+]

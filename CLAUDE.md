@@ -60,6 +60,11 @@ Read-only Cypher allow-list; EXPLAIN-validate before executing; labels/rel types
 schema; LIMIT enforced; Pydantic output tagging each claim verified / predicted / interpreted;
 20-question evaluation set. Demo must show one success and one guardrail rejection.
 
+- Agent (Phase 6, D60-D70): app/agent/ (graph, tools, guardrails, verifier, llm, replay). Groq model from
+  GROQ_MODEL (default openai/gpt-oss-120b; llama-3.3-70b-versatile is retired). Free tier = 8k tokens/min:
+  pace live runs (`--pause 60`). CI never calls Groq (recordings in eval/recordings/). Every eval run is
+  kept (eval/runs/, docs/agent_eval/); a new live run gets a new label (live-4...), never overwrite.
+
 ## Hard constraints
 - pylint ≥ 9.5 (`make lint`, else −8). `.pylintrc` = course template + docstring checks re-enabled.
 - Every Makefile target works (else −3): help, install, run, docker-run, test, lint, clean.
@@ -78,7 +83,7 @@ schema; LIMIT enforced; Pydantic output tagging each claim verified / predicted 
 
 ## Phases
 0 reset ✔ → 1 scaffold ✔ → 2 data exploration + ingestion ✔ →
-3 Cypher endpoints + PROFILE before/after benchmarks ✔ → 4 GDS endpoints ✔ → 5 ML ✔ → 6 agent + guardrails →
+3 Cypher endpoints + PROFILE before/after benchmarks ✔ → 4 GDS endpoints ✔ → 5 ML ✔ → 6 agent + guardrails (draft PR, waiting on live-3) →
 7 docs + demo.ipynb.
 
 ## Commands

@@ -1,0 +1,103 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_3879d6a0-504e-4326-baa2-7d50c6d6a0eb"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_45d0b03d-682a-4531-a33f-1672a0199928"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "predict_match",
+        "args": {
+          "player1_id": 103819,
+          "player2_id": 104745,
+          "surface": "Grass"
+        },
+        "id": "fc_0171acd3-db8e-4bf3-946e-3e91080e4b7f"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p1:Player {id: 103819})-[:BEAT]->(p2:Player {id: 104745}), (m:Match)-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019}) WHERE (p1)-[:BEAT]->(m) AND (p2)-[:LOST]->(m) RETURN m.id AS match_id"
+        },
+        "id": "fc_728b03ce-d450-46c9-b875-f89f66258b4f"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p1:Player {id: 103819})-[:BEAT]->(p2:Player {id: 104745}), (m:Match)-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019}) WHERE (p1)-[:BEAT]->(m) AND (p2)-[:LOST]->(m) AND m.round = 'SF' RETURN m.id AS match_id, m.date AS date"
+        },
+        "id": "fc_c1b89e89-38a0-47a7-b54d-42ebbbff238e"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (m:Match)-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019}) WHERE m.round = 'SF' AND ( (m)-[:PLAYED_BY]->(:Player {id: 103819}) ) AND ( (m)-[:PLAYED_BY]->(:Player {id: 104745}) ) RETURN m.id AS match_id, m.date AS date"
+        },
+        "id": "fc_8d5c8dab-5dbc-4af4-aaa3-ae2e7b9998cd"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (f:Player {id: 103819})-[:WON]->(m:Match)<-[:LOST]-(n:Player {id: 104745}), (m)-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019}) WHERE m.round = 'SF' RETURN m.id AS match_id, m.date AS date"
+        },
+        "id": "fc_7e40ea48-40c5-4bf6-83d4-8f1ba406936d"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "predict_match",
+        "args": {
+          "match_id": "2019-540-225",
+          "player1_id": 103819,
+          "player2_id": 104745,
+          "surface": "Grass"
+        },
+        "id": "fc_b8e32d2c-06dd-4fdb-8bd3-725867a90f9d"
+      }
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Goran Ivanisevic"
+        },
+        "id": "fc_3a64df0f-f5b7-4377-bd1a-f37d8a6bbd30"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "similar_players",
+        "args": {
+          "player_id": 101964
+        },
+        "id": "fc_0704244b-a02e-4ac0-96c5-25b01efba722"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "get_style",
+        "args": {
+          "style_id": 3
+        },
+        "id": "fc_9285c00f-0a61-41d3-aa04-ccce1d1bc02b"
+      }
+    ]
+  }
+]

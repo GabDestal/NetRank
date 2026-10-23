@@ -1,0 +1,14 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Jannik Sinner"
+        },
+        "id": "fc_4c77197a-8e4a-48eb-a3bb-fcdc35e293fd"
+      }
+    ]
+  }
+]

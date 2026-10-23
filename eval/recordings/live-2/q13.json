@@ -1,0 +1,26 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Jannik Sinner"
+        },
+        "id": "fc_0dc000d9-35c6-4595-a20c-c167c6b422d1"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Carlos Alcaraz"
+        },
+        "id": "fc_70143d31-c9b3-4677-b91b-fa58da0d3e81"
+      }
+    ]
+  }
+]
