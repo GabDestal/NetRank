@@ -117,8 +117,10 @@ def test_daily_limit_stops_at_once_and_is_logged(caplog):
     """A 429 naming a per-day limit raises DailyQuotaError without retrying; message and headers are kept."""
     request = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
     headers = {"x-ratelimit-remaining-requests": "940", "retry-after": "420", "content-type": "application/json"}
-    message = ("Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01abc` "
-               + "on tokens per day (TPD): Limit 200000, Used 199500")
+    message = (
+        "Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01abc` "
+        + "on tokens per day (TPD): Limit 200000, Used 199500"
+    )
     daily = groq.RateLimitError(message, response=httpx.Response(429, request=request, headers=headers), body=None)
     llm = RetryingLLM(Flaky([daily]), max_attempts=6, sleep=lambda s: None)
     with caplog.at_level("WARNING"), pytest.raises(DailyQuotaError, match="tokens per day"):
