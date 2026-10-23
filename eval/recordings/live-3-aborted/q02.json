@@ -1,0 +1,26 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Andy Murray"
+        },
+        "id": "fc_fdb5b40a-6082-4b0f-b72d-8492399f1dc8"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "get_player",
+        "args": {
+          "player_id": 104918
+        },
+        "id": "fc_8a7729da-796f-4db7-8b12-f5b53bedccad"
+      }
+    ]
+  }
+]

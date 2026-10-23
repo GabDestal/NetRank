@@ -286,6 +286,7 @@ def write_index() -> None:
         "# Agent evaluation runs",
         "",
         "Each run is kept; live runs are listed separately from replays (re-scoring recorded turns).",
+        "Failures of the live runs by cause: [agent_eval/failure_breakdown.md](agent_eval/failure_breakdown.md).",
         "",
         "| Run | Mode | Model | Date | Accuracy | Tools | Adversarial safe | 429-affected | Note |",
         "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |",

@@ -1,0 +1,72 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Novak Djokovic"
+        },
+        "id": "fc_c8ac0b4e-8d92-459d-aa58-a0057bb15f1d"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_c979398d-f214-4c16-9f83-08f4797609ca"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "head_to_head",
+        "args": {
+          "player1_id": 104925,
+          "player2_id": 104745
+        },
+        "id": "fc_86290f5e-7fef-40b7-bc2d-1e236f21505d"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t3"
+              ],
+              "statement": "Novak Djokovic leads the overall head\u2011to\u2011head against Rafael Nadal 30 wins to 28.",
+              "type": "verified"
+            },
+            {
+              "sources": [
+                "t3"
+              ],
+              "statement": "On clay courts, Rafael Nadal leads 19\u20118; on hard courts, Novak Djokovic leads 20\u20117; on grass courts, the record is tied 2\u20112.",
+              "type": "verified"
+            },
+            {
+              "statement": "The rivalry is extremely close, with Djokovic holding a slight overall edge despite Nadal\u2019s dominance on clay.",
+              "type": "interpreted"
+            }
+          ],
+          "kind": "answer",
+          "summary": "Novak Djokovic and Rafael Nadal have faced each other 58 times on the ATP tour. Djokovic leads the overall head\u2011to\u2011head 30\u201128. By surface, Nadal leads on clay 19\u20118, Djokovic leads on hard courts 20\u20117, and they are tied on grass 2\u20112."
+        },
+        "id": "fc_a527c3bb-031d-4f1e-82fd-1f42ae1dfc46"
+      }
+    ]
+  }
+]

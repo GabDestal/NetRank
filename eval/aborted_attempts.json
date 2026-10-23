@@ -17,6 +17,16 @@
   {
     "date": "2026-10-22 (recorded by hand afterwards)",
     "model": "openai/gpt-oss-120b",
-    "reason": "live-3, stopped after q13 when the machine ran low on memory (the run was killed before it saved its report). q01-q13 all ended as errors after 1-3 model turns; the error text was not kept (the console output was filtered and the report never written), so the cause is unknown. A minimal call right afterwards returned 200 with 926/1000 daily requests left, so the daily quota was not exhausted. Recordings kept in eval/recordings/live-3/. In q01 the model also called a non-existent 'json' tool for its answer (fed back as a rejection)."
+    "reason": "live-3, stopped after q13 when the machine ran low on memory (the run was killed before it saved its report). q01-q13 all ended as errors after 1-3 model turns; the error text was not kept (the console output was filtered and the report never written), so the cause is unknown. A minimal call right afterwards returned 200 with 926/1000 daily requests left, so the daily quota was not exhausted. Recordings kept in eval/recordings/live-3-aborted/. In q01 the model also called a non-existent 'json' tool for its answer (fed back as a rejection)."
+  },
+  {
+    "date": "2026-10-23 (recorded by hand afterwards)",
+    "model": "openai/gpt-oss-120b",
+    "reason": "Two minimal quota checks (1 token each), one after the aborted live-3 and one after live-3, not evaluation runs: both returned 200 (926 then 966 of 1000 daily requests left; per-minute token window open)."
+  },
+  {
+    "date": "2026-10-23 (recorded by hand afterwards)",
+    "model": "openai/gpt-oss-120b",
+    "reason": "Smoke test before the full live-3 (Neo4j memory capped), not scored as a run: q01, q04 and q18 all correct, no 429. q01 recovered after one rejected call to a made-up 'commentary' tool; q18 ended as a safe failure after two rejected calls ('commentary', 'json'), graph unchanged. Recordings in eval/recordings/smoke-live-3/."
   }
 ]

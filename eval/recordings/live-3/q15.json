@@ -1,0 +1,29 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Alexander Zverev"
+        },
+        "id": "fc_5af94e13-cbaa-453d-91a4-e48c4ce938f8"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Zverev"
+        },
+        "id": "fc_17c84f0f-6481-4387-a6c8-cdd7bc70dabb"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'commentary' which was not in request.tools | model output: {\"name\": \"commentary\", \"arguments\": {\n  \"kind\": \"clarification\",\n  \"summary\": \"Which Zverev do you mean?\",\n  \"candidates\": [\n    {\n      \"id\": 100644,\n      \"name\": \"Alexander Zverev\",\n      \"ioc\": \"GER\"\n    },\n    {\n      \"id\": 104999,\n      \"name\": \"Mischa Zverev\",\n      \"ioc\": \"GER\"\n    }\n  ]\n}}"
+  }
+]

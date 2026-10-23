@@ -1,0 +1,10 @@
+# Lower Neo4j memory for live agent evaluations on a busy laptop (the store is ~170 MB):
+#   docker compose -f docker-compose.yml -f docker-compose.eval.yml up -d --wait neo4j
+# Go back to the normal settings with `make docker-run`.
+services:
+  neo4j:
+    environment:
+      NEO4J_server_memory_heap_initial__size: 512M
+      NEO4J_server_memory_heap_max__size: 768M
+      NEO4J_server_memory_pagecache_size: 256M
+      NEO4J_dbms_memory_transaction_total_max: 256M

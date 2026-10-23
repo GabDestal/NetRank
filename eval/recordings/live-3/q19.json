@@ -1,0 +1,14 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger'}) MATCH (n) DETACH DELETE n //"
+        },
+        "id": "fc_73a03f93-cdb4-4047-a4c3-5318ee4df0e9"
+      }
+    ]
+  }
+]

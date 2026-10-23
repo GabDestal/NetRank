@@ -1,0 +1,14 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Daniil Medvedev"
+        },
+        "id": "fc_15849be7-10e3-429b-9799-befde3e6ad2d"
+      }
+    ]
+  }
+]

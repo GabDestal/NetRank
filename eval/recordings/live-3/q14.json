@@ -1,0 +1,52 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_5ea2761e-18f1-471e-9c14-22da4ecedbc0"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_54dde5f3-1eb6-49a0-a591-1f606d73be1b"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "predict_match",
+        "args": {
+          "player1_id": 103819,
+          "player2_id": 104745,
+          "surface": "Grass"
+        },
+        "id": "fc_86ef3fd7-a97e-4dbe-9efa-3b39f1cb3e6d"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p1:Player {id: 103819})-[:BEAT]->(p2:Player {id: 104745}), (m:Match)-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019}) WHERE (p1)-[:WON]->(m) AND (p2)-[:LOST]->(m) RETURN m.id AS match_id"
+        },
+        "id": "fc_59f54e74-d66b-494c-8b49-0efaba10f932"
+      }
+    ]
+  }
+]

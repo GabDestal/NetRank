@@ -1,0 +1,14 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_bc6dd9c8-09ba-4152-9508-550f1336179d"
+      }
+    ]
+  }
+]
