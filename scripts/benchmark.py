@@ -23,9 +23,22 @@ RUNS = 7
 WARMUP = 2
 FEDERER, DJOKOVIC, KRIEK = 103819, 104925, 100532
 KEY_OPERATORS = (
-    "NodeByLabelScan", "NodeIndexSeek", "NodeUniqueIndexSeek", "NodeIndexSeekByRange", "NodeByIdSeek",
-    "CartesianProduct", "Expand(All)", "Expand(Into)", "OptionalExpand(All)", "StatefulShortestPath(All)",
-    "StatefulShortestPath(Into)", "ProcedureCall", "Eager", "Sort", "Top", "EagerAggregation",
+    "NodeByLabelScan",
+    "NodeIndexSeek",
+    "NodeUniqueIndexSeek",
+    "NodeIndexSeekByRange",
+    "NodeByIdSeek",
+    "CartesianProduct",
+    "Expand(All)",
+    "Expand(Into)",
+    "OptionalExpand(All)",
+    "StatefulShortestPath(All)",
+    "StatefulShortestPath(Into)",
+    "ProcedureCall",
+    "Eager",
+    "Sort",
+    "Top",
+    "EagerAggregation",
 )
 
 log = logging.getLogger(__name__)
@@ -56,8 +69,7 @@ CASES = [
         "Full-text index with accent folding instead of toLower/CONTAINS on every Player",
         {"text": "federer", "query": "federer*"},
         "MATCH (p:Player) WHERE toLower(p.name) CONTAINS $text RETURN p.id AS id ORDER BY id",
-        "CALL db.index.fulltext.queryNodes('player_name_ft', $query) YIELD node "
-        + "RETURN node.id AS id ORDER BY id",
+        "CALL db.index.fulltext.queryNodes('player_name_ft', $query) YIELD node " + "RETURN node.id AS id ORDER BY id",
         "db hits do not count the work done inside the full-text procedure (Lucene). With 2,316 players a"
         + " scan is cheap, and latency is about equal; the index is chosen for accent folding and"
         + " word-prefix matching, and because a scan grows with the number of players.",
@@ -122,6 +134,7 @@ NO_GAIN = [
     + " count query (3,000 db hits, 4.5 ms) for the total. The API keeps one query that returns page and"
     + " total together (8,237 db hits, 15.0 ms): one round trip, same latency.",
 ]
+
 
 def flatten(plan: dict) -> list[dict]:
     """Every operator of a profiled plan tree, parent first."""

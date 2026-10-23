@@ -153,9 +153,13 @@ def compact_schema(node: Any) -> Any:
         return [compact_schema(item) for item in node]
     if not isinstance(node, dict):
         return node
-    out = {key: compact_schema(value) for key, value in node.items()
-           if key != "title" and not (key == "description" and "properties" in node)
-           and not (key == "default" and value is None)}
+    out = {
+        key: compact_schema(value)
+        for key, value in node.items()
+        if key != "title"
+        and not (key == "description" and "properties" in node)
+        and not (key == "default" and value is None)
+    }
     options = out.get("anyOf")
     if isinstance(options, list) and len(options) == 2 and {"type": "null"} in options:
         kept = dict(next(option for option in options if option != {"type": "null"}))
@@ -216,8 +220,11 @@ def trim_for_llm(value: Any, omit: frozenset[str] = frozenset(), limit: int = LL
     """
     if isinstance(value, dict):
         hidden = omit | (BIOGRAPHY if depth else frozenset())
-        return {key: trim_for_llm(item, omit, limit, depth + 1) for key, item in value.items()
-                if key not in hidden and item is not None}
+        return {
+            key: trim_for_llm(item, omit, limit, depth + 1)
+            for key, item in value.items()
+            if key not in hidden and item is not None
+        }
     if isinstance(value, list):
         trimmed = [trim_for_llm(item, omit, limit, depth + 1) for item in value[:limit]]
         return trimmed + ([f"... {len(value) - limit} more"] if len(value) > limit else [])
@@ -349,14 +356,16 @@ class ToolBox:
     def record_rejection(self, message: str) -> None:
         """Keep a provider-rejected model output in the trace (it produced no tool call)."""
         call_id = f"t{len(self.trace) + 1}"
-        self.trace.append(ToolCallRecord(id=call_id, tool="(rejected model output)", arguments={}, success=False,
-                                         error=message[:500]))
+        self.trace.append(
+            ToolCallRecord(id=call_id, tool="(rejected model output)", arguments={}, success=False, error=message[:500])
+        )
 
     def record_recovery(self, tool: str, payload: dict) -> None:
         """Keep, next to the rejection, that its payload was accepted as the answer (decision log D71)."""
         call_id = f"t{len(self.trace) + 1}"
-        self.trace.append(ToolCallRecord(id=call_id, tool=f"(recovered answer sent to '{tool}')", arguments=payload,
-                                         success=True))
+        self.trace.append(
+            ToolCallRecord(id=call_id, tool=f"(recovered answer sent to '{tool}')", arguments=payload, success=True)
+        )
 
     def results_by_id(self) -> dict[str, ToolCallRecord]:
         """Trace records keyed by call id."""

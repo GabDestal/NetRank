@@ -14,8 +14,13 @@ H2H = {
 TRACE = [
     ToolCallRecord(id="t1", tool="head_to_head", arguments={}, success=True, result=H2H),
     ToolCallRecord(id="t2", tool="predict_match", arguments={}, success=True, result={"p1WinProbability": 0.4289}),
-    ToolCallRecord(id="t3", tool="run_readonly_cypher", arguments={}, success=True,
-                   result={"cypher": "MATCH (m:Match) RETURN count(m) AS n\nLIMIT 50", "rows": [{"n": 102417}]}),
+    ToolCallRecord(
+        id="t3",
+        tool="run_readonly_cypher",
+        arguments={},
+        success=True,
+        result={"cypher": "MATCH (m:Match) RETURN count(m) AS n\nLIMIT 50", "rows": [{"n": 102417}]},
+    ),
     ToolCallRecord(id="t4", tool="get_player", arguments={}, success=False, error="not found"),
 ]
 

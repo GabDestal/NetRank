@@ -10,9 +10,7 @@ from app.config import get_settings
 
 API_KEY_HEADER = "X-API-Key"
 
-_header = APIKeyHeader(
-    name=API_KEY_HEADER, auto_error=False, description="Admin key (ADMIN_API_KEY on the server)."
-)
+_header = APIKeyHeader(name=API_KEY_HEADER, auto_error=False, description="Admin key (ADMIN_API_KEY on the server).")
 
 
 def require_admin_key(provided: Annotated[str | None, Depends(_header)]) -> None:

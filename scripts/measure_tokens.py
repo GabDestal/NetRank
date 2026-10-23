@@ -92,8 +92,11 @@ def main() -> None:
         average = sum(r["tokens"] for r in used) / len(used)
         per_turn = sum(r["tokens"] for r in used) / sum(r["turns"] for r in used)
         specs = CountingLLM(ReplayLLM([]), tiktoken.get_encoding("o200k_base")).specs
-        lines += ["", f"Average per question ({len(used)} questions that reached the model): {average:.0f} tokens; "
-                  + f"per turn: {per_turn:.0f}; tool specs alone: {specs} per turn."]
+        lines += [
+            "",
+            f"Average per question ({len(used)} questions that reached the model): {average:.0f} tokens; "
+            + f"per turn: {per_turn:.0f}; tool specs alone: {specs} per turn.",
+        ]
     sys.stdout.write("\n".join(lines) + "\n")
 
 

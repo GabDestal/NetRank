@@ -94,6 +94,8 @@ schema; LIMIT enforced; Pydantic output tagging each claim verified / predicted 
 `make install` (uv if present, Python 3.11), `make docker-run` (waits for healthy), `make download`,
 `make ingest` (~1 min, regenerates docs/data_exploration.md), `make gds` (~5 s), `make train` (~1 min), `make benchmark` (~2 min, docs/benchmarks.md),
 `make test`, `make test-stack`, `make lint`.
+- `make hooks` installs pre-commit (D76): gitleaks/black/file checks/data guard on commit, pylint + unit tests on push.
+  Hook revs are frozen SHAs; keep new revs at least two weeks old. CI is the authority.
 - API conventions: services raise NotFoundError/InvalidRequestError (app/errors.py), mapped in app/main.py;
   lists return Page[T] (app/models/common.py) with page/size from app/routers/params.py. Local `.venv` is at `.venv/Scripts` on Windows, `.venv/bin` elsewhere.
 

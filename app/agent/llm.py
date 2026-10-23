@@ -145,8 +145,10 @@ class RetryingLLM:
                 if isinstance(exc, groq.RateLimitError):
                     self.rate_limited += 1
                     self.last_rate_limit = rate_limit_details(exc)
-                    log.warning(f"Groq 429 (attempt {attempt}): {self.last_rate_limit['message']} "
-                                + f"headers={self.last_rate_limit['headers']}")
+                    log.warning(
+                        f"Groq 429 (attempt {attempt}): {self.last_rate_limit['message']} "
+                        + f"headers={self.last_rate_limit['headers']}"
+                    )
                     if DAILY_LIMIT.search(self.last_rate_limit["message"]):
                         message = self.last_rate_limit["message"][:300]
                         raise DailyQuotaError(f"Groq daily limit reached: {message}") from exc

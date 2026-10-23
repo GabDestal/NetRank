@@ -30,9 +30,22 @@ def fixture_agent_graph(neo4j_client):
     ingest.load(db, ingest.MERGE_PLAYERS, players, "p")
     ingest.load(db, ingest.MERGE_TOURNAMENTS, [{"id": "TESTAG-T", "name": "Agent Open", "year": 1905}], "t")
     rows = [
-        {"id": f"TESTAG-T-{n}", "tournamentId": "TESTAG-T", "date": date(1905, 1, n), "round": "R32", "bestOf": 3,
-         "score": "6-3 6-4", "minutes": 70, "surface": "Clay", "walkover": False, "retired": False,
-         "winnerId": w, "loserId": l, "winner": {}, "loser": {}}
+        {
+            "id": f"TESTAG-T-{n}",
+            "tournamentId": "TESTAG-T",
+            "date": date(1905, 1, n),
+            "round": "R32",
+            "bestOf": 3,
+            "score": "6-3 6-4",
+            "minutes": 70,
+            "surface": "Clay",
+            "walkover": False,
+            "retired": False,
+            "winnerId": w,
+            "loserId": l,
+            "winner": {},
+            "loser": {},
+        }
         for n, (w, l) in enumerate([(A, B), (A, B), (B, A)], start=1)
     ]
     ingest.load(db, ingest.MERGE_MATCHES, rows, "m")
@@ -71,20 +84,36 @@ def test_guarded_cypher_runs_reads_with_limit(agent_graph):
 def test_scripted_agent_end_to_end(agent_graph):
     """Resolve both names, read the head-to-head, answer; a wrong number is downgraded by the verifier."""
     turns = [
-        {"content": "", "tool_calls": [
-            {"name": "search_player", "args": {"name": "Agenttest Alpha"}, "id": "a"},
-            {"name": "search_player", "args": {"name": "Agenttest Bravo"}, "id": "b"},
-        ]},
-        {"content": "", "tool_calls": [
-            {"name": "head_to_head", "args": {"player1_id": A, "player2_id": B}, "id": "c"},
-        ]},
-        {"content": "", "tool_calls": [{"name": "submit_answer", "id": "d", "args": {
-            "kind": "answer", "summary": "Alpha leads Bravo 2-1.",
-            "claims": [
-                {"text": "Alpha leads the head-to-head 2-1.", "type": "verified", "sources": ["t3"]},
-                {"text": "Alpha won 5 matches against Bravo.", "type": "verified", "sources": ["t3"]},
+        {
+            "content": "",
+            "tool_calls": [
+                {"name": "search_player", "args": {"name": "Agenttest Alpha"}, "id": "a"},
+                {"name": "search_player", "args": {"name": "Agenttest Bravo"}, "id": "b"},
             ],
-        }}]},
+        },
+        {
+            "content": "",
+            "tool_calls": [
+                {"name": "head_to_head", "args": {"player1_id": A, "player2_id": B}, "id": "c"},
+            ],
+        },
+        {
+            "content": "",
+            "tool_calls": [
+                {
+                    "name": "submit_answer",
+                    "id": "d",
+                    "args": {
+                        "kind": "answer",
+                        "summary": "Alpha leads Bravo 2-1.",
+                        "claims": [
+                            {"text": "Alpha leads the head-to-head 2-1.", "type": "verified", "sources": ["t3"]},
+                            {"text": "Alpha won 5 matches against Bravo.", "type": "verified", "sources": ["t3"]},
+                        ],
+                    },
+                }
+            ],
+        },
     ]
     question = "What is Agenttest Alpha's record against Agenttest Bravo?"
     response = graph.ask(agent_graph, ReplayLLM(turns), question, 8, "scripted")

@@ -87,8 +87,12 @@ def make_row(match: dict, values: dict) -> dict:
         "season": match["date"].year,
         "split": split_of(match["date"].year),
         "retired": bool(match["retired"]),
-        "rankP1": ranks[0], "rankP2": ranks[1],
-        "pinnacleP1": pin[0], "pinnacleP2": pin[1], "bet365P1": b365[0], "bet365P2": b365[1],
+        "rankP1": ranks[0],
+        "rankP2": ranks[1],
+        "pinnacleP1": pin[0],
+        "pinnacleP2": pin[1],
+        "bet365P1": b365[0],
+        "bet365P2": b365[1],
     }
 
 

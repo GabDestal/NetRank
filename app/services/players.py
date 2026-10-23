@@ -106,9 +106,7 @@ def profile(db: Neo4jClient, player_id: int) -> PlayerProfile:
     if not rows:
         raise NotFoundError(f"No player with id {player_id}")
     row = rows[0]
-    by_surface = [
-        SurfaceRecord(**s, winRate=round(s["wins"] / (s["wins"] + s["losses"]), 4)) for s in row["bySurface"]
-    ]
+    by_surface = [SurfaceRecord(**s, winRate=round(s["wins"] / (s["wins"] + s["losses"]), 4)) for s in row["bySurface"]]
     return PlayerProfile(
         **row["player"],
         matches=row["matches"],

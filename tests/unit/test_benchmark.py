@@ -9,9 +9,13 @@ PLAN = {
     "dbHits": 0,
     "rows": 1,
     "children": [
-        {"operatorType": "Top@neo4j", "dbHits": 5, "children": [
-            {"operatorType": "NodeUniqueIndexSeek@neo4j", "dbHits": 2, "children": []},
-        ]},
+        {
+            "operatorType": "Top@neo4j",
+            "dbHits": 5,
+            "children": [
+                {"operatorType": "NodeUniqueIndexSeek@neo4j", "dbHits": 2, "children": []},
+            ],
+        },
     ],
 }
 

@@ -1,4 +1,4 @@
-.PHONY: help venv install run download ingest gds train eval eval-replay demo-guardrail benchmark docker-build docker-run docker-down docker-logs test test-unit test-stack lint clean
+.PHONY: help venv install run download ingest gds train eval eval-replay demo-guardrail benchmark docker-build docker-run docker-down docker-logs test test-unit test-stack hooks lint clean
 
 PYTHON ?= python3
 VENV := .venv
@@ -80,6 +80,9 @@ test-stack: ## Run the container health tests against the running stack
 
 # --jobs=1 overrides the template's jobs=0: the parallel pool occasionally crashed on Windows
 # (BrokenProcessPool), and a single worker takes ~15 s on this codebase.
+hooks: ## Install the git hooks: fast checks on commit, pylint + unit tests on push (.pre-commit-config.yaml)
+	$(BIN)/pre-commit install
+
 lint: ## Run pylint (fails below 9.5/10)
 	$(PY) -m pylint --jobs=1 --fail-under=9.5 $(LINT_PATHS)
 

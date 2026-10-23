@@ -56,14 +56,28 @@ def plot_calibration(curves: dict[str, tuple], rows: int) -> None:
     ax.text(0.03, 0.08, "perfect calibration", color=MUTED, fontsize=8, ha="left", rotation=40)
     for name, (predicted, observed) in curves.items():
         color, marker = SERIES[name]
-        ax.plot(predicted, observed, color=color, linewidth=2, marker=marker, markersize=6,
-                markeredgecolor=SURFACE, markeredgewidth=1.5, label=name, zorder=3)
+        ax.plot(
+            predicted,
+            observed,
+            color=color,
+            linewidth=2,
+            marker=marker,
+            markersize=6,
+            markeredgecolor=SURFACE,
+            markeredgewidth=1.5,
+            label=name,
+            zorder=3,
+        )
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.set_xlabel("Predicted probability that p1 wins (quantile bins)", color=MUTED, fontsize=9)
     ax.set_ylabel("Observed share of p1 wins", color=MUTED, fontsize=9)
-    ax.set_title(f"Calibration on the test seasons ({rows:,} matches priced by both bookmakers)",
-                 color=INK, fontsize=10, loc="left")
+    ax.set_title(
+        f"Calibration on the test seasons ({rows:,} matches priced by both bookmakers)",
+        color=INK,
+        fontsize=10,
+        loc="left",
+    )
     ax.grid(color=GRID, linewidth=0.8)
     ax.tick_params(colors=MUTED, labelsize=8)
     for spine in ax.spines.values():
@@ -101,24 +115,27 @@ def reading_notes(dataset: pd.DataFrame, result: dict) -> str:
     common = result["common"]
     gap_market = common["Graph model"]["logLoss"] - common["Pinnacle (no margin)"]["logLoss"]
     gap_rank = common["Graph model"]["logLoss"] - common["Ranking baseline"]["logLoss"]
-    return "\n".join([
-        f"- Log loss gap to Pinnacle: {gap_market:+.4f}; to the ranking baseline: {gap_rank:+.4f} (positive = worse).",
-        f"- logPrestige and logRecentPrestige are correlated (r = {correlation:.2f} on train), so their weights"
-        + " are not interpretable one by one: together they reward recent prestige and penalise a career"
-        + " prestige that recent results no longer support.",
-        "- The ranking baseline uses ATP ranks, which summarise 52 weeks of results at every level"
-        + " (Challengers, qualifying) that are not in this graph; the graph model sees tour-level matches only.",
-    ])
+    return "\n".join(
+        [
+            f"- Log loss gap to Pinnacle: {gap_market:+.4f}; to the ranking baseline: {gap_rank:+.4f}"
+            + " (positive = worse).",
+            f"- logPrestige and logRecentPrestige are correlated (r = {correlation:.2f} on train), so their weights"
+            + " are not interpretable one by one: together they reward recent prestige and penalise a career"
+            + " prestige that recent results no longer support.",
+            "- The ranking baseline uses ATP ranks, which summarise 52 weeks of results at every level"
+            + " (Challengers, qualifying) that are not in this graph; the graph model sees tour-level matches only.",
+        ]
+    )
+
 
 def write(dataset: pd.DataFrame, chosen: dict, candidates: list[dict], result: dict, artifact: dict) -> None:
     """Assemble the Markdown report and the figure."""
     curves = calibration_bins(result["calibration"]["labels"], result["calibration"]["probabilities"])
     plot_calibration(curves, len(result["calibration"]["labels"]))
-    splits = dataset.groupby("split").agg(rows=("label", "size"), p1WonRate=("label", "mean"),
-                                         first=("date", "min"), last=("date", "max"))
-    validation = {
-        (f"{c['model']} C={c['C']}" if c["C"] is not None else c["model"]): c for c in candidates
-    }
+    splits = dataset.groupby("split").agg(
+        rows=("label", "size"), p1WonRate=("label", "mean"), first=("date", "min"), last=("date", "max")
+    )
+    validation = {(f"{c['model']} C={c['C']}" if c["C"] is not None else c["model"]): c for c in candidates}
     first, last = result["seasons"]
     lines = [
         "# Match-outcome model report",
@@ -139,7 +156,8 @@ def write(dataset: pd.DataFrame, chosen: dict, candidates: list[dict], result: d
         "",
         table(validation, "Candidate"),
         "",
-        f"Chosen: **{chosen['model']}**" + (f" with C = {chosen['C']}" if chosen.get("C") is not None else "")
+        f"Chosen: **{chosen['model']}**"
+        + (f" with C = {chosen['C']}" if chosen.get("C") is not None else "")
         + ". Gradient boosting is kept only if it improves validation log loss by at least 1%. "
         + "The chosen model is refitted on train + validation before the test.",
         "",

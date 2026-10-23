@@ -72,14 +72,12 @@ def fixture_mini_graph(neo4j_client):
 
 def test_beat_aggregates_played_wins_only(mini_graph):
     """A beat B twice; D's walkover over C creates no BEAT."""
-    rows = mini_graph.read(
-        """
+    rows = mini_graph.read("""
         MATCH (w:Player)-[b:BEAT]->(l:Player)
         WHERE w.id IN [-11, -12, -13, -14]
         RETURN w.id AS w, l.id AS l, b.wins AS wins, b.firstWin AS firstWin
         ORDER BY w DESC, l DESC
-        """
-    )
+        """)
     edges = {(r["w"], r["l"]): r["wins"] for r in rows}
     assert edges == {(A, B): 2, (B, A): 1, (B, C): 1, (C, A): 1, (C, D): 1}
     assert rows[0]["firstWin"] == date(2000, 1, 1)

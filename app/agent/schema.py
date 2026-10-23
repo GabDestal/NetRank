@@ -82,8 +82,9 @@ class DraftAnswer(BaseModel):
 
     def to_answer(self) -> AgentAnswer:
         """The response answer."""
-        return AgentAnswer(kind=self.kind, summary=self.summary, claims=[c.to_claim() for c in self.claims],
-                           candidates=self.candidates)
+        return AgentAnswer(
+            kind=self.kind, summary=self.summary, claims=[c.to_claim() for c in self.claims], candidates=self.candidates
+        )
 
     @classmethod
     def unknown_fields(cls, data: dict) -> list[str]:
@@ -92,8 +93,13 @@ class DraftAnswer(BaseModel):
         unknown = [key for key in data if key not in set(cls.model_fields.keys())]
         for key, model in nested.items():
             items = data.get(key) if isinstance(data.get(key), list) else []
-            unknown += [f"{key}.{field}" for item in items if isinstance(item, dict)
-                        for field in item if field not in set(model.model_fields.keys())]
+            unknown += [
+                f"{key}.{field}"
+                for item in items
+                if isinstance(item, dict)
+                for field in item
+                if field not in set(model.model_fields.keys())
+            ]
         return unknown
 
 

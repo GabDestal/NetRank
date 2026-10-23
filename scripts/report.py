@@ -20,8 +20,7 @@ def table(frame: pd.DataFrame) -> str:
     head = "| " + " | ".join(map(str, frame.columns)) + " |"
     rule = "| " + " | ".join("---" for _ in frame.columns) + " |"
     rows = [
-        "| " + " | ".join("" if pd.isna(v) else str(v) for v in row) + " |"
-        for row in frame.itertuples(index=False)
+        "| " + " | ".join("" if pd.isna(v) else str(v) for v in row) + " |" for row in frame.itertuples(index=False)
     ]
     return "\n".join([head, rule, *rows])
 
@@ -65,7 +64,16 @@ def write_logs(odds: pd.DataFrame, links: pd.DataFrame) -> None:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     links.to_csv(LOG_DIR / "links.csv", index=False)
     columns = [
-        "oddsRowId", "status", "Date", "Tournament", "Series", "Round", "Winner", "Loser", "winnerKey", "loserKey"
+        "oddsRowId",
+        "status",
+        "Date",
+        "Tournament",
+        "Series",
+        "Round",
+        "Winner",
+        "Loser",
+        "winnerKey",
+        "loserKey",
     ]
     odds[odds["status"].isin(["unmatched", "conflict"])][columns].to_csv(LOG_DIR / "unmatched.csv", index=False)
 

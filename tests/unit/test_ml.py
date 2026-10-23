@@ -40,11 +40,13 @@ def artifact(weights=None) -> dict:
 
 def test_history_counts_and_smoothing():
     """Experience, surface win rate (smoothed) and head-to-head from recorded matches."""
-    history = F.replay([
-        {"winnerId": 1, "loserId": 2, "surface": "Clay"},
-        {"winnerId": 1, "loserId": 2, "surface": "Clay"},
-        {"winnerId": 2, "loserId": 1, "surface": "Hard"},
-    ])
+    history = F.replay(
+        [
+            {"winnerId": 1, "loserId": 2, "surface": "Clay"},
+            {"winnerId": 1, "loserId": 2, "surface": "Clay"},
+            {"winnerId": 2, "loserId": 1, "surface": "Hard"},
+        ]
+    )
     values = history.features(1, 2, "Clay")
     assert values["headToHead"] == 1.0 and values["headToHeadShare"] == pytest.approx(3 / 5 - 0.5)
     assert values["surfaceWinRate"] == pytest.approx(3 / 4 - 1 / 4)
@@ -148,8 +150,14 @@ def test_report_tables_and_plot(tmp_path, monkeypatch):
 FED = {"id": 1, "name": "Player One", "ioc": "SUI", "hand": "R", "dob": None}
 NAD = {"id": 2, "name": "Player Two", "ioc": "ESP", "hand": "L", "dob": None}
 MATCH = {
-    "matchId": "2019-540-1", "date": date(2019, 7, 14), "surface": "Grass", "score": "7-6 6-1",
-    "walkover": False, "retired": False, "winnerId": 2, "loserId": 1,
+    "matchId": "2019-540-1",
+    "date": date(2019, 7, 14),
+    "surface": "Grass",
+    "score": "7-6 6-1",
+    "walkover": False,
+    "retired": False,
+    "winnerId": 2,
+    "loserId": 1,
     "odds": [{"bookmaker": "Pinnacle", "winnerOdds": 1.8, "loserOdds": 2.1}],
 }
 
@@ -161,11 +169,13 @@ def fixture_served(tmp_path, monkeypatch, fake_db_factory):
     path.write_text(json.dumps(artifact()), encoding="utf-8")
     monkeypatch.setattr(predict_service, "get_settings", lambda: Settings(model_path=str(path)))
     monkeypatch.setattr(predict_service, "season_snapshot", lambda db, cutoff: SNAPSHOT)
-    return fake_db_factory({
-        "p.id IN [$p1, $p2]\nRETURN": [{"player": FED}, {"player": NAD}],
-        "m.date < $before": [{"date": date(2018, 1, 1), "winnerId": 1, "loserId": 2, "surface": "Grass"}],
-        "{id: $matchId}": [MATCH],
-    })
+    return fake_db_factory(
+        {
+            "p.id IN [$p1, $p2]\nRETURN": [{"player": FED}, {"player": NAD}],
+            "m.date < $before": [{"date": date(2018, 1, 1), "winnerId": 1, "loserId": 2, "surface": "Grass"}],
+            "{id: $matchId}": [MATCH],
+        }
+    )
 
 
 def test_predict_now_is_tagged_and_versioned(api_client, served):
@@ -192,8 +202,8 @@ def test_predict_past_match_returns_market_and_result(api_client):
 @pytest.mark.parametrize(
     ("params", "status"),
     [
-        ({"p1": 1, "p2": 2}, 400),                                  # no surface, no match
-        ({"p1": 1, "p2": 1, "surface": "Hard"}, 400),               # same player
+        ({"p1": 1, "p2": 2}, 400),  # no surface, no match
+        ({"p1": 1, "p2": 1, "surface": "Hard"}, 400),  # same player
         ({"p1": 1, "p2": 2, "match_id": "2019-540-1", "surface": "Clay"}, 400),  # wrong surface
         ({"p1": 1, "p2": 2, "surface": "Sand"}, 422),
     ],

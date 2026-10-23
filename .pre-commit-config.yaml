@@ -1,0 +1,51 @@
+# Local checks before code reaches CI (decision log D76). Install with `make hooks`.
+# Fast checks run on every commit; pylint and the unit tests run before a push. CI stays the authority.
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: 2ca41cc1372d1e939a6a879f18cdc19fc1cac1ce  # frozen: v8.30.0
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/psf/black
+    rev: 87928e6d6761a4a6d22250e1fee5601b3998086e  # frozen: 26.5.1 (26.10.x is under two weeks old)
+    hooks:
+      - id: black
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+        stages: [pre-commit]
+      - id: end-of-file-fixer
+        stages: [pre-commit]
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: no-data-models-or-env
+        name: no raw data, model files or .env
+        description: Raw tennis data (licence terms), trained models and secrets never go into git.
+        language: fail
+        entry: "Do not commit raw data (data/raw/), trained models (models/) or .env files:"
+        files: ^(data/raw/|models/)|(^|/)\.env$
+      - id: pylint
+        name: pylint (fail under 9.5)
+        language: system
+        entry: make lint
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: unit-tests
+        name: unit tests
+        language: system
+        entry: make test-unit
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

@@ -86,9 +86,7 @@ class Neo4jClient:
         self._driver.close()
 
     def _run(self, query: str, params: dict[str, Any] | None, routing: RoutingControl) -> list[dict[str, Any]]:
-        records, _, _ = self._driver.execute_query(
-            query, params or {}, database_=self._database, routing_=routing
-        )
+        records, _, _ = self._driver.execute_query(query, params or {}, database_=self._database, routing_=routing)
         return [to_native(record.data()) for record in records]
 
 

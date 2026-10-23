@@ -188,6 +188,7 @@ The score of every run is in [docs/agent_eval.md](docs/agent_eval.md).
 | `make demo-guardrail` | Show the guardrails rejecting a write query (offline) |
 | `make test` | Run the tests with coverage |
 | `make lint` | Run pylint (must stay above 9.5) |
+| `make hooks` | Install the git hooks (pre-commit checks; pylint and unit tests before a push) |
 | `make clean` | Remove caches |
 
 ## Tests
