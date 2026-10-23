@@ -39,8 +39,7 @@ The project runs as three Docker services:
 | `api` | FastAPI app ([image on GHCR](https://github.com/GabDestal/NetRank/pkgs/container/netrank-api)) | behind nginx |
 | `nginx` | Reverse proxy, the only public entry point | 8080 |
 
-<!-- TODO: add docs/diagrams/architecture.png (services, ports, data flows) -->
-![Architecture](docs/diagrams/architecture.png)
+![Architecture](docs/diagrams/architecture.svg)
 
 ## Graph schema
 
