@@ -1,4 +1,4 @@
-.PHONY: help venv install run download ingest gds train eval eval-replay demo-guardrail benchmark docker-build docker-run docker-down docker-logs test test-unit test-stack hooks lint clean
+.PHONY: help venv install run download ingest gds train eval eval-replay quota demo-guardrail benchmark docker-build docker-run docker-down docker-logs test test-unit test-stack hooks lint clean
 
 PYTHON ?= python3
 VENV := .venv
@@ -49,6 +49,9 @@ eval: ## Live agent evaluation on eval/questions_v2.json (needs GROQ_API_KEY): m
 
 eval-replay: ## Re-score a live run's recordings without Groq: make eval-replay RUN=<live label>
 	$(PY) -m scripts.eval_agent --replay $(RUN)
+
+quota: ## When Groq's daily window is fresh for a live run (eval/quota_log.json; no Groq call)
+	$(PY) -m scripts.quota_log
 
 demo-guardrail: ## Replay recorded model Cypher through the guardrails, offline (REC=<recording> optional)
 	$(PY) -m scripts.demo_guardrail $(if $(REC),--recording $(REC),)

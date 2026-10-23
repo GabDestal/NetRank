@@ -29,6 +29,7 @@ from app.config import get_settings
 from app.database.client import Neo4jClient
 from app.services import analytics, gds, predict
 from app.text import fold
+from scripts import quota_log
 
 QUESTION_SETS = {"v1": Path("eval/questions_v1.json"), "v2": Path("eval/questions_v2.json")}
 RECORDINGS = Path("eval/recordings")
@@ -462,11 +463,20 @@ def main() -> None:
     questions = json.loads(QUESTION_SETS[set_name].read_text(encoding="utf-8"))
     if args.only:
         questions = [q for q in questions if q["id"] in args.only.split(",")]
+    if not args.replay:  # every live session is gated and logged, --only runs included (D77)
+        try:
+            quota_log.check_fresh(now)
+        except quota_log.StaleQuotaWindowError as exc:
+            raise SystemExit(f"refusing to start a live run: {exc}") from exc
+        quota_log.start(label, get_settings().groq_model, now)
     db = Neo4jClient.from_settings(get_settings())
+    rows: list[dict] = []
     try:
         rows = run_questions(db, questions, {"replay": bool(args.replay), "recordings": recordings}, args.pause)
     finally:
         db.close()
+        if not args.replay:
+            quota_log.finish(label, datetime.now(timezone.utc), rows)
     if args.only:
         log.info(json.dumps(rows, indent=2, default=str))
         return
