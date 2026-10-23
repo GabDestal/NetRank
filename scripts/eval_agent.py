@@ -202,11 +202,24 @@ def score(question: dict, response: AgentResponse, gold: list, integrity: tuple[
 def failed_row(question: dict, reason: str, counters: dict, kind: str = "error") -> dict:
     """A question that produced no answer (throttling, desynchronised recording, crash) or was not run."""
     return {
-        "id": question["id"], "category": question["category"], "kind": kind, "correct": False,
-        "toolsOk": False, "safe": None, "caughtBy": None, "fallback": 0, "guardrailRejections": 0,
-        "invalidToolCalls": 0, "recovered": 0,
-        "checkableClaims": 0, "downgraded": 0, "steps": 0, "gold": [], "tools": [],
-        "error": reason, **counters,
+        "id": question["id"],
+        "category": question["category"],
+        "kind": kind,
+        "correct": False,
+        "toolsOk": False,
+        "safe": None,
+        "caughtBy": None,
+        "fallback": 0,
+        "guardrailRejections": 0,
+        "invalidToolCalls": 0,
+        "recovered": 0,
+        "checkableClaims": 0,
+        "downgraded": 0,
+        "steps": 0,
+        "gold": [],
+        "tools": [],
+        "error": reason,
+        **counters,
     }
 
 
@@ -238,8 +251,12 @@ def run_one(db: Neo4jClient, question: dict, mode: dict) -> tuple[AgentResponse 
         # Any other failure is this question's failure, reported in the run instead of aborting it.
         response, info["error"] = None, f"{type(exc).__name__}: {str(exc)[:150]}"
     recorder.save(path)
-    info.update(retries=retrying.retries, rateLimited=retrying.rate_limited, promptTokens=retrying.prompt_tokens,
-                completionTokens=retrying.completion_tokens)
+    info.update(
+        retries=retrying.retries,
+        rateLimited=retrying.rate_limited,
+        promptTokens=retrying.prompt_tokens,
+        completionTokens=retrying.completion_tokens,
+    )
     if retrying.last_rate_limit:
         info["lastRateLimit"] = retrying.last_rate_limit
     return response, info
@@ -283,8 +300,10 @@ def summary_lines(rows: list[dict]) -> list[str]:
         + f"{sum(r.get('recovered', 0) > 0 for r in ran)} questions |",
     ]
     if tokens:
-        lines.append(f"| Prompt tokens per question (Groq count, {len(tokens)} questions) | "
-                     + f"{sum(tokens) / len(tokens):.0f} on average |")
+        lines.append(
+            f"| Prompt tokens per question (Groq count, {len(tokens)} questions) | "
+            + f"{sum(tokens) / len(tokens):.0f} on average |"
+        )
     if len(ran) < len(rows):
         lines.append(f"| Questions {NOT_RUN} | {len(rows) - len(ran)} of {len(rows)} |")
     return lines
@@ -383,8 +402,11 @@ def evaluate_one(db: Neo4jClient, question: dict, mode: dict) -> dict:
     except LLMConfigurationError as exc:
         record_abort(get_settings().groq_model, f"{question['id']}: {exc}")
         raise
-    counters = {key: info[key] for key in ("retries", "rateLimited", "promptTokens", "completionTokens",
-                                           "lastRateLimit", "dailyQuota") if key in info}
+    counters = {
+        key: info[key]
+        for key in ("retries", "rateLimited", "promptTokens", "completionTokens", "lastRateLimit", "dailyQuota")
+        if key in info
+    }
     if response is None:
         return failed_row(question, info["error"], counters)
     return {**score(question, response, gold, (before, db.read(INTEGRITY)[0])), **counters}
@@ -418,9 +440,11 @@ def run_questions(db: Neo4jClient, questions: list[dict], mode: dict, pause: flo
         rows.append(evaluate_one(db, question, mode))
         row = rows[-1]
         # Error, 429 count and the last 429 go to the console too, so a run killed before saving keeps them.
-        log.info(f"{question['id']}: correct={row['correct']} kind={row['kind']} "
-                 + f"rateLimited={row.get('rateLimited', 0)} promptTokens={row.get('promptTokens')} "
-                 + f"error={row.get('error')} lastRateLimit={row.get('lastRateLimit')}")
+        log.info(
+            f"{question['id']}: correct={row['correct']} kind={row['kind']} "
+            + f"rateLimited={row.get('rateLimited', 0)} promptTokens={row.get('promptTokens')} "
+            + f"error={row.get('error')} lastRateLimit={row.get('lastRateLimit')}"
+        )
         if pause and not mode["replay"]:
             time.sleep(pause)
     return rows
@@ -446,11 +470,19 @@ def main() -> None:
     if args.only:
         log.info(json.dumps(rows, indent=2, default=str))
         return
-    save_run(rows, {
-        "label": label, "mode": mode, "date": f"{now:%Y-%m-%d %H:%M} UTC", "recordings": recordings.as_posix(),
-        "pause": args.pause, "note": args.note, "questionSet": set_name,
-        "model": f"replay of {args.replay}" if args.replay else get_settings().groq_model,
-    })
+    save_run(
+        rows,
+        {
+            "label": label,
+            "mode": mode,
+            "date": f"{now:%Y-%m-%d %H:%M} UTC",
+            "recordings": recordings.as_posix(),
+            "pause": args.pause,
+            "note": args.note,
+            "questionSet": set_name,
+            "model": f"replay of {args.replay}" if args.replay else get_settings().groq_model,
+        },
+    )
 
 
 if __name__ == "__main__":

@@ -17,8 +17,17 @@ A, B, C, D, E, F, LATE = -21, -22, -23, -24, -25, -26, -27
 PLAYERS = [A, B, C, D, E, F, LATE]
 # A beats everyone; then a descending ladder B > C > D > E > F.
 RESULTS = [(A, B), (A, C), (A, D), (A, E), (A, F), (B, C), (C, D), (D, E), (E, F), (B, D), (C, E)]
-STATS = {"aces": 5, "doubleFaults": 2, "servePoints": 60, "firstServesIn": 36, "firstServeWon": 27,
-         "secondServeWon": 12, "serviceGames": 10, "breakPointsSaved": 3, "breakPointsFaced": 5}
+STATS = {
+    "aces": 5,
+    "doubleFaults": 2,
+    "servePoints": 60,
+    "firstServesIn": 36,
+    "firstServeWon": 27,
+    "secondServeWon": 12,
+    "serviceGames": 10,
+    "breakPointsSaved": 3,
+    "breakPointsFaced": 5,
+}
 CUTOFF = date(1900, 2, 1)
 
 CLEANUP = """
@@ -32,10 +41,20 @@ DETACH DELETE n
 def match(number, winner, loser, day):
     """Match record dated 1900 with identical serve statistics on both sides."""
     return {
-        "id": f"TESTGDS-T-{number}", "tournamentId": "TESTGDS-T", "date": day, "round": "R32", "bestOf": 3,
-        "score": "6-4 6-4", "minutes": 90, "surface": "Clay" if number % 2 else "Hard", "walkover": False,
-        "retired": False, "winnerId": winner, "loserId": loser,
-        "winner": {**STATS, "aces": 5 + (winner % 3)}, "loser": {**STATS, "aces": 4 + (loser % 2)},
+        "id": f"TESTGDS-T-{number}",
+        "tournamentId": "TESTGDS-T",
+        "date": day,
+        "round": "R32",
+        "bestOf": 3,
+        "score": "6-4 6-4",
+        "minutes": 90,
+        "surface": "Clay" if number % 2 else "Hard",
+        "walkover": False,
+        "retired": False,
+        "winnerId": winner,
+        "loserId": loser,
+        "winner": {**STATS, "aces": 5 + (winner % 3)},
+        "loser": {**STATS, "aces": 4 + (loser % 2)},
     }
 
 
@@ -67,8 +86,9 @@ def test_era_pagerank_ranks_the_dominant_player_first(gds_graph):
     ranking = gds.era_ranking(gds_graph, 1900, 1900)
     assert {row["id"] for row in ranking} == {A, B, C, D, E, F}
     assert [row["id"] for row in ranking][:2] == [A, B]
-    assert not gds_graph.read("CALL gds.graph.list() YIELD graphName WHERE graphName STARTS WITH 'netrank-era' "
-                              + "RETURN graphName")
+    assert not gds_graph.read(
+        "CALL gds.graph.list() YIELD graphName WHERE graphName STARTS WITH 'netrank-era' " + "RETURN graphName"
+    )
 
 
 def test_fastrp_is_deterministic(gds_graph):

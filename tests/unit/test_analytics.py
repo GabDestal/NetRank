@@ -17,8 +17,14 @@ FEATURES = dict.fromkeys(gds.FEATURES, 0.5)
 
 @pytest.mark.parametrize(
     ("text", "expected"),
-    [("2000s", ("2000-2009", 2000, 2009)), ("2004-2008", ("2004-2008", 2004, 2008)), ("2010", ("2010", 2010, 2010)),
-     ("1980s", None), ("1985-1995", ("1991-1995", 1991, 1995)), ("2020s", ("2020-2026", 2020, 2026))],
+    [
+        ("2000s", ("2000-2009", 2000, 2009)),
+        ("2004-2008", ("2004-2008", 2004, 2008)),
+        ("2010", ("2010", 2010, 2010)),
+        ("1980s", None),
+        ("1985-1995", ("1991-1995", 1991, 1995)),
+        ("2020s", ("2020-2026", 2020, 2026)),
+    ],
 )
 def test_parse_era(text, expected):
     """Decades, ranges and single seasons, clipped to 1991-2026; a decade before the data is a 400."""
@@ -46,9 +52,22 @@ def test_parse_era_rejects_nonsense(text):
 def test_style_features_from_aggregates():
     """Percentages come from the right numerators and denominators; zero denominators give 0."""
     row = {
-        "servePoints": 100, "aces": 10, "doubleFaults": 3, "firstIn": 60, "firstWon": 45, "secondWon": 20,
-        "bpSaved": 6, "bpFaced": 10, "oppServePoints": 100, "oppServeWon": 62, "oppBpFaced": 8, "oppBpSaved": 5,
-        "wins": 10, "clayWins": 5, "grassWins": 1, "hardWins": 4,
+        "servePoints": 100,
+        "aces": 10,
+        "doubleFaults": 3,
+        "firstIn": 60,
+        "firstWon": 45,
+        "secondWon": 20,
+        "bpSaved": 6,
+        "bpFaced": 10,
+        "oppServePoints": 100,
+        "oppServeWon": 62,
+        "oppBpFaced": 8,
+        "oppBpSaved": 5,
+        "wins": 10,
+        "clayWins": 5,
+        "grassWins": 1,
+        "hardWins": 4,
     }
     features = gds.style_features(row)
     assert features["acePct"] == 0.1 and features["firstServeWonPct"] == 0.75

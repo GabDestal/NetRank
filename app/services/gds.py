@@ -337,8 +337,10 @@ def write_style_vectors(db: Neo4jClient, min_matches: int) -> int:
     features = [style_features(row) for row in rows]
     vectors = standardise(features) if rows else []
     payload = [
-        {"id": row["id"], "props": {**{k: round(v, 6) for k, v in feats.items()}, "styleVector": vec,
-                                    "styleMatches": row["matches"]}}
+        {
+            "id": row["id"],
+            "props": {**{k: round(v, 6) for k, v in feats.items()}, "styleVector": vec, "styleMatches": row["matches"]},
+        }
         for row, feats, vec in zip(rows, features, vectors)
     ]
     for start in range(0, len(payload), 1000):

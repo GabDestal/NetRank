@@ -23,8 +23,10 @@ from app.config import get_settings
 from app.database.client import Neo4jClient
 
 DEFAULT = Path("eval/demo/guardrail_turns.json")
-COUNTS = ("CALL () { MATCH (n) RETURN count(n) AS nodes } CALL () { MATCH ()-[r]->() RETURN count(r) AS rels } "
-          + "RETURN nodes, rels")
+COUNTS = (
+    "CALL () { MATCH (n) RETURN count(n) AS nodes } CALL () { MATCH ()-[r]->() RETURN count(r) AS rels } "
+    + "RETURN nodes, rels"
+)
 
 
 def say(text: str = "") -> None:
@@ -72,8 +74,12 @@ def main() -> None:
         before = db.read(COUNTS)[0]
         say("REPLAY (offline: no LLM is called). Source: " + source)
         toolbox = ToolBox(db)
-        queries = [call["args"]["query"] for turn in turns for call in turn.get("tool_calls", [])
-                   if call["name"] == "run_readonly_cypher"]
+        queries = [
+            call["args"]["query"]
+            for turn in turns
+            for call in turn.get("tool_calls", [])
+            if call["name"] == "run_readonly_cypher"
+        ]
         for number, query in enumerate(queries, 1):
             say()
             say(f"[{number}] model's Cypher: {query}")

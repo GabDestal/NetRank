@@ -52,8 +52,13 @@ def test_profile_computes_win_rates(api_client, fake_db_factory):
     """Per-surface win rate is computed from wins and losses."""
     row = {
         "player": {**FED, "height": 185, "wikidataId": "Q1426"},
-        "matches": 10, "wins": 7, "losses": 3, "titles": 1, "bestRank": 1,
-        "firstMatch": date(1998, 7, 6), "lastMatch": date(2021, 6, 28),
+        "matches": 10,
+        "wins": 7,
+        "losses": 3,
+        "titles": 1,
+        "bestRank": 1,
+        "firstMatch": date(1998, 7, 6),
+        "lastMatch": date(2021, 6, 28),
         "bySurface": [{"surface": "Grass", "wins": 3, "losses": 1}],
     }
     fake_db_factory({"AS bestRank": [row]})
@@ -139,8 +144,14 @@ def test_nemesis_combines_nemeses_and_triangles(api_client, fake_db_factory):
 def test_beat_chain_success_and_failures(api_client, fake_db_factory):
     """A found chain is returned; no chain is 404; same player is 400; hop bounds are validated."""
     hop = {
-        "winner": FED, "loser": NADAL, "wins": 16, "matchId": "m1", "date": date(2019, 7, 12),
-        "tournament": "Wimbledon", "round": "SF", "score": "7-6 1-6 6-3 6-4",
+        "winner": FED,
+        "loser": NADAL,
+        "wins": 16,
+        "matchId": "m1",
+        "date": date(2019, 7, 12),
+        "tournament": "Wimbledon",
+        "round": "SF",
+        "score": "7-6 1-6 6-3 6-4",
     }
     found = {"source": FED, "target": NADAL, "found": True, "chain": [hop]}
     fake = fake_db_factory({"SHORTEST 1": [found]})

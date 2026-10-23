@@ -64,26 +64,22 @@ def test_constraints_and_indexes_exist(loaded):
 
 def test_match_is_linked_once_despite_reloading(loaded):
     """Two loads produce exactly one WON, one LOST and one PART_OF."""
-    row = loaded.read(
-        """
+    row = loaded.read("""
         MATCH (m:Match {id: 'TEST-T-1'})
         RETURN COUNT { (:Player)-[:WON]->(m) } AS won,
                COUNT { (:Player)-[:LOST]->(m) } AS lost,
                COUNT { (m)-[:PART_OF]->(:Tournament) } AS partOf
-        """
-    )[0]
+        """)[0]
     assert row == {"won": 1, "lost": 1, "partOf": 1}
 
 
 def test_side_properties_land_on_the_relationships(loaded):
     """Each player's match stats sit on their own WON / LOST relationship."""
-    row = loaded.read(
-        """
+    row = loaded.read("""
         MATCH (w:Player)-[won:WON]->(m:Match {id: 'TEST-T-1'})<-[lost:LOST]-(l:Player)
         RETURN w.name AS winner, won.aces AS winnerAces, l.name AS loser, lost.rank AS loserRank,
                m.date AS date
-        """
-    )[0]
+        """)[0]
     assert row["winner"] == "TEST Winner" and row["winnerAces"] == 9
     assert row["loser"] == "TEST Loser" and row["loserRank"] == 40
     assert row["date"] == date(2000, 1, 3)  # converted to a Python date by the client
@@ -91,14 +87,12 @@ def test_side_properties_land_on_the_relationships(loaded):
 
 def test_prices_and_market_odds_attach_to_the_match(loaded):
     """One PRICED per bookmaker and match (even after reloading); market odds and provenance on Match."""
-    row = loaded.read(
-        """
+    row = loaded.read("""
         MATCH (m:Match {id: 'TEST-T-1'})
         RETURN COUNT { (:Bookmaker {name: 'TEST Book'})-[:PRICED]->(m) } AS prices,
                [(b:Bookmaker)-[p:PRICED]->(m) | p.winnerOdds][0] AS winnerOdds,
                m.marketMaxWinnerOdds AS marketMax, m.oddsLinkMethod AS method, m.oddsDayOffset AS offset
-        """
-    )[0]
+        """)[0]
     assert row == {"prices": 1, "winnerOdds": 1.5, "marketMax": 1.6, "method": "exact", "offset": 6}
 
 

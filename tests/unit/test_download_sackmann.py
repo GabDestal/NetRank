@@ -12,9 +12,11 @@ from scripts import download_sackmann as dl
 def test_git_blob_sha_matches_git():
     """Our blob hash equals `git hash-object` for the same bytes."""
     content = b"tourney_id,winner_id\n1991-7,1\n"
-    expected = subprocess.run(
-        ["git", "hash-object", "--stdin"], input=content, capture_output=True, check=True
-    ).stdout.decode().strip()
+    expected = (
+        subprocess.run(["git", "hash-object", "--stdin"], input=content, capture_output=True, check=True)
+        .stdout.decode()
+        .strip()
+    )
     assert dl.git_blob_sha(content) == expected
 
 

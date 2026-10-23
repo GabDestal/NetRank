@@ -140,8 +140,13 @@ def test_rejection_keeps_the_full_failed_output():
     """The whole failed_generation travels with the rejection (needed to recover a misrouted answer)."""
     request = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
     generation = '{"name": "json", "arguments": {"kind": "answer", "summary": "' + "x" * 500 + '"}}'
-    body = {"error": {"code": "tool_use_failed", "message": "attempted to call tool 'json'",
-                      "failed_generation": generation}}
+    body = {
+        "error": {
+            "code": "tool_use_failed",
+            "message": "attempted to call tool 'json'",
+            "failed_generation": generation,
+        }
+    }
     rejected = groq.BadRequestError("bad", response=httpx.Response(400, request=request), body=body)
     with pytest.raises(ToolCallRejectedError) as caught:
         RetryingLLM(Flaky([rejected]), max_attempts=3, sleep=lambda s: None).invoke([])
@@ -150,13 +155,15 @@ def test_rejection_keeps_the_full_failed_output():
 
 def test_token_usage_is_summed():
     """Groq's own token counts are added up per question."""
+
     class Counted:
         """Answers with usage metadata."""
 
         def invoke(self, _messages):
             """One turn."""
-            return AIMessage(content="ok", usage_metadata={"input_tokens": 1200, "output_tokens": 80,
-                                                           "total_tokens": 1280})
+            return AIMessage(
+                content="ok", usage_metadata={"input_tokens": 1200, "output_tokens": 80, "total_tokens": 1280}
+            )
 
     llm = RetryingLLM(Counted(), max_attempts=2)
     llm.invoke([])

@@ -102,8 +102,10 @@ def build_graph(llm: Any, toolbox: ToolBox, max_steps: int):
             invalid = state["invalid"] + 1
             if invalid >= MAX_INVALID_TOOL_CALLS:
                 return {"final": failure(FAILURE_INVALID_CALLS), "invalid": invalid, "steps": state["steps"] + 1}
-            feedback = HumanMessage(f"Your last tool call was rejected: {exc}. Call the tool again with arguments "
-                                    + "that match its schema exactly.")
+            feedback = HumanMessage(
+                f"Your last tool call was rejected: {exc}. Call the tool again with arguments "
+                + "that match its schema exactly."
+            )
             return {"messages": [feedback], "steps": state["steps"] + 1, "invalid": invalid}
 
     def tools(state: AgentState) -> dict:
@@ -158,8 +160,13 @@ def ask(db: Neo4jClient, llm: Any, question: str, max_steps: int, model_name: st
     toolbox = ToolBox(db, question)
     graph = build_graph(llm, toolbox, max_steps)
     state = graph.invoke(
-        {"messages": [SystemMessage(SYSTEM_PROMPT), HumanMessage(question)], "steps": 0, "final": None, "invalid": 0,
-         "recovered": 0},
+        {
+            "messages": [SystemMessage(SYSTEM_PROMPT), HumanMessage(question)],
+            "steps": 0,
+            "final": None,
+            "invalid": 0,
+            "recovered": 0,
+        },
         config={"recursion_limit": 4 * max_steps + 10},
     )
     answer, downgraded = verifier.verify(AgentAnswer.model_validate(state["final"]), toolbox.trace)

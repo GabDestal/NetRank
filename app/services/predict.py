@@ -77,11 +77,18 @@ def market(match: dict, p1: int) -> list[dict]:
     entries = []
     for price in sorted(match["odds"], key=lambda o: o["bookmaker"]):
         p1_odds, p2_odds = (
-            (price["winnerOdds"], price["loserOdds"]) if match["winnerId"] == p1
+            (price["winnerOdds"], price["loserOdds"])
+            if match["winnerId"] == p1
             else (price["loserOdds"], price["winnerOdds"])
         )
-        entries.append({"bookmaker": price["bookmaker"], "p1WinProbability": round(F.devig(p1_odds, p2_odds), 4),
-                        "p1Odds": p1_odds, "p2Odds": p2_odds})
+        entries.append(
+            {
+                "bookmaker": price["bookmaker"],
+                "p1WinProbability": round(F.devig(p1_odds, p2_odds), 4),
+                "p1Odds": p1_odds,
+                "p2Odds": p2_odds,
+            }
+        )
     return entries
 
 

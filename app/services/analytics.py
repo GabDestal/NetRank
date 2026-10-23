@@ -134,8 +134,12 @@ def player_prestige(db: Neo4jClient, player_id: int, era: Era | None) -> PlayerP
         if row["rank"] is None:
             raise GdsUnavailableError(NOT_COMPUTED)
         return PlayerPrestige(
-            player=row["player"], era=None, score=row["score"], rank=row["rank"],
-            playersRanked=row["ranked"], percentile=percentile(row["rank"], row["ranked"]),
+            player=row["player"],
+            era=None,
+            score=row["score"],
+            rank=row["rank"],
+            playersRanked=row["ranked"],
+            percentile=percentile(row["rank"], row["ranked"]),
         )
     ranking = gds.era_ranking(db, era.startYear, era.endYear)
     position = next((i for i, entry in enumerate(ranking) if entry["id"] == player_id), None)
@@ -146,8 +150,12 @@ def player_prestige(db: Neo4jClient, player_id: int, era: Era | None) -> PlayerP
         raise NotFoundError(f"{summaries[0]['player']['name']} played no tour-level match in {era.label}")
     player = db.read(SUMMARIES, {"ids": [player_id]})[0]["player"]
     return PlayerPrestige(
-        player=player, era=era, score=ranking[position]["score"], rank=position + 1,
-        playersRanked=len(ranking), percentile=percentile(position + 1, len(ranking)),
+        player=player,
+        era=era,
+        score=ranking[position]["score"],
+        rank=position + 1,
+        playersRanked=len(ranking),
+        percentile=percentile(position + 1, len(ranking)),
     )
 
 
@@ -191,7 +199,9 @@ def similar(db: Neo4jClient, player_id: int, page: int, size: int, min_matches: 
             f"{row['player']['name']} has fewer than {min_matches} matches with serve statistics: no style vector"
         )
     return SimilarResult(
-        player=row["player"], styleId=row["styleId"], features=row["features"],
+        player=row["player"],
+        styleId=row["styleId"],
+        features=row["features"],
         similar={"items": row["items"], "page": page, "size": size, "total": row["total"]},
     )
 

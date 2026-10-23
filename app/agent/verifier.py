@@ -65,7 +65,8 @@ def unsupported_numbers(text: str, results: list) -> list[tuple[float, int, bool
     pool = [n for result in results for n in numbers_in_value(result)]
     years = {float(s[:4]) for s in strings if s[:4].isdigit()}
     return [
-        number for number in numbers_in_text(text)
+        number
+        for number in numbers_in_text(text)
         if not supported(number, pool) and not (number[1] == 0 and not number[2] and number[0] in years)
     ]
 

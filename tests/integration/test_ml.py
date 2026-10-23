@@ -20,9 +20,9 @@ BASE = [  # (match number, date, winner, loser)
     (2, date(1901, 3, 4), X, P2),
     (3, date(1901, 5, 6), P2, Y),
     (4, date(1901, 9, 2), P1, P2),
-    (5, date(1902, 1, 6), P2, Z),   # same season as M, before it: history yes, snapshot no
-    (6, M_DATE, P1, P2),            # the target match M
-    (7, M_DATE, X, Y),              # same day as M
+    (5, date(1902, 1, 6), P2, Z),  # same season as M, before it: history yes, snapshot no
+    (6, M_DATE, P1, P2),  # the target match M
+    (7, M_DATE, X, Y),  # same day as M
 ]
 CLEANUP = """
 MATCH (n)
@@ -34,9 +34,20 @@ DETACH DELETE n
 def row(number, day, winner, loser, surface="Hard"):
     """Match record for the ingestion query."""
     return {
-        "id": f"TESTML-T-{number}", "tournamentId": "TESTML-T", "date": day, "round": "R32", "bestOf": 3,
-        "score": "6-4 6-4", "minutes": 80, "surface": surface, "walkover": False, "retired": False,
-        "winnerId": winner, "loserId": loser, "winner": {"rank": 10}, "loser": {"rank": 20},
+        "id": f"TESTML-T-{number}",
+        "tournamentId": "TESTML-T",
+        "date": day,
+        "round": "R32",
+        "bestOf": 3,
+        "score": "6-4 6-4",
+        "minutes": 80,
+        "surface": surface,
+        "walkover": False,
+        "retired": False,
+        "winnerId": winner,
+        "loserId": loser,
+        "winner": {"rank": 10},
+        "loser": {"rank": 20},
     }
 
 
@@ -68,13 +79,16 @@ def fixture_ml_graph(neo4j_client):
 def test_no_feature_uses_the_match_date_or_later(ml_graph):
     """Results on M's date and afterwards (including a P2 winning streak) leave M's features unchanged."""
     before = serving_features(ml_graph)
-    load(ml_graph, [
-        (20, M_DATE, P2, P1),               # a same-day rematch
-        (21, M_DATE, P2, X),
-        (22, date(1902, 6, 2), P2, P1),
-        (23, date(1903, 1, 5), P2, Y),
-        (24, date(1903, 2, 2), Z, P1),      # a later loss for P1 must not reach M either
-    ])
+    load(
+        ml_graph,
+        [
+            (20, M_DATE, P2, P1),  # a same-day rematch
+            (21, M_DATE, P2, X),
+            (22, date(1902, 6, 2), P2, P1),
+            (23, date(1903, 1, 5), P2, Y),
+            (24, date(1903, 2, 2), Z, P1),  # a later loss for P1 must not reach M either
+        ],
+    )
     assert serving_features(ml_graph) == before
 
 
@@ -98,8 +112,19 @@ def test_history_respects_the_season_snapshot_and_the_day(ml_graph):
 def test_training_and_serving_paths_agree(ml_graph):
     """The batch builder used by make train produces the same features as /api/predict for M."""
     matches = [
-        {"id": f"TESTML-T-{n}", "date": d, "surface": "Hard", "walkover": False, "retired": False,
-         "winnerId": w, "loserId": l, "winnerRank": 10, "loserRank": 20, "pinnacle": None, "bet365": None}
+        {
+            "id": f"TESTML-T-{n}",
+            "date": d,
+            "surface": "Hard",
+            "walkover": False,
+            "retired": False,
+            "winnerId": w,
+            "loserId": l,
+            "winnerRank": 10,
+            "loserRank": 20,
+            "pinnacle": None,
+            "bet365": None,
+        }
         for n, d, w, l in BASE
     ]
     dataset = train.build_dataset(ml_graph, matches, first_season=1901)
