@@ -1,15 +1,20 @@
 # Agent evaluation runs
 
-Each run is kept; live runs are listed separately from replays (re-scoring recorded turns).
+Each run is kept, never overwritten. A later fix is measured by a new replay or a new live run.
 Failures of the live runs by cause: [agent_eval/failure_breakdown.md](agent_eval/failure_breakdown.md).
 
-| Run | Mode | Model | Date | Accuracy | Tools | Adversarial safe | 429-affected | Note |
-| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |
-| [live-1](agent_eval/live-1.md) | live | `openai/gpt-oss-120b` | 2026-10-22 19:10 UTC | 8/20 (40%) | 17/20 (85%) | 3/3 (100%) | 18 |  |
-| [live-2](agent_eval/live-2.md) | live | `openai/gpt-oss-120b` | 2026-10-22 19:30 UTC | 5/20 (25%) | 12/20 (60%) | 1/3 (33%) | 17 | Second live run, after fixes from live-1: field 'type', rejected turns recorded, names must come from the question, 20 s pause between questions. |
-| [live-3](agent_eval/live-3.md) | live | `openai/gpt-oss-120b` | 2026-10-23 07:17 UTC | 10/20 (50%) | 13/20 (65%) | 1/3 (33%) | 8 | Third live run (full rerun after an aborted attempt), Neo4j memory capped via docker-compose.eval.yml. Same agent as live-2 plus: waits for Groq's token-window reset (up to 60 s, 6 attempts), accepts both field spellings seen live (text/statement, type/tag), 60 s between questions. Preceded by a 3-question smoke test (q01, q04, q18: all passed, no 429). |
-| [replay-of-live-1](agent_eval/replay-of-live-1.md) | replay | `replay of live-1` | 2026-10-22 19:29 UTC | 2/20 (10%) | 9/20 (45%) | 2/3 (67%) | 0 | Not a quality measure: live-1 did not record rejected turns and its answers use the old field name 'tag', so the fixed agent cannot replay it faithfully. See live-2. |
-| [replay-of-live-2](agent_eval/replay-of-live-2.md) | replay | `replay of live-2` | 2026-10-22 19:53 UTC | 5/20 (25%) | 12/20 (60%) | 1/3 (33%) | 0 | Re-scores live-2's recorded turns with the fixed harness. Rejected turns replay as rejections and throttled questions have no turns, so this checks scoring consistency, not the fixes. |
+Live runs are listed first, then replays (recorded model turns re-scored with the harness of their date).
+
+| Run | Mode | Set | Model | Date | Accuracy | Tools | Adversarial safe | 429-affected | Recovered | Note |
+| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| [live-1](agent_eval/live-1.md) | live | v1 | `openai/gpt-oss-120b` | 2026-10-22 19:10 UTC | 8/20 (40%) | 17/20 (85%) | 3/3 (100%) | 18 | 0 |  |
+| [live-2](agent_eval/live-2.md) | live | v1 | `openai/gpt-oss-120b` | 2026-10-22 19:30 UTC | 5/20 (25%) | 12/20 (60%) | 1/3 (33%) | 17 | 0 | Second live run, after fixes from live-1: field 'type', rejected turns recorded, names must come from the question, 20 s pause between questions. |
+| [live-3](agent_eval/live-3.md) | live | v1 | `openai/gpt-oss-120b` | 2026-10-23 07:17 UTC | 10/20 (50%) | 13/20 (65%) | 1/3 (33%) | 8 | 0 | Third live run (full rerun after an aborted attempt), Neo4j memory capped via docker-compose.eval.yml. Same agent as live-2 plus: waits for Groq's token-window reset (up to 60 s, 6 attempts), accepts both field spellings seen live (text/statement, type/tag), 60 s between questions. Preceded by a 3-question smoke test (q01, q04, q18: all passed, no 429). |
+| [replay-of-live-1](agent_eval/replay-of-live-1.md) | replay | v1 | `replay of live-1` | 2026-10-22 19:29 UTC | 2/20 (10%) | 9/20 (45%) | 2/3 (67%) | 0 | 0 | Not a quality measure: live-1 did not record rejected turns and its answers use the old field name 'tag', so the fixed agent cannot replay it faithfully. See live-2. |
+| [replay-of-live-2](agent_eval/replay-of-live-2.md) | replay | v1 | `replay of live-2` | 2026-10-22 19:53 UTC | 5/20 (25%) | 12/20 (60%) | 1/3 (33%) | 0 | 0 | Re-scores live-2's recorded turns with the fixed harness. Rejected turns replay as rejections and throttled questions have no turns, so this checks scoring consistency, not the fixes. |
+| [replay-fixed-of-live-2](agent_eval/replay-fixed-of-live-2.md) | replay | v1 | `replay of live-2` | 2026-10-23 08:56 UTC | 5/20 (25%) | 12/20 (60%) | 1/3 (33%) | 0 | 0 | Replay of live-2's recorded model turns with the fixes of 2026-10-23 (misrouted-answer recovery, 'claim' spelling, dash-normalised scorer, trimmed tool results). Recovery cannot apply here: these recordings kept only the first 300 characters of rejected outputs. Same model turns as live-2, so throttled questions stay failures. |
+| [replay-fixed-of-live-1](agent_eval/replay-fixed-of-live-1.md) | replay | v1 | `replay of live-1` | 2026-10-23 08:57 UTC | 7/20 (35%) | 9/20 (45%) | 2/3 (67%) | 0 | 0 | Not a quality measure: live-1 did not record its rejected turns, so this replay falls out of step with the recording (most questions end as 'recording exhausted' errors). Replay with the fixes of 2026-10-23 (recovery, 'claim' spelling, dash-normalised scorer, trimmed results); recovery cannot apply (rejected outputs were not kept). |
+| [replay-fixed-of-live-3](agent_eval/replay-fixed-of-live-3.md) | replay | v1 | `replay of live-3` | 2026-10-23 08:57 UTC | 12/20 (60%) | 13/20 (65%) | 1/3 (33%) | 0 | 0 | Replay of live-3's recorded model turns with the fixes of 2026-10-23 (misrouted-answer recovery, 'claim' spelling, dash-normalised scorer, trimmed tool results). Recovery cannot apply here: these recordings kept only the first 300 characters of rejected outputs. Same model turns as live-3, so throttled questions stay failures. |
 
 ## Aborted attempts and diagnostic calls (no scored results)
 

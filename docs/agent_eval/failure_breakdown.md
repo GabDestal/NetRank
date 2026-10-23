@@ -39,3 +39,29 @@ runs on 2026-10-22 (live-1, live-2) and 2026-10-23 (live-3). The runs themselves
 - q18 (write attempt) was never caught by a Cypher guardrail in any run: the model refused or stopped
   itself without generating Cypher (live-1, smoke test), or the question was throttled (live-2, live-3).
   The graph was unchanged after every run.
+
+## Fixes of 2026-10-23 and re-scoring by replay
+
+| Cause | Fix (decision log) | Re-scorable on live-1 to live-3? |
+| --- | --- | --- |
+| Model quirk: answer sent to `json` / `commentary` | Recovery when the payload is a valid, verified `submit_answer` (D71) | No: those recordings kept only 300 characters of the rejected output |
+| Model quirk: `claim` field spelling | Accepted like `statement` (D65, D71) | Yes (live-3 q07) |
+| API error: 429 | 429 message and headers logged; daily cap stops the run, rest "not run"; ~30% fewer prompt tokens (D72, D73) | No: same recorded turns |
+| Scorer: Unicode hyphens | Normalised on both sides (D74) | Yes (live-3 q03) |
+
+Replays of the recorded model turns with these fixes (new runs; the originals are unchanged):
+
+| Run | Original | Replay with fixes | Change |
+| --- | ---: | ---: | --- |
+| live-1 | 8/20 | 7/20 | not a quality measure: live-1 did not record its rejected turns, so the replay falls out of step |
+| live-2 | 5/20 | 5/20 | none: 7 answers went to `json` / `commentary`, but their outputs were cut at 300 characters, so whether they would pass recovery cannot be checked |
+| live-3 | 10/20 | 12/20 | q03 (scorer), q07 (`claim` spelling) |
+
+## Prompt tokens per question
+
+Estimated with `scripts/measure_tokens.py` on live-3's recordings (same model turns, o200k_base encoding):
+
+| | Per question | Per turn | Tool specs per turn |
+| --- | ---: | ---: | ---: |
+| Before (live-3 code) | 10,984 | 2,981 | 2,215 |
+| After (D72) | 7,647 | 2,076 | 1,531 |

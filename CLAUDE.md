@@ -62,8 +62,12 @@ schema; LIMIT enforced; Pydantic output tagging each claim verified / predicted 
 
 - Agent (Phase 6, D60-D70): app/agent/ (graph, tools, guardrails, verifier, llm, replay). Groq model from
   GROQ_MODEL (default openai/gpt-oss-120b; llama-3.3-70b-versatile is retired). Free tier = 8k tokens/min:
-  pace live runs (`--pause 60`). CI never calls Groq (recordings in eval/recordings/). Every eval run is
-  kept (eval/runs/, docs/agent_eval/); a new live run gets a new label (live-4...), never overwrite.
+  pace live runs (`make eval LABEL=live-N`, 60 s pause). CI never calls Groq (recordings in eval/recordings/).
+  Every eval run is kept (eval/runs/, docs/agent_eval/); a new live run gets a new label, never overwrite;
+  fixes are re-scored as new replay runs (replay-fixed-of-live-N). Question sets are versioned
+  (eval/questions_v1.json = 20, v2 = 24). Daily Groq cap ~200k tokens: a full v2 run needs a fresh day.
+- D71-D75: misrouted answers (`json`/`commentary` tools) recovered only if valid + verified; prompt cuts
+  (specs, trimmed results); 429s logged, daily cap stops the run; `make demo-guardrail` (offline).
 
 ## Hard constraints
 - pylint ≥ 9.5 (`make lint`, else −8). `.pylintrc` = course template + docstring checks re-enabled.
