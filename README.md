@@ -185,6 +185,7 @@ The score of every run is in [docs/agent_eval.md](docs/agent_eval.md).
 | `make benchmark` | Run the PROFILE benchmarks |
 | `make eval` | Run the agent evaluation |
 | `make eval-replay RUN=<label>` | Re-score a recorded run without calling Groq |
+| `make quota` | Check that Groq's daily quota is fresh (`make eval` refuses to start otherwise) |
 | `make demo-guardrail` | Show the guardrails rejecting a write query (offline) |
 | `make test` | Run the tests with coverage |
 | `make lint` | Run pylint (must stay above 9.5) |
