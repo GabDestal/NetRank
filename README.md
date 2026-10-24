@@ -39,8 +39,7 @@ The project runs as three Docker services:
 | `api` | FastAPI app ([image on GHCR](https://github.com/GabDestal/NetRank/pkgs/container/netrank-api)) | behind nginx |
 | `nginx` | Reverse proxy, the only public entry point | 8080 |
 
-<!-- TODO: add docs/diagrams/architecture.png (services, ports, data flows) -->
-![Architecture](docs/diagrams/architecture.png)
+![Architecture](docs/diagrams/architecture.svg)
 
 ## Graph schema
 
@@ -188,6 +187,7 @@ correctly (19 of the original 20) and handled the 3 adversarial ones safely. The
 | `make eval-replay RUN=<label>` | Re-score a recorded run without calling Groq |
 | `make quota` | Check that Groq's daily quota is fresh (`make eval` refuses to start otherwise) |
 | `make demo-guardrail` | Show the guardrails rejecting a write query (offline) |
+| `make notebook` | Re-run `demo.ipynb` against the running stack |
 | `make test` | Run the tests with coverage |
 | `make lint` | Run pylint (must stay above 9.5) |
 | `make hooks` | Install the git hooks (pre-commit checks; pylint and unit tests before a push) |
