@@ -68,6 +68,8 @@ schema; LIMIT enforced; Pydantic output tagging each claim verified / predicted 
   (eval/questions_v1.json = 20, v2 = 24). Daily Groq cap ~200k tokens: a full v2 run needs a fresh day.
 - D71-D75: misrouted answers (`json`/`commentary` tools) recovered only if valid + verified; prompt cuts
   (specs, trimmed results); 429s logged, daily cap stops the run; `make demo-guardrail` (offline).
+- D77: every live Groq session is logged in eval/quota_log.json; a live eval refuses to start within 24 h of the
+  last logged use (`make quota` shows when it is fresh). No override flag: correct the log in a commit.
 
 ## Hard constraints
 - pylint ≥ 9.5 (`make lint`, else −8). `.pylintrc` = course template + docstring checks re-enabled.
@@ -87,7 +89,7 @@ schema; LIMIT enforced; Pydantic output tagging each claim verified / predicted 
 
 ## Phases
 0 reset ✔ → 1 scaffold ✔ → 2 data exploration + ingestion ✔ →
-3 Cypher endpoints + PROFILE before/after benchmarks ✔ → 4 GDS endpoints ✔ → 5 ML ✔ → 6 agent + guardrails (PR #33 in review; live-5 scored in a later docs: PR) →
+3 Cypher endpoints + PROFILE before/after benchmarks ✔ → 4 GDS endpoints ✔ → 5 ML ✔ → 6 agent + guardrails ✔ (live-5 scored in a later docs: PR) →
 7 docs + demo.ipynb.
 
 ## Commands

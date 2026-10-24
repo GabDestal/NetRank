@@ -1,0 +1,46 @@
+[
+  {
+    "label": "live-1",
+    "model": "openai/gpt-oss-120b",
+    "start": "2026-10-22T19:10:00Z",
+    "end": "2026-10-22T19:30:00Z",
+    "source": "backfilled",
+    "note": "Start from the run file; end is an upper bound (live-2 started at 19:30). Earlier 2026-10-22 attempts are in eval/aborted_attempts.json."
+  },
+  {
+    "label": "live-2",
+    "model": "openai/gpt-oss-120b",
+    "start": "2026-10-22T19:30:00Z",
+    "end": "2026-10-22T21:52:32Z",
+    "source": "backfilled",
+    "note": "Start from the run file; end is an upper bound (last Groq call seen in the session log)."
+  },
+  {
+    "label": "live-3-aborted, smoke-live-3, quota checks",
+    "model": "openai/gpt-oss-120b",
+    "start": "2026-10-23T00:00:00Z",
+    "end": "2026-10-23T07:16:43Z",
+    "source": "backfilled",
+    "note": "Aborted live-3, the smoke test and one quota check (eval/aborted_attempts.json); end from the smoke test log."
+  },
+  {
+    "label": "live-3",
+    "model": "openai/gpt-oss-120b",
+    "start": "2026-10-23T07:17:00Z",
+    "end": "2026-10-23T08:33:20Z",
+    "source": "backfilled",
+    "note": "Run log last written at 08:32:05; the second quota check (1 token) followed at 08:33:20."
+  },
+  {
+    "label": "live-4",
+    "model": "openai/gpt-oss-120b",
+    "start": "2026-10-23T09:08:45Z",
+    "end": "2026-10-23T09:09:55Z",
+    "source": "backfilled",
+    "questions": 2,
+    "promptTokens": 4815,
+    "completionTokens": 323,
+    "dailyQuotaHit": true,
+    "note": "End = last write of the run log (q02, 429 on the daily token cap). Last Groq call before this log existed."
+  }
+]
