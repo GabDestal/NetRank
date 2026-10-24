@@ -5,7 +5,7 @@
     "date": "2026-10-24 09:20 UTC",
     "recordings": "eval/recordings/live-5",
     "pause": 60.0,
-    "note": "",
+    "note": "Note added after the run: 12 of the 24 answers needed salvage (sent by the model to a tool that does not exist, kept because they matched the answer schema and passed the verifier).",
     "questionSet": "v2",
     "model": "openai/gpt-oss-120b"
   },

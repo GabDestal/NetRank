@@ -72,7 +72,8 @@ The project runs as three Docker services:
 `make download` checks every file against that commit, so the data is identical to his.
 Licence: [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), non-commercial use only.
 
-**tennis-data.co.uk, bookmaker odds.** ATP results with odds from 2000 to 2026. The site does not
+**tennis-data.co.uk, bookmaker odds.** ATP results with bookmaker odds, 2000 to 2026. The graph keeps four
+bookmakers: Bet365 (from 2002), Pinnacle and Expekt (from 2004) and Ladbrokes (from 2007). The site does not
 allow automated downloads, so you'll have to get the files manually:
 
 <https://www.tennis-data.co.uk/alldata.php>.
@@ -159,7 +160,9 @@ Guardrails:
 
 The agent is tested on 24 questions with answers computed from the graph. Run it with `make eval`.
 On the latest live run (live-5, `openai/gpt-oss-120b`, 24 October 2026) it answered 22 of the 24 questions
-correctly (19 of the original 20) and handled the 3 adversarial ones safely. The score of every run is in
+correctly (19 of the original 20) and handled the 3 adversarial ones safely. 12 of the 24 answers needed
+salvage: the model often sends its answer to a tool that does not exist, and the agent keeps it only if it
+matches the answer schema and passes the verifier. The score of every run is in
 [docs/agent_eval.md](docs/agent_eval.md).
 `make demo-guardrail` replays a write query through the guardrails without calling the LLM.
 
