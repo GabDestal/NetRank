@@ -145,3 +145,14 @@ def test_property_hint_lists_keys_of_the_labels_in_the_query():
     assert "Match: id, date, round" in hint and "minutes" in hint and "WON:" in hint
     assert "Bookmaker" not in hint and "PRICED" not in hint
     assert "Bookmaker" in g.property_hint("MATCH (n) RETURN n.x")  # no label: everything
+
+
+def test_explain_feedback_names_the_neo4j_5_syntax():
+    """exists(x.prop) and size((pattern)) were removed in Neo4j 5: the rejection says what to write (D78)."""
+    syntax = CypherSyntaxError("The property existence syntax `... exists(variable.property)` is no longer supported")
+    with pytest.raises(g.GuardrailError, match="IS NOT NULL") as error:
+        g.explain_check(FakeExplainDb(error=syntax), "MATCH (m:Match) WHERE exists(m.minutes) RETURN m")
+    assert "COUNT {" not in str(error.value)
+    assert "COUNT {" in g.syntax_hint("MATCH (p:Player) RETURN size((p)-[:WON]->())")
+    assert g.syntax_hint("MATCH (m:Match) WHERE m.minutes IS NOT NULL RETURN m") == ""
+    assert g.syntax_hint("MATCH (p:Player {name: 'exists(x.y)'}) RETURN p") == ""

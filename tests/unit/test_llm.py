@@ -171,3 +171,23 @@ def test_token_usage_is_summed():
     llm.invoke([])
     llm.invoke([])
     assert (llm.prompt_tokens, llm.completion_tokens) == (2400, 160)
+
+
+def test_last_step_uses_the_model_bound_to_submit_answer_only():
+    """D78: RetryingLLM switches to final_llm when the agent says this is the last step."""
+
+    class Bound:
+        """A bound model that answers with its own name."""
+
+        def __init__(self, name):
+            """Name to answer with."""
+            self.name = name
+
+        def invoke(self, _messages):
+            """One turn."""
+            return AIMessage(content=self.name)
+
+    llm = RetryingLLM(Bound("all tools"), 1, final_llm=Bound("submit only"))
+    assert llm.invoke([]).content == "all tools"
+    assert llm.invoke([], final=True).content == "submit only"
+    assert RetryingLLM(Bound("all tools"), 1).invoke([], final=True).content == "all tools"

@@ -33,7 +33,7 @@ LLM_OMIT = {
     "predict_match": frozenset({"modelVersion"}),
 }
 LLM_LIMITS = {"list_styles": 10}
-MAX_CYPHER_REJECTIONS = 2
+MAX_CYPHER_REJECTIONS = 3  # the first attempt plus two fixes, each through every guardrail (D78)
 
 log = logging.getLogger(__name__)
 
@@ -122,7 +122,8 @@ TOOL_DESCRIPTIONS = {
     "run_readonly_cypher": "LAST RESORT when no other tool answers. Read-only Cypher. Labels: Player, Match, "
     + "Tournament, Bookmaker. Relationships: (Player)-[:WON|LOST]->(Match)-[:PART_OF]->(Tournament), "
     + "(Bookmaker)-[:PRICED]->(Match), (Player)-[:BEAT]->(Player), SIMILAR_STYLE. Example: MATCH (w:Player)-[:WON]->"
-    + "(m:Match {round: 'F'})-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019}) RETURN w.name, m.score",
+    + "(m:Match {round: 'F'})-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019}) RETURN w.name, m.score. "
+    + "Data: Match.minutes is null for some matches, and ORDER BY ... DESC puts nulls first: filter them out.",
     "submit_answer": "Finish with the structured answer. Call exactly once, at the end.",
 }
 
@@ -319,7 +320,9 @@ class ToolBox:
     def run_cypher(self, args: CypherArgs) -> dict:
         """Guarded read-only Cypher; after MAX_CYPHER_REJECTIONS rejections the tool is closed."""
         if self.cypher_rejections >= MAX_CYPHER_REJECTIONS:
-            raise guardrails.GuardrailError("retry", "Cypher was rejected twice: answer without it or report failure")
+            raise guardrails.GuardrailError(
+                "retry", f"Cypher was rejected {MAX_CYPHER_REJECTIONS} times: answer without it or report failure"
+            )
         self.fallback_calls += 1
         log.info(f"agent fallback Cypher used: {args.query!r}")
         try:

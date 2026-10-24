@@ -112,9 +112,13 @@ class RetryingLLM:
     many questions were throttled instead of hiding it.
     """
 
-    def __init__(self, llm: Any, max_attempts: int, sleep=time.sleep) -> None:
-        """`llm` is the bound chat model; `sleep` is injectable for tests."""
+    def __init__(self, llm: Any, max_attempts: int, sleep=time.sleep, final_llm: Any = None) -> None:
+        """`llm` is the bound chat model, `final_llm` the same model bound to submit_answer only (last step).
+
+        `sleep` is injectable for tests.
+        """
         self.llm = llm
+        self.final_llm = final_llm or llm
         self.max_attempts = max_attempts
         self.sleep = sleep
         self.retries = 0
@@ -123,11 +127,12 @@ class RetryingLLM:
         self.prompt_tokens = 0
         self.completion_tokens = 0
 
-    def invoke(self, messages: list) -> AIMessage:
-        """One model turn; raises AgentUnavailableError once every attempt failed."""
+    def invoke(self, messages: list, final: bool = False) -> AIMessage:
+        """One model turn (submit_answer only when `final`); raises AgentUnavailableError once every attempt failed."""
+        model = self.final_llm if final else self.llm
         for attempt in range(1, self.max_attempts + 1):
             try:
-                message = self.llm.invoke(messages)
+                message = model.invoke(messages)
                 usage = getattr(message, "usage_metadata", None) or {}
                 self.prompt_tokens += usage.get("input_tokens", 0)
                 self.completion_tokens += usage.get("output_tokens", 0)
@@ -167,7 +172,8 @@ def build_llm(settings: Settings) -> RetryingLLM:
     """Chat model with every tool bound; a tool call is required on every turn.
 
     Requiring a tool call means the final answer always arrives through submit_answer, i.e. as
-    structured data validated by Pydantic, never as free text.
+    structured data validated by Pydantic, never as free text. On the last step only submit_answer
+    is bound (D78).
     """
     if settings.groq_api_key is None or not settings.groq_api_key.get_secret_value():
         raise AgentUnavailableError("The agent is disabled: set GROQ_API_KEY (and optionally GROQ_MODEL)")
@@ -178,4 +184,10 @@ def build_llm(settings: Settings) -> RetryingLLM:
         max_retries=0,
         timeout=60,
     )
-    return RetryingLLM(model.bind_tools(tool_specs(), tool_choice="required"), settings.llm_max_attempts)
+    specs = tool_specs()
+    final = [spec for spec in specs if spec["function"]["name"] == "submit_answer"]
+    return RetryingLLM(
+        model.bind_tools(specs, tool_choice="required"),
+        settings.llm_max_attempts,
+        final_llm=model.bind_tools(final, tool_choice="required"),
+    )

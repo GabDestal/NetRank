@@ -47,8 +47,8 @@ class CountingLLM:
         calls = json.dumps(getattr(message, "tool_calls", []) or [], default=str)
         return len(self.encoding.encode(text)) + len(self.encoding.encode(calls)) + PER_MESSAGE
 
-    def invoke(self, messages: list):
-        """Count, then replay."""
+    def invoke(self, messages: list, final: bool = False):  # pylint: disable=unused-argument
+        """Count, then replay (without the last-step check: this measures recorded runs as they were)."""
         self.prompt_tokens.append(self.specs + sum(self.tokens(m) for m in messages))
         return self.replay.invoke(messages)
 

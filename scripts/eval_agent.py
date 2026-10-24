@@ -23,7 +23,7 @@ from pathlib import Path
 from app.agent import graph
 from app.agent.guardrails import BETTING_REFUSAL
 from app.agent.llm import AgentUnavailableError, DailyQuotaError, LLMConfigurationError, build_llm
-from app.agent.replay import RecordingLLM, ReplayLLM
+from app.agent.replay import RecordingLLM, ReplayLLM, ReplayOutOfSyncError
 from app.agent.schema import AgentResponse
 from app.config import get_settings
 from app.database.client import Neo4jClient
@@ -54,6 +54,8 @@ NUMBER = re.compile(r"\d+(?:\.\d+)?")
 # Hyphen, non-breaking hyphen, figure dash, en/em dashes, minus sign: written scores use any of them.
 DASHES = str.maketrans({c: "-" for c in "‐‑‒–—―−"})
 NOT_RUN = "not run (daily quota)"
+OUT_OF_SYNC = "out of sync (replay)"  # the recorded turns no longer fit the agent: reported, not scored (D78)
+LIVE_CYPHER_REJECTIONS = 2  # live-1 to live-5 closed fallback Cypher after this many rejections
 
 log = logging.getLogger(__name__)
 
@@ -234,9 +236,14 @@ def run_one(db: Neo4jClient, question: dict, mode: dict) -> tuple[AgentResponse 
     if mode["replay"]:
         try:
             llm = ReplayLLM.from_file(path)
-            return graph.ask(db, llm, question["question"], settings.agent_max_steps, "replay"), {}
+            response = graph.ask(db, llm, question["question"], settings.agent_max_steps, "replay")
+        except ReplayOutOfSyncError as exc:
+            return None, {"error": f"{OUT_OF_SYNC}: {exc}", "outOfSync": True}
         except (OSError, RuntimeError) as exc:
             return None, {"error": f"replay: {exc}"}
+        if reason := beyond_live_budget(response):
+            return None, {"error": f"{OUT_OF_SYNC}: {reason}", "outOfSync": True}
+        return response, {}
     retrying = build_llm(settings)
     recorder = RecordingLLM(retrying)
     info = {}
@@ -263,6 +270,23 @@ def run_one(db: Neo4jClient, question: dict, mode: dict) -> tuple[AgentResponse 
     return response, info
 
 
+def beyond_live_budget(response: AgentResponse) -> str | None:
+    """Why a replay left its recording's path: Cypher the live run refused at its retry cap now ran.
+
+    The recorded turns after that call answered the live refusal, not the new result, so the rest of the
+    replay is not what the model would have done (None when the replay stayed in sync).
+    """
+    rejections = 0
+    for record in response.trace:
+        if record.tool != "run_readonly_cypher":
+            continue
+        if rejections >= LIVE_CYPHER_REJECTIONS and record.guardrail != "retry":
+            later = len(response.trace) - response.trace.index(record) - 1
+            return f"{record.id} ran Cypher the live run refused after {rejections} rejections ({later} later calls)"
+        rejections += record.guardrail is not None
+    return None
+
+
 def percent(part: int, whole: int) -> str:
     """'17/20 (85%)'."""
     return f"{part}/{whole} ({100 * part / whole:.0f}%)" if whole else "n/a"
@@ -275,7 +299,7 @@ def mark(ok: bool) -> str:
 
 def summary_lines(rows: list[dict]) -> list[str]:
     """The metrics table."""
-    ran = [r for r in rows if r["kind"] != NOT_RUN]
+    ran = [r for r in rows if r["kind"] not in (NOT_RUN, OUT_OF_SYNC)]
     adversarial = [r for r in ran if r["category"] == "adversarial"]
     checkable = sum(r["checkableClaims"] for r in ran)
     downgraded = sum(r["downgraded"] for r in ran)
@@ -305,8 +329,10 @@ def summary_lines(rows: list[dict]) -> list[str]:
             f"| Prompt tokens per question (Groq count, {len(tokens)} questions) | "
             + f"{sum(tokens) / len(tokens):.0f} on average |"
         )
-    if len(ran) < len(rows):
-        lines.append(f"| Questions {NOT_RUN} | {len(rows) - len(ran)} of {len(rows)} |")
+    if not_run := sum(r["kind"] == NOT_RUN for r in rows):
+        lines.append(f"| Questions {NOT_RUN} | {not_run} of {len(rows)} |")
+    if desync := [r["id"] for r in rows if r["kind"] == OUT_OF_SYNC]:
+        lines.append(f"| Questions {OUT_OF_SYNC}, not scored | {len(desync)} of {len(rows)}: {', '.join(desync)} |")
     return lines
 
 
@@ -354,9 +380,13 @@ def write_index() -> None:
     runs = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(RUNS.glob("*.json"))]
     for run in sorted(runs, key=lambda r: (r["meta"]["mode"], r["meta"]["date"])):
         rows, meta = run["rows"], run["meta"]
-        ran = [r for r in rows if r["kind"] != NOT_RUN]
+        ran = [r for r in rows if r["kind"] not in (NOT_RUN, OUT_OF_SYNC)]
         adversarial = [r for r in ran if r["category"] == "adversarial"]
-        not_run = f" ({len(rows) - len(ran)} not run)" if len(ran) < len(rows) else ""
+        skipped = [
+            (sum(r["kind"] == k for r in rows), text)
+            for k, text in ((NOT_RUN, "not run"), (OUT_OF_SYNC, "out of sync"))
+        ]
+        not_run = "".join(f" ({n} {text})" for n, text in skipped if n)
         lines.append(
             f"| [{meta['label']}](agent_eval/{meta['label']}.md) | {meta['mode']} | {meta.get('questionSet', 'v1')} "
             + f"| `{meta['model']}` | {meta['date']} "
@@ -409,7 +439,7 @@ def evaluate_one(db: Neo4jClient, question: dict, mode: dict) -> dict:
         if key in info
     }
     if response is None:
-        return failed_row(question, info["error"], counters)
+        return failed_row(question, info["error"], counters, kind=OUT_OF_SYNC if info.get("outOfSync") else "error")
     return {**score(question, response, gold, (before, db.read(INTEGRITY)[0])), **counters}
 
 

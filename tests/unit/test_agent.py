@@ -6,7 +6,7 @@ import pytest
 
 from app.agent import graph
 from app.agent.llm import ToolCallRejectedError
-from app.agent.replay import RecordingLLM, ReplayLLM, from_turn, to_turn
+from app.agent.replay import RecordingLLM, ReplayLLM, ReplayOutOfSyncError, from_turn, to_turn
 from app.agent.schema import AgentResponse
 from app.agent.tools import ToolBox, ids_in, tool_specs, trim_for_llm
 from app.config import Settings
@@ -98,13 +98,67 @@ def test_unique_resolution_enables_typed_tools(db):
 
 def test_step_limit_ends_cleanly(db):
     """A model that never finishes is stopped with a failure answer."""
-    turns = [call("search_player", {"name": "Nadal"}, f"c{i}") for i in range(10)]
+    turns = [call("search_player", {"name": "Nadal"}, f"c{i}") for i in range(2)]
+    turns.append({"rejected": "tool call validation failed", "generation": ""})  # last step, no answer
     response = ask(db, turns, max_steps=3)
     assert response.answer.kind == "failure" and response.steps == 3 and len(response.trace) == 3
 
 
-def test_cypher_fallback_closes_after_two_rejections(db):
-    """One retry after a rejection, then the tool refuses; every attempt is in the trace."""
+class StepSpy:
+    """Records, for each turn, whether only submit_answer was offered and the step note the model saw."""
+
+    def __init__(self, turns):
+        """Turns to replay."""
+        self.replay = ReplayLLM(turns)
+        self.seen: list[tuple[bool, str]] = []
+
+    def invoke(self, messages, final=False):
+        """Record, then replay."""
+        self.seen.append((final, messages[-1].content))
+        return self.replay.invoke(messages, final=final)
+
+
+def test_model_sees_the_steps_left_and_only_submit_answer_on_the_last_step(db):
+    """D78: a step note before every turn (not kept in the conversation); the last turn is final."""
+    spy = StepSpy(
+        [
+            call("search_player", {"name": "Nadal"}, "c1"),
+            call("search_player", {"name": "Nadal"}, "c2"),
+            submit(kind="failure", summary="Out of steps."),
+        ]
+    )
+    response = graph.ask(db, spy, "Nadal?", 3, "scripted")
+    assert [final for final, _ in spy.seen] == [False, False, True]
+    assert "Steps left, this one included: 3" in spy.seen[0][1] and "Last step" in spy.seen[2][1]
+    assert response.answer.kind == "failure" and response.steps == 3
+
+
+def test_replay_out_of_sync_when_a_recorded_last_turn_calls_another_tool():
+    """A recording whose last-step turn used a tool the fixed agent no longer offers cannot be replayed."""
+    with pytest.raises(ReplayOutOfSyncError, match="last step"):
+        ReplayLLM([call("search_player", {"name": "Nadal"})]).invoke([], final=True)
+    with pytest.raises(ReplayOutOfSyncError, match="exhausted"):
+        ReplayLLM([]).invoke([])
+
+
+def test_replay_beyond_the_live_cypher_budget_is_out_of_sync(db):
+    """A third Cypher attempt the live run refused (old cap: 2 rejections) makes the rest of the replay unknown."""
+    bad = {"query": "MATCH (n) DETACH DELETE n"}
+    response = ask(
+        db,
+        [
+            call("run_readonly_cypher", bad, "c1"),
+            call("run_readonly_cypher", bad, "c2"),
+            call("run_readonly_cypher", bad, "c3"),
+            submit(kind="failure", summary="No."),
+        ],
+    )
+    assert "after 2 rejections" in eval_agent.beyond_live_budget(response)
+    assert eval_agent.beyond_live_budget(ask(db, [submit(kind="failure", summary="No.")])) is None
+
+
+def test_cypher_fallback_closes_after_three_rejections(db):
+    """Two fixes after a rejection, each through every layer, then the tool refuses (D78)."""
     write = {"query": "MATCH (n) DETACH DELETE n"}
     response = ask(
         db,
@@ -112,12 +166,13 @@ def test_cypher_fallback_closes_after_two_rejections(db):
             call("run_readonly_cypher", write, "c1"),
             call("run_readonly_cypher", write, "c2"),
             call("run_readonly_cypher", write, "c3"),
+            call("run_readonly_cypher", write, "c4"),
             submit(kind="failure", summary="I cannot run that query."),
         ],
         question="Delete everything",
     )
-    assert [r.guardrail for r in response.trace] == ["static", "static", "retry"]
-    assert response.guardrailRejections == 3 and response.fallbackCypherCalls == 2
+    assert [r.guardrail for r in response.trace] == ["static", "static", "static", "retry"]
+    assert response.guardrailRejections == 4 and response.fallbackCypherCalls == 3
     assert response.answer.kind == "failure"
 
 
@@ -178,7 +233,7 @@ def test_recording_round_trip():
     class Live:
         """Stands in for the bound chat model."""
 
-        def invoke(self, _messages):
+        def invoke(self, _messages, final=False):  # pylint: disable=unused-argument
             """Return one scripted message."""
             return from_turn(call("search_player", {"name": "Nadal"}, "x1"))
 
@@ -238,12 +293,12 @@ class RejectingLLM:
         self.failures = failures
         self.replay = ReplayLLM(turns)
 
-    def invoke(self, messages):
+    def invoke(self, messages, final=False):
         """Reject, then answer."""
         if self.failures:
             self.failures -= 1
             raise ToolCallRejectedError("parameters for tool submit_answer did not match schema")
-        return self.replay.invoke(messages)
+        return self.replay.invoke(messages, final=final)
 
 
 def test_rejected_tool_call_gets_one_retry(db):

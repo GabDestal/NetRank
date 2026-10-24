@@ -55,6 +55,14 @@ COMMENT = re.compile(r"//[^\n]*|/\*.*?\*/", re.DOTALL)
 WRITE_OPERATORS = ("Create", "Merge", "Delete", "Set", "Remove", "Foreach", "LoadCSV")
 # GQL status codes: label / relationship type / property key does not exist.
 SCHEMA_NOTIFICATIONS = {"01N50": "unknown label", "01N51": "unknown relationship type", "01N52": "unknown property key"}
+# Syntax removed in Neo4j 5 that models still write (live-5 q21: exists(m.minutes)); added to EXPLAIN feedback (D78).
+SYNTAX_HINTS = [
+    (re.compile(r"\bexists\s*\(\s*[\w`]+\s*\.", re.I), "Neo4j 5: write `x.prop IS NOT NULL`, not `exists(x.prop)`"),
+    (
+        re.compile(r"\bsize\s*\(\s*\(", re.I),
+        "Neo4j 5: count a pattern with `COUNT { (a)-->(b) }`, not `size((a)-->(b))`",
+    ),
+]
 
 
 class GuardrailError(ValueError):
@@ -125,7 +133,7 @@ def explain_check(db: Neo4jClient, query: str) -> None:
     try:
         plan, notifications = db.explain(query, {})
     except CypherSyntaxError as exc:
-        raise GuardrailError("explain", f"syntax error: {exc.message}") from exc
+        raise GuardrailError("explain", f"syntax error: {exc.message}{syntax_hint(query)}") from exc
     except ClientError as exc:
         raise GuardrailError("explain", f"rejected by the server: {exc.message}") from exc
     if writes := [op for op in operators(plan) if op.startswith(WRITE_OPERATORS)]:
@@ -135,6 +143,13 @@ def explain_check(db: Neo4jClient, query: str) -> None:
         if any(code == "01N52" for code, _ in notifications):
             message += ". Known properties: " + property_hint(query)
         raise GuardrailError("explain", message)
+
+
+def syntax_hint(query: str) -> str:
+    """Neo4j 5 replacements for removed syntax the query uses ("" if none)."""
+    code = strip_literals_and_comments(query)
+    hints = [hint for pattern, hint in SYNTAX_HINTS if pattern.search(code)]
+    return ". Hint: " + "; ".join(hints) if hints else ""
 
 
 def property_hint(query: str) -> str:
