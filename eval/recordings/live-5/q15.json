@@ -1,0 +1,18 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Zverev"
+        },
+        "id": "fc_b71c8a44-fae4-4445-a707-254eab43a22b"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"clarification\",\n  \"candidates\": [\n    {\n      \"id\": 100644,\n      \"name\": \"Alexander Zverev\",\n      \"ioc\": \"GER\"\n    },\n    {\n      \"id\": 104999,\n      \"name\": \"Mischa Zverev\",\n      \"ioc\": \"GER\"\n    }\n  ],\n  \"summary\": \"Which Zverev did you mean?\"\n}}",
+    "generation": "{\"name\": \"json\", \"arguments\": {\n  \"kind\": \"clarification\",\n  \"candidates\": [\n    {\n      \"id\": 100644,\n      \"name\": \"Alexander Zverev\",\n      \"ioc\": \"GER\"\n    },\n    {\n      \"id\": 104999,\n      \"name\": \"Mischa Zverev\",\n      \"ioc\": \"GER\"\n    }\n  ],\n  \"summary\": \"Which Zverev did you mean?\"\n}}"
+  }
+]

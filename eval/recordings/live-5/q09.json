@@ -1,0 +1,41 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "prestige_leaderboard",
+        "args": {
+          "era": "1990s",
+          "size": 1
+        },
+        "id": "fc_db36db60-51c5-4081-b86c-9782debc8465"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'commentary' which was not in request.tools | model output: {\"name\": \"commentary\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"According to NetRank, the most prestigious player of the 1990s was Pete\u202fSampras.\",\n  \"claims\": [\n    {\n      \"text\": \"Pete Sampras was the top\u2011ranked player for the 1990s era in NetRank.\",\n      \"type\": \"verified\",\n      \"source",
+    "generation": "{\"name\": \"commentary\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"According to NetRank, the most prestigious player of the 1990s was Pete\u202fSampras.\",\n  \"claims\": [\n    {\n      \"text\": \"Pete Sampras was the top\u2011ranked player for the 1990s era in NetRank.\",\n      \"type\": \"verified\",\n      \"sources\": [\"t1\"]\n    }\n  ]\n}}"
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t1"
+              ],
+              "text": "Pete Sampras was the top\u2011ranked player for the 1990s era in NetRank.",
+              "type": "verified"
+            }
+          ],
+          "kind": "answer",
+          "summary": "According to NetRank, the most prestigious player of the 1990s was Pete\u202fSampras."
+        },
+        "id": "fc_51bc5fc3-8880-41a5-8900-64145ef6484f"
+      }
+    ]
+  }
+]

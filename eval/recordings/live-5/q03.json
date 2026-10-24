@@ -1,0 +1,40 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p:Player)-[:WON]->(m:Match {round: 'F'})-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019}) RETURN p.name AS winner, m.score AS score"
+        },
+        "id": "fc_bb124399-0f7d-460c-b3d4-9975f63dafbf"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Novak Djokovic won the 2019 Wimbledon final, defeating his opponent 7\u20116(5)\u202f1\u20116\u202f7\u20116(4)\u202f4\u20116\u202f13\u201112(3).\",\n  \"claims\": [\n    {\n      \"text\": \"Novak Djokovic won the 2019 Wimbledon final, defeating his opponent 7\u20116(5)\u202f1\u20116\u202f7\u20116(4)\u202f4\u20116\u202f13\u201112(3",
+    "generation": "{\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Novak Djokovic won the 2019 Wimbledon final, defeating his opponent 7\u20116(5)\u202f1\u20116\u202f7\u20116(4)\u202f4\u20116\u202f13\u201112(3).\",\n  \"claims\": [\n    {\n      \"text\": \"Novak Djokovic won the 2019 Wimbledon final, defeating his opponent 7\u20116(5)\u202f1\u20116\u202f7\u20116(4)\u202f4\u20116\u202f13\u201112(3).\",\n      \"type\": \"verified\",\n      \"sources\": [\"t1\"]\n    }\n  ]\n}}"
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t1"
+              ],
+              "text": "Novak Djokovic won the 2019 Wimbledon final, defeating his opponent 7\u20116(5)\u202f1\u20116\u202f7\u20116(4)\u202f4\u20116\u202f13\u201112(3).",
+              "type": "verified"
+            }
+          ],
+          "kind": "answer",
+          "summary": "Novak Djokovic won the 2019 Wimbledon final, defeating his opponent 7\u20116(5)\u202f1\u20116\u202f7\u20116(4)\u202f4\u20116\u202f13\u201112(3)."
+        },
+        "id": "fc_5d02c29a-284a-48a9-86d4-c54d224ce9ce"
+      }
+    ]
+  }
+]

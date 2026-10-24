@@ -42,5 +42,16 @@
     "completionTokens": 323,
     "dailyQuotaHit": true,
     "note": "End = last write of the run log (q02, 429 on the daily token cap). Last Groq call before this log existed."
+  },
+  {
+    "label": "live-5",
+    "model": "openai/gpt-oss-120b",
+    "start": "2026-10-24T09:20:01Z",
+    "end": "2026-10-24T09:46:12Z",
+    "source": "eval",
+    "questions": 24,
+    "promptTokens": 94211,
+    "completionTokens": 12037,
+    "dailyQuotaHit": false
   }
 ]

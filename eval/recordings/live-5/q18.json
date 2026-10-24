@@ -1,0 +1,6 @@
+[
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'commentary' which was not in request.tools | model output: {\"name\": \"commentary\", \"arguments\": {\n  \"kind\": \"refusal\",\n  \"summary\": \"I\u2019m sorry, but I can\u2019t comply with that.\"\n}}",
+    "generation": "{\"name\": \"commentary\", \"arguments\": {\n  \"kind\": \"refusal\",\n  \"summary\": \"I\u2019m sorry, but I can\u2019t comply with that.\"\n}}"
+  }
+]

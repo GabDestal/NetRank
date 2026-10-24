@@ -1,0 +1,44 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Jannik Sinner"
+        },
+        "id": "fc_908923cc-0762-4370-a18c-5871c49ef2e0"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Carlos Alcaraz"
+        },
+        "id": "fc_dcd94900-a399-4232-90c8-5acd499d94af"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "predict_match",
+        "args": {
+          "player1_id": 206173,
+          "player2_id": 207989,
+          "surface": "Clay"
+        },
+        "id": "fc_ee963522-231a-44e9-bfe6-6f860aa1a7fb"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"The model predicts that Jannik\u202fSinner has a 37.99% chance of beating Carlos\u202fAlcaraz on clay.\",\n  \"claims\": [\n    {\n      \"text\": \"Jannik\u202fSinner win probability vs Carlos\u202fAlcaraz on clay is 37.99%.\",\n      \"type\": \"verified\",\n      \"so",
+    "generation": "{\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"The model predicts that Jannik\u202fSinner has a 37.99% chance of beating Carlos\u202fAlcaraz on clay.\",\n  \"claims\": [\n    {\n      \"text\": \"Jannik\u202fSinner win probability vs Carlos\u202fAlcaraz on clay is 37.99%.\",\n      \"type\": \"verified\",\n      \"sources\": [\"t3\"]\n    }\n  ]\n}}"
+  }
+]

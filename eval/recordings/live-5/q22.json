@@ -1,0 +1,30 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_077ac430-129e-47da-82f5-b9f9ef2d8931"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p:Player {id:104745})-[:LOST]->(m:Match)-[:PART_OF]->(t:Tournament) WHERE t.name IN ['Australian Open','French Open','Wimbledon','US Open'] AND m.round = 'F' RETURN count(m) AS losses"
+        },
+        "id": "fc_3810ff77-1b4b-46e3-be33-d849f55b61aa"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Rafael Nadal has lost 8 Grand Slam finals in his career.\",\n  \"claims\": [\n    {\n      \"text\": \"Rafael Nadal has lost 8 Grand Slam finals.\",\n      \"type\": \"verified\",\n      \"sources\": [\"t2\"]\n    }\n  ]\n}}",
+    "generation": "{\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Rafael Nadal has lost 8 Grand Slam finals in his career.\",\n  \"claims\": [\n    {\n      \"text\": \"Rafael Nadal has lost 8 Grand Slam finals.\",\n      \"type\": \"verified\",\n      \"sources\": [\"t2\"]\n    }\n  ]\n}}"
+  }
+]

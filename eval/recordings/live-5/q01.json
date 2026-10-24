@@ -1,0 +1,48 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_9b304851-ddba-4766-a3b1-fe6157086b61"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "get_player",
+        "args": {
+          "player_id": 103819
+        },
+        "id": "fc_45e64408-4303-4d26-95d7-11e4572ccc61"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t2"
+              ],
+              "text": "Roger Federer has won 103 titles in the NetRank data.",
+              "type": "verified"
+            }
+          ],
+          "kind": "answer",
+          "summary": "Roger Federer has won 103 titles in the NetRank data."
+        },
+        "id": "fc_266f6df4-49a2-4deb-8cfc-b9558af8c8ec"
+      }
+    ]
+  }
+]
