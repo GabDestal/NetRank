@@ -28,6 +28,10 @@ def from_turn(turn: dict) -> AIMessage:
     return AIMessage(content=turn.get("content", ""), tool_calls=calls)
 
 
+class ReplayOutOfSyncError(RuntimeError):
+    """The recording no longer matches what the agent would offer or ask for: the replay cannot go on."""
+
+
 class ReplayLLM:
     """Plays back recorded turns, one per invoke; fails loudly if the agent asks for more."""
 
@@ -41,12 +45,17 @@ class ReplayLLM:
         """Load a recording."""
         return cls(json.loads(path.read_text(encoding="utf-8")))
 
-    def invoke(self, _messages: list) -> AIMessage:
-        """Next recorded turn."""
+    def invoke(self, _messages: list, final: bool = False) -> AIMessage:
+        """Next recorded turn; on the last step (`final`) only a submit_answer turn is still in sync."""
         if self.calls >= len(self.turns):
-            raise RuntimeError(f"recording exhausted after {self.calls} turns")
+            raise ReplayOutOfSyncError(f"recording exhausted after {self.calls} turns")
         turn = self.turns[self.calls]
         self.calls += 1
+        if final and "rejected" not in turn:
+            if others := [c["name"] for c in turn["tool_calls"] if c["name"] != "submit_answer"]:
+                raise ReplayOutOfSyncError(
+                    f"turn {self.calls} calls {others} on the last step, where only submit_answer is offered now"
+                )
         if "rejected" in turn:  # the provider refused this turn during the live run
             raise ToolCallRejectedError(turn["rejected"], turn.get("generation", ""))
         return from_turn(turn)
@@ -60,10 +69,10 @@ class RecordingLLM:
         self.llm = llm
         self.turns: list[dict] = []
 
-    def invoke(self, messages: list) -> AIMessage:
+    def invoke(self, messages: list, final: bool = False) -> AIMessage:
         """Call the live model and record its answer, or the provider's rejection of it."""
         try:
-            message = self.llm.invoke(messages)
+            message = self.llm.invoke(messages, final=final)
         except ToolCallRejectedError as exc:
             self.turns.append({"rejected": str(exc), "generation": exc.generation})
             raise

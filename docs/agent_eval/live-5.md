@@ -3,6 +3,7 @@
 - Mode: **live**; model: `openai/gpt-oss-120b`; run: 2026-10-24 09:20 UTC.
 - Recordings: `eval/recordings/live-5`. Gold answers computed from the graph when the run was scored.
 - Question set: v2; pause between questions: 60.0 s.
+- **Note:** Note added after the run: 12 of the 24 answers needed salvage (sent by the model to a tool that does not exist, kept because they matched the answer schema and passed the verifier).
 
 | Metric | Result |
 | --- | --- |

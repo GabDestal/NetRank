@@ -82,3 +82,24 @@ calls, q20 was refused by the scope filter before any call).
 Neither failure is a wrong answer: both end as an explicit failure ("stopped after the maximum number of steps").
 The verifier downgraded one claim in q03 and one in q09 (2 of 16 checkable claims). No fix was applied after this
 run; any change will be re-scored as `replay-fixed-of-live-5` next to it, not in place of it.
+
+**Salvage.** 12 of the 24 live-5 answers (q04, q05, q06, q11, q12, q13, q15, q16, q17, q18, q19, q22) were
+sent by the model to a tool that does not exist and kept only because they matched the `submit_answer`
+schema and passed the verifier (D71). Without that recovery those 12 questions would have failed: the model
+routinely misroutes its answer, which is a reliability finding in itself, not only a harness detail.
+
+### Fixes after live-5 (D78) and their replay
+
+| Cause | Fix |
+| --- | --- |
+| q21: correct query refused by the retry cap | Retry budget 1 -> 2 fixes; every attempt still passes all layers |
+| q21: `exists(m.minutes)` | EXPLAIN feedback adds the Neo4j 5 form (`m.minutes IS NOT NULL`) |
+| q21: nulls sorted first | Note in the Cypher tool description (`Match.minutes` can be null; DESC puts nulls first); queries are not rewritten |
+| q14, q21: no answer by the step limit | Steps left shown before each turn; only `submit_answer` offered on the last step |
+
+[replay-fixed-of-live-5](replay-fixed-of-live-5.md) replays live-5's recorded model turns with these fixes:
+the 22 questions live-5 answered correctly replay unchanged and stay correct; **q14 and q21 are out of sync and
+not scored**: in both, the recorded turn 8 calls `run_readonly_cypher` on what is now a submit-only last step
+(in q21, the `IS NOT NULL` query of turn 7 now runs and returns 297 min, 2019 final vs Djokovic, but the model
+never saw that result live). The fixes on these two questions can only be measured by a new live run.
+live-5 (22/24) stays the headline result.

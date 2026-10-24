@@ -70,6 +70,10 @@ schema; LIMIT enforced; Pydantic output tagging each claim verified / predicted 
   (specs, trimmed results); 429s logged, daily cap stops the run; `make demo-guardrail` (offline).
 - D77: every live Groq session is logged in eval/quota_log.json; a live eval refuses to start within 24 h of the
   last logged use (`make quota` shows when it is fresh). No override flag: correct the log in a commit.
+- D78: Cypher retry budget 2 fixes (closes after 3 rejections), Neo4j 5 syntax hints in EXPLAIN feedback, null note
+  on Match.minutes (Cypher is never rewritten), steps left shown, submit_answer only on the last step;
+  answer kind "incomplete" (+ required `missing`) for partial results. Replays
+  report recordings that no longer fit as "out of sync (replay)", not scored. live-5 (22/24) is the headline.
 
 ## Hard constraints
 - pylint ≥ 9.5 (`make lint`, else −8). `.pylintrc` = course template + docstring checks re-enabled.
