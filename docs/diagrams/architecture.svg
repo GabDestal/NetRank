@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" width="1000" height="640" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">
+  <title>NetRank system architecture: services, ports and data flows</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3d4451"/>
+    </marker>
+    <style>
+      .box { fill: #ffffff; stroke: #3d4451; stroke-width: 1.5; }
+      .svc { fill: #eaf2fb; stroke: #2a6db0; stroke-width: 2; }
+      .ext { fill: #f6f1e7; stroke: #9a7b3c; stroke-width: 1.5; stroke-dasharray: 5 4; }
+      .zone { fill: #f7f8fa; stroke: #b9c0cc; stroke-width: 1.5; stroke-dasharray: 8 5; }
+      .flow { stroke: #3d4451; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+      .dash { stroke-dasharray: 6 4; }
+      .h { font-weight: 600; font-size: 16px; fill: #1d2330; }
+      .t { fill: #1d2330; }
+      .s { fill: #5a6372; font-size: 12.5px; }
+      .lbl { fill: #2a3240; font-size: 12.5px; }
+      .zl { fill: #6b7383; font-size: 13px; font-weight: 600; }
+    </style>
+  </defs>
+
+  <rect width="1000" height="640" fill="#ffffff"/>
+
+  <!-- Docker Compose host -->
+  <rect class="zone" x="250" y="30" width="480" height="430" rx="10"/>
+  <text class="zl" x="266" y="54">docker compose (project "netrank")</text>
+
+  <!-- nginx -->
+  <rect class="svc" x="290" y="80" width="400" height="70" rx="8"/>
+  <text class="h" x="306" y="106">nginx 1.30 (reverse proxy)</text>
+  <text class="s" x="306" y="128">only public entry point · publishes :8080 → :80 · /nginx-health</text>
+
+  <!-- api -->
+  <rect class="svc" x="290" y="200" width="400" height="92" rx="8"/>
+  <text class="h" x="306" y="226">api: FastAPI (image on GHCR)</text>
+  <text class="s" x="306" y="248">:8000, internal only · /api/* · /docs (Swagger)</text>
+  <text class="s" x="306" y="268">LangGraph agent + Cypher guardrails · /api/predict</text>
+  <text class="s" x="306" y="284">X-API-Key on /api/admin/gds/refresh</text>
+
+  <!-- neo4j -->
+  <rect class="svc" x="290" y="350" width="400" height="86" rx="8"/>
+  <text class="h" x="306" y="376">neo4j 5.26 + GDS 2.13</text>
+  <text class="s" x="306" y="398">Bolt :7687 · Browser :7474 (both bound to 127.0.0.1)</text>
+  <text class="s" x="306" y="418">volume neo4j_data · PageRank, KNN, Louvain, FastRP</text>
+
+  <!-- client -->
+  <rect class="box" x="30" y="80" width="170" height="70" rx="8"/>
+  <text class="h" x="46" y="108">Client</text>
+  <text class="s" x="46" y="130">browser, curl, notebook</text>
+
+  <!-- Groq -->
+  <rect class="ext" x="790" y="205" width="180" height="82" rx="8"/>
+  <text class="h" x="806" y="232">Groq API</text>
+  <text class="s" x="806" y="254">openai/gpt-oss-120b</text>
+  <text class="s" x="806" y="272">free tier, HTTPS</text>
+
+  <!-- host tools -->
+  <rect class="box" x="30" y="330" width="190" height="126" rx="8"/>
+  <text class="h" x="46" y="356">Host (make)</text>
+  <text class="s" x="46" y="378">ingest · gds · train</text>
+  <text class="s" x="46" y="396">benchmark · eval</text>
+  <text class="s" x="46" y="414">test · demo-guardrail</text>
+  <text class="s" x="46" y="436">.venv, Python 3.11</text>
+
+  <!-- models dir -->
+  <rect class="box" x="790" y="350" width="180" height="70" rx="8"/>
+  <text class="h" x="806" y="378">./models</text>
+  <text class="s" x="806" y="400">logistic model JSON</text>
+
+  <!-- data sources -->
+  <rect class="ext" x="30" y="510" width="280" height="96" rx="8"/>
+  <text class="h" x="46" y="536">Jeff Sackmann tennis_atp</text>
+  <text class="s" x="46" y="558">fork pinned to 712be0c5</text>
+  <text class="s" x="46" y="576">make download, checked by Git blob hash</text>
+
+  <rect class="box" x="360" y="510" width="270" height="96" rx="8"/>
+  <text class="h" x="376" y="536">data/raw (gitignored)</text>
+  <text class="s" x="376" y="558">CSV files read by make ingest</text>
+  <text class="s" x="376" y="576">only aggregates are committed</text>
+
+  <rect class="ext" x="680" y="510" width="290" height="96" rx="8"/>
+  <text class="h" x="696" y="536">tennis-data.co.uk odds</text>
+  <text class="s" x="696" y="558">downloaded by hand (site terms)</text>
+  <text class="s" x="696" y="576">never fetched by scripts</text>
+
+  <!-- flows -->
+  <path class="flow" d="M200,115 L288,115"/>
+  <text class="lbl" x="204" y="106">HTTP</text>
+  <text class="lbl" x="204" y="135">:8080</text>
+
+  <path class="flow" d="M490,150 L490,198"/>
+  <text class="lbl" x="498" y="179">proxy_pass api:8000</text>
+
+  <path class="flow" d="M490,292 L490,348"/>
+  <text class="lbl" x="498" y="318">Bolt neo4j:7687</text>
+  <text class="lbl" x="498" y="334">agent Cypher: READ tx</text>
+
+  <path class="flow" d="M690,246 L788,246"/>
+  <text class="lbl" x="700" y="236">agent turns</text>
+
+  <path class="flow" d="M790,385 L692,268"/>
+  <text class="lbl" x="772" y="312">mounted :ro</text>
+
+  <path class="flow" d="M220,393 L288,393"/>
+  <text class="lbl" x="222" y="383">Bolt</text>
+  <text class="lbl" x="222" y="412">127.0.0.1</text>
+
+  <path class="flow dash" d="M220,345 L244,345 L244,14 L880,14 L880,203"/>
+  <text class="lbl" x="872" y="34" text-anchor="end">make eval (live runs only)</text>
+
+  <path class="flow dash" d="M220,456 C420,500 700,480 860,422"/>
+  <text class="lbl" x="560" y="490">make train writes</text>
+
+  <path class="flow" d="M310,558 L358,558"/>
+  <path class="flow dash" d="M680,558 L632,558"/>
+  <text class="lbl" x="634" y="546">hand</text>
+  <path class="flow" d="M420,510 C400,480 180,490 150,458"/>
+  <text class="lbl" x="250" y="500">make ingest reads</text>
+</svg>
