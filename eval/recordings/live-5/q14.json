@@ -1,0 +1,100 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_7081cee4-047b-4556-97c7-14153841cdf7"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_75f6d3fe-9d51-46b8-91d5-0b7c9ed83b7a"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "predict_match",
+        "args": {
+          "player1_id": 103819,
+          "player2_id": 104745,
+          "surface": "Grass"
+        },
+        "id": "fc_d8b4be7e-2a58-401b-a953-3a0eb09024fd"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (m:Match)-[:PART_OF]->(t:Tournament {name: 'Wimbledon', year: 2019})\nWHERE m.round = 'SF' AND ((m)-[:WON]->(:Player {id: 103819}) OR (m)-[:LOST]->(:Player {id: 103819}))\nAND ((m)-[:WON]->(:Player {id: 104745}) OR (m)-[:LOST]->(:Player {id: 104745}))\nMATCH (b:Bookmaker {name: 'Pinnacle'})-[:PRICED]->(m)\nRETURN m.id AS match_id, b.name AS bookmaker, m.p1_odds AS p1_odds, m.p2_odds AS p2_odds"
+        },
+        "id": "fc_ca18288f-04e1-4142-9f55-7d24aed24f2d"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p1:Player {id:103819})-[:WON|LOST]->(m:Match)-[:PART_OF]->(t:Tournament {name:'Wimbledon',year:2019})\nWHERE m.round='SF'\nMATCH (p2:Player {id:104745})-[:WON|LOST]->(m)\nMATCH (winner:Player)-[:WON]->(m)\nMATCH (loser:Player)-[:LOST]->(m)\nMATCH (b:Bookmaker {name:'Pinnacle'})-[:PRICED]->(m)\nRETURN m.id AS match_id, winner.name AS winner_name, loser.name AS loser_name, b.name AS bookmaker, m.winnerOdds AS winner_odds, m.loserOdds AS loser_odds"
+        },
+        "id": "fc_457b1c0b-dc81-4097-8c41-0a69774f4cd6"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (m:Match)-[:PART_OF]->(t:Tournament {name:'Wimbledon',year:2019})\nWHERE m.round='SF' AND ((m)-[:WON]->(:Player {id:103819}) OR (m)-[:LOST]->(:Player {id:103819}))\nAND ((m)-[:WON]->(:Player {id:104745}) OR (m)-[:LOST]->(:Player {id:104745}))\nMATCH (b:Bookmaker {name:'Pinnacle'})-[:PRICED]->(m)\nRETURN m.id AS match_id, m.marketAvgWinnerOdds AS avg_win_odds, m.marketAvgLoserOdds AS avg_lose_odds, m.marketMaxWinnerOdds AS max_win_odds, m.marketMaxLoserOdds AS max_lose_odds"
+        },
+        "id": "fc_9a36c70d-e3d6-40f8-b62f-39b9180aa544"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (m:Match)-[:PART_OF]->(t:Tournament {name:'Wimbledon',year:2019})\nWHERE m.round='SF' AND ((m)-[:WON]->(:Player {id:103819}) OR (m)-[:LOST]->(:Player {id:103819}))\nAND ((m)-[:WON]->(:Player {id:104745}) OR (m)-[:LOST]->(:Player {id:104745}))\nMATCH (b:Bookmaker {name:'Pinnacle'})-[:PRICED]->(m)\nRETURN m.id AS match_id, b.name AS bookmaker, m.winnerOdds AS winner_odds, m.loserOdds AS loser_odds"
+        },
+        "id": "fc_619677b5-b423-4c10-a252-a58e5b078ad9"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (m:Match {id:'2019-540-225'})-[:PART_OF]->(t:Tournament {name:'Wimbledon',year:2019})\nOPTIONAL MATCH (b:Bookmaker {name:'Pinnacle'})-[:PRICED]->(m)\nRETURN m.id AS match_id, m.marketAvgWinnerOdds AS avg_win_odds, m.marketAvgLoserOdds AS avg_lose_odds, m.marketMaxWinnerOdds AS max_win_odds, m.marketMaxLoserOdds AS max_lose_odds, b.name AS bookmaker"
+        },
+        "id": "fc_18044221-91c5-4898-bdda-1d36ac8858fc"
+      }
+    ]
+  }
+]

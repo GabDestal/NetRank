@@ -1,0 +1,33 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "text": "The NetRank model produces a win\u2011probability for any given match (e.g., 0.62 for Player\u202fA vs Player\u202fB).",
+              "type": "interpreted"
+            },
+            {
+              "text": "Bookmakers quote decimal odds that can be converted to implied probabilities (1/odds).",
+              "type": "interpreted"
+            },
+            {
+              "text": "Comparing model probabilities to bookmaker implied probabilities shows where the model is more or less bullish.",
+              "type": "interpreted"
+            },
+            {
+              "text": "Across many matches the NetRank model is generally well\u2011calibrated, often within a few percentage points of bookmaker odds.",
+              "type": "interpreted"
+            }
+          ],
+          "kind": "answer",
+          "summary": "The NetRank model produces a win\u2011probability for any given match (e.g., 0.62 for Player\u202fA vs Player\u202fB). Bookmakers quote decimal odds (e.g., 1.80 for Player\u202fA, 2.20 for Player\u202fB). To compare the two you convert the odds to implied probabilities (1/odds) and then line them up with the model\u2019s probabilities. If the model says 0.62 and the bookmaker\u2019s implied probability for the same player is 0.56 (1/1.80), the model is more bullish on that player; if the model\u2019s probability is lower than the implied probability, the bookmaker is giving the player a better chance. By doing this across many matches you can assess calibration \u2013 e.g., the model\u2019s 0.55\u2011probability outcomes should win roughly 55\u202f% of the time, while the bookmaker\u2019s implied 0.55 odds should also reflect a similar win\u2011rate. In practice the NetRank model tends to be well\u2011calibrated on the ATP tour, often matching bookmaker odds within a few percentage points, but it can diverge on matches with unusual surface preferences or recent injuries where bookmakers may adjust odds more quickly. The comparison is therefore a simple numeric one: model probability vs. bookmaker implied probability, and you can track the difference (model \u2013 bookmaker) to see where the model is more or less optimistic."
+        },
+        "id": "fc_155ceb0c-d118-4ba0-a8dd-78a282e20c60"
+      }
+    ]
+  }
+]

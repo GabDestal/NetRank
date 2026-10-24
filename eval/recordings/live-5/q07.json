@@ -1,0 +1,48 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_51541ddb-20df-4c9c-af92-6deb97de1b2e"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "nemesis",
+        "args": {
+          "player_id": 103819
+        },
+        "id": "fc_575b1ed1-9969-471d-9e23-de1ca3237306"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t2"
+              ],
+              "text": "Novak Djokovic beat Roger Federer 27 times.",
+              "type": "verified"
+            }
+          ],
+          "kind": "answer",
+          "summary": "Novak Djokovic has the most wins over Roger Federer, beating him 27 times."
+        },
+        "id": "fc_1b8cd9f5-a245-4b18-86d2-b677a6cd24a9"
+      }
+    ]
+  }
+]

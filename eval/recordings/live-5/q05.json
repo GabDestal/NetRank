@@ -1,0 +1,43 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_05cc6f50-9879-4f34-ab6a-84c846128421"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_4bbae39d-9f3d-4452-a4ba-d82a49b6ad17"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "head_to_head",
+        "args": {
+          "player1_id": 104745,
+          "player2_id": 103819
+        },
+        "id": "fc_d7b9cd90-7fb8-4582-892d-dd96d1c464d5"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Rafael Nadal has beaten Roger Federer on clay 14 times.\",\n  \"claims\": [\n    {\n      \"text\": \"Rafael Nadal beat Roger Federer on clay 14 times.\",\n      \"type\": \"verified\",\n      \"sources\": [\"t3\"]\n    }\n  ]\n}}",
+    "generation": "{\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Rafael Nadal has beaten Roger Federer on clay 14 times.\",\n  \"claims\": [\n    {\n      \"text\": \"Rafael Nadal beat Roger Federer on clay 14 times.\",\n      \"type\": \"verified\",\n      \"sources\": [\"t3\"]\n    }\n  ]\n}}"
+  }
+]

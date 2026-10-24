@@ -1,0 +1,48 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Novak Djokovic"
+        },
+        "id": "fc_ac80a289-a3f2-41ed-b094-381f82cf90d2"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "prestige",
+        "args": {
+          "player_id": 104925
+        },
+        "id": "fc_75f2921d-0c95-4dee-a1c3-dc7042bb0cda"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "submit_answer",
+        "args": {
+          "claims": [
+            {
+              "sources": [
+                "t2"
+              ],
+              "text": "Novak Djokovic is ranked #1 all\u2011time in prestige.",
+              "type": "verified"
+            }
+          ],
+          "kind": "answer",
+          "summary": "Novak Djokovic holds the #1 all\u2011time prestige rank (rank\u202f1) on the NetRank graph."
+        },
+        "id": "fc_73a7c39f-a08d-45aa-a7e0-466c8c4bea41"
+      }
+    ]
+  }
+]

@@ -65,3 +65,20 @@ Estimated with `scripts/measure_tokens.py` on live-3's recordings (same model tu
 | --- | ---: | ---: | ---: |
 | Before (live-3 code) | 10,984 | 2,981 | 2,215 |
 | After (D72) | 7,647 | 2,076 | 1,531 |
+
+## live-5 (2026-10-24, fresh daily window)
+
+The first full v2 run on a fresh daily quota (started 09:20 UTC, about 24 h after the last Groq call, checked by
+the quota log, D77). 22/24 correct, 19/20 on the v1 questions. Per-minute 429s hit q14 (1) and q21 (3); each was
+retried and none caused a failure. The daily cap was not reached: 94,211 prompt and 12,037 completion tokens
+(Groq counts; the 3 questions answered without a counted call show 0: q17 and q18 were recovered from rejected
+calls, q20 was refused by the scope filter before any call).
+
+| Question | Cause | Detail |
+| --- | --- | --- |
+| q14 (model + Pinnacle for 2019 Wimbledon SF) | step limit | `predict_match` succeeded at step 3; after an EXPLAIN rejection on invented `p1_odds`/`p2_odds` (step 4), a Cypher query returning the Pinnacle prices succeeded at step 5. The model then kept querying (two queries with 0 rows, one more lookup) until the 8-step limit, without submitting an answer |
+| q21 (Federer's longest Wimbledon match) | retry cap blocked a correct query; step limit | First live EXPLAIN rejection followed by a corrected retry: `m.duration`/`m.opponent` rejected, the retry with `m.minutes` accepted. That query sorted `ORDER BY minutes DESC` without excluding nulls, so Neo4j returned a match with no duration first. The model then used `exists(m.minutes)` (removed in Neo4j 5), rejected by EXPLAIN; its next query, with `m.minutes IS NOT NULL`, was correct (it returns 297 min, 2019 final vs Djokovic) but was refused by the rule that blocks Cypher after two rejections. The run ended at the step limit |
+
+Neither failure is a wrong answer: both end as an explicit failure ("stopped after the maximum number of steps").
+The verifier downgraded one claim in q03 and one in q09 (2 of 16 checkable claims). No fix was applied after this
+run; any change will be re-scored as `replay-fixed-of-live-5` next to it, not in place of it.
