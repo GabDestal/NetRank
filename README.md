@@ -21,13 +21,15 @@ cp .env.example .env    # set NEO4J_PASSWORD, ADMIN_API_KEY and GROQ_API_KEY
 make install            # create .venv and install dependencies
 make docker-run         # start neo4j, api and nginx
 make download           # get the Sackmann files
-# download the tennis-data.co.uk files by hand (see Datasets)
+# put the tennis-data.co.uk files in data/raw/tennis_data/ (see Datasets)
 make ingest             # load the data into Neo4j (~1 min)
 make gds                # compute prestige, similarity and styles
 make train              # train the match model (~1 min)
 ```
 
 API docs: <http://localhost:8080/docs>.
+
+Demo walkthrough (the defense runbook): [docs/demo.md](docs/demo.md).
 
 ## Architecture
 
@@ -77,6 +79,9 @@ allow automated downloads, so you'll have to get the files manually:
 
 <https://www.tennis-data.co.uk/alldata.php>.
 
+Save the yearly ATP files in `data/raw/tennis_data/` under their original names (`2000.xls` to `2012.xls`,
+`2013.xlsx` to `2026.xlsx`).
+
 These files are not in the repo, and only aggregates are published.
 
 **Linking the two.** An odds row is matched to a Sackmann match when the dates fit the tournament
@@ -98,7 +103,7 @@ All lists are paginated (`page`, `size`). Full docs at <http://localhost:8080/do
 | `GET /api/players/{id}/prestige?era=` | Prestige rank (PageRank), all-time or for an era |
 | `GET /api/players/{id}/similar` | Players with the closest playing style (KNN) |
 | `GET /api/styles` | Playing-style groups (Louvain) |
-| `GET /api/predict?p1=&p2=` | Chance that p1 wins |
+| `GET /api/predict?p1=&p2=&surface=` | Chance that p1 wins (`match_id=` instead of `surface` for a played match) |
 | `POST /api/agent/ask` | Ask the agent a question |
 | `POST /api/admin/gds/refresh` | Recompute the GDS results (needs `X-API-Key`) |
 
@@ -177,24 +182,29 @@ matches the answer schema and passes the verifier. The score of every run is in
 | Command | What it does |
 | --- | --- |
 | `make help` | List all commands |
-| `make install` | Create `.venv` and install dependencies |
-| `make run` | Run the API locally on port 8000 |
-| `make docker-run` | Start the three services |
-| `make docker-down` | Stop the services (data is kept) |
-| `make download` | Download the Sackmann files |
-| `make ingest` | Load the data into Neo4j |
-| `make gds` | Compute prestige, similarity and styles |
-| `make train` | Train and test the match model |
-| `make benchmark` | Run the PROFILE benchmarks |
-| `make eval` | Run the agent evaluation |
-| `make eval-replay RUN=<label>` | Re-score a recorded run without calling Groq |
+| `make venv` | Create the Python 3.11 virtualenv (`.venv`), with uv when available |
+| `make install` | Create `.venv` and install the runtime and dev dependencies |
+| `make run` | Run the API locally on port 8000 (needs Neo4j: `make docker-run`) |
+| `make download` | Download and verify the Sackmann files (the tennis-data files are manual, see README) |
+| `make ingest` | Load `data/raw` into Neo4j and write `docs/data_exploration.md` (needs `make docker-run`) |
+| `make gds` | Compute prestige, style similarity and styles (after `make ingest`) |
+| `make train` | Train and test the match model -> `models/`, `docs/model_report.md` (after `make gds`) |
+| `make eval` | Run the live agent evaluation (needs `GROQ_API_KEY`): `make eval LABEL=live-N` |
+| `make eval-replay` | Re-score a recorded run without calling Groq: `make eval-replay RUN=<label>` |
 | `make quota` | Check that Groq's daily quota is fresh (`make eval` refuses to start otherwise) |
-| `make demo-guardrail` | Show the guardrails rejecting a write query (offline) |
-| `make notebook` | Re-run `demo.ipynb` against the running stack |
-| `make test` | Run the tests with coverage |
-| `make lint` | Run pylint (must stay above 9.5) |
+| `make notebook` | Re-run `demo.ipynb` against the running stack (no Groq call) |
+| `make demo-guardrail` | Show the guardrails rejecting recorded Cypher, offline (`REC=<recording>` optional) |
+| `make benchmark` | Run the PROFILE before/after benchmarks -> `docs/benchmarks.md` (needs the loaded graph) |
+| `make docker-build` | Build the API image |
+| `make docker-run` | Start neo4j, api and nginx; returns once all three are healthy |
+| `make docker-down` | Stop the services (the Neo4j data is kept) |
+| `make docker-logs` | Follow the logs of all services |
+| `make test` | Run all tests with coverage (integration and container tests skip when the stack is down) |
+| `make test-unit` | Run the unit tests only |
+| `make test-stack` | Run the container health tests against the running stack |
 | `make hooks` | Install the git hooks (pre-commit checks; pylint and unit tests before a push) |
-| `make clean` | Remove caches |
+| `make lint` | Run pylint (fails below 9.5/10) |
+| `make clean` | Remove caches, coverage and build files (keeps `.venv` and `.env`) |
 
 ## Tests
 
