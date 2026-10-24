@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from app.agent import graph
+from app.agent import graph, guardrails
 from app.agent.llm import ToolCallRejectedError
 from app.agent.replay import RecordingLLM, ReplayLLM, ReplayOutOfSyncError, from_turn, to_turn
 from app.agent.schema import AgentResponse
@@ -488,3 +488,78 @@ def test_eval_scores_the_legitimate_odds_questions(db):
     assert eval_agent.score(q24, answered, [], (same, same))["correct"]
     blocked = ask(db, [], question="Who should I bet on, Sinner or Alcaraz?")
     assert not eval_agent.score(q24, blocked, [], (same, same))["correct"]
+
+
+def test_forced_last_step_submission_without_support_is_never_verified(db):
+    """Review of #38: on a submit-only last step with no successful result, a 'verified' claim is downgraded."""
+    write = {"query": "MATCH (n) DETACH DELETE n"}  # rejected: no tool result supports anything
+    spy = StepSpy(
+        [
+            call("run_readonly_cypher", write, "c1"),
+            submit(
+                kind="answer",
+                summary="Nadal won 22 majors.",
+                claims=[
+                    {"text": "Rafael Nadal won 22 Grand Slam titles.", "type": "verified", "sources": ["t1"]},
+                    {"text": "He won 14 at Roland Garros.", "type": "verified"},
+                ],
+            ),
+        ]
+    )
+    response = graph.ask(db, spy, "How many majors did Nadal win?", 2, "scripted")
+    assert [final for final, _ in spy.seen] == [False, True]
+    assert [c.tag for c in response.answer.claims] == ["interpreted", "interpreted"]
+    assert {c.downgradedFrom for c in response.answer.claims} == {"verified"}
+    assert response.downgradedClaims == 2
+
+
+def test_incomplete_answer_says_what_was_found_and_what_is_missing(db):
+    """kind='incomplete' carries the missing parts; without them the answer is invalid, not accepted."""
+    found = {"text": "The search found Rafael Nadal.", "type": "interpreted"}
+    response = ask(
+        db,
+        [submit(kind="incomplete", summary="Only part is known.", claims=[found], missing=["his Wimbledon record"])],
+    )
+    assert response.answer.kind == "incomplete" and response.answer.missing == ["his Wimbledon record"]
+    response = ask(db, [submit(kind="incomplete", summary="Only part is known.")])
+    assert response.answer.kind == "failure" and "missing" in response.answer.summary
+
+
+@pytest.fixture(name="guarded")
+def fixture_guarded(monkeypatch):
+    """Guardrails stand-in: queries containing 'bad' are rejected by EXPLAIN, others return one row."""
+    executed = []
+
+    def run_readonly(_db, query):
+        if "bad" in query:
+            raise guardrails.GuardrailError("explain", "unknown property")
+        executed.append(query)
+        return {"cypher": query, "rows": [{"n": 1}], "rowCount": 1, "limit": 50}
+
+    monkeypatch.setattr(guardrails, "run_readonly", run_readonly)
+    return executed
+
+
+def cypher_turns(*queries):
+    """One run_readonly_cypher turn per query, then a final answer."""
+    turns = [call("run_readonly_cypher", {"query": q}, f"c{i}") for i, q in enumerate(queries, 1)]
+    return turns + [submit(kind="failure", summary="Done.")]
+
+
+def test_cypher_retry_budget_boundary(db, guarded):
+    """Two rejections leave one more attempt (it runs); a third rejection closes the tool for the question."""
+    response = ask(db, cypher_turns("bad 1", "bad 2", "MATCH (n) RETURN 1 AS n"))
+    assert [r.guardrail for r in response.trace] == ["explain", "explain", None] and response.trace[2].success
+    assert guarded == ["MATCH (n) RETURN 1 AS n"]
+    response = ask(db, cypher_turns("bad 1", "bad 2", "bad 3", "MATCH (n) RETURN 1 AS n"))
+    assert [r.guardrail for r in response.trace] == ["explain", "explain", "explain", "retry"]
+    assert "rejected 3 times" in response.trace[3].error and len(guarded) == 1
+
+
+def test_cypher_retry_count_resets_for_each_question(db, guarded):
+    """The budget belongs to one question: a closed tool in one question does not close it in the next."""
+    closed = ask(db, cypher_turns("bad 1", "bad 2", "bad 3", "bad 4"))
+    assert closed.trace[-1].guardrail == "retry"
+    fresh = ask(db, cypher_turns("MATCH (n) RETURN 1 AS n"))
+    assert fresh.trace[0].success and fresh.trace[0].guardrail is None
+    assert guarded == ["MATCH (n) RETURN 1 AS n"]  # only the second question's query ran

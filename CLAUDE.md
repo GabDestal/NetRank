@@ -71,7 +71,8 @@ schema; LIMIT enforced; Pydantic output tagging each claim verified / predicted 
 - D77: every live Groq session is logged in eval/quota_log.json; a live eval refuses to start within 24 h of the
   last logged use (`make quota` shows when it is fresh). No override flag: correct the log in a commit.
 - D78: Cypher retry budget 2 fixes (closes after 3 rejections), Neo4j 5 syntax hints in EXPLAIN feedback, null note
-  on Match.minutes (Cypher is never rewritten), steps left shown, submit_answer only on the last step. Replays
+  on Match.minutes (Cypher is never rewritten), steps left shown, submit_answer only on the last step;
+  answer kind "incomplete" (+ required `missing`) for partial results. Replays
   report recordings that no longer fit as "out of sync (replay)", not scored. live-5 (22/24) is the headline.
 
 ## Hard constraints

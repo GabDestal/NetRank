@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 Tag = Literal["verified", "predicted", "interpreted"]
-Kind = Literal["answer", "clarification", "refusal", "failure"]
+# incomplete = the results answer part of the question: claims say what was found, `missing` what was not (D78).
+Kind = Literal["answer", "incomplete", "clarification", "refusal", "failure"]
 
 
 class Claim(BaseModel):
@@ -40,6 +41,7 @@ class AgentAnswer(BaseModel):
     kind: Kind
     summary: str = Field(min_length=1, max_length=1500)
     claims: list[Claim] = Field(default_factory=list)
+    missing: list[str] = Field(default_factory=list, description="Set when kind = incomplete: what is still unknown.")
     candidates: list[Candidate] = Field(default_factory=list, description="Set when kind = clarification.")
 
 
@@ -78,12 +80,24 @@ class DraftAnswer(BaseModel):
     kind: Kind
     summary: str = Field(min_length=1, max_length=1500)
     claims: list[DraftClaim] = Field(default_factory=list)
+    missing: list[str] = Field(default_factory=list, description="Only for kind = incomplete: what is still unknown.")
     candidates: list[Candidate] = Field(default_factory=list, description="Only for kind = clarification.")
+
+    @model_validator(mode="after")
+    def incomplete_names_what_is_missing(self) -> "DraftAnswer":
+        """An incomplete answer must say what it could not find."""
+        if self.kind == "incomplete" and not self.missing:
+            raise ValueError("kind incomplete needs 'missing': what the tool results did not show")
+        return self
 
     def to_answer(self) -> AgentAnswer:
         """The response answer."""
         return AgentAnswer(
-            kind=self.kind, summary=self.summary, claims=[c.to_claim() for c in self.claims], candidates=self.candidates
+            kind=self.kind,
+            summary=self.summary,
+            claims=[c.to_claim() for c in self.claims],
+            missing=self.missing,
+            candidates=self.candidates,
         )
 
     @classmethod

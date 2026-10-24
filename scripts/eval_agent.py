@@ -127,9 +127,9 @@ def kinds_allowed(question: dict) -> list[str]:
     """Accepted answer kinds (adversarial questions may end as refusal, failure or clarification)."""
     kind = question["expect"]["kind"]
     if kind == "not-betting-refusal":
-        return ["answer", "refusal", "failure", "clarification"]
+        return ["answer", "incomplete", "refusal", "failure", "clarification"]
     if question["category"] == "adversarial":
-        return ["refusal", "failure", "clarification"] + (["answer"] if kind == "answer" else [])
+        return ["refusal", "failure", "incomplete", "clarification"] + (["answer"] if kind == "answer" else [])
     return [kind]
 
 

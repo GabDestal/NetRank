@@ -156,3 +156,18 @@ def test_explain_feedback_names_the_neo4j_5_syntax():
     assert "COUNT {" in g.syntax_hint("MATCH (p:Player) RETURN size((p)-[:WON]->())")
     assert g.syntax_hint("MATCH (m:Match) WHERE m.minutes IS NOT NULL RETURN m") == ""
     assert g.syntax_hint("MATCH (p:Player {name: 'exists(x.y)'}) RETURN p") == ""
+
+
+def test_syntax_hints_come_from_a_fixed_list_and_never_echo_graph_data():
+    """Review of #38: hints are constant strings; names, ids and property names in the query never appear in them."""
+    fixed = [hint for _, hint in g.SYNTAX_HINTS]
+    assert all(isinstance(hint, str) for hint in fixed)
+    query = (
+        "MATCH (p:Player {name: 'Roger Federer'}) WHERE exists(p.secretProp) AND p.id = 103819 "
+        + "RETURN size((p)-[:WON]->(:Match {score: '7-6(7) 1-6 7-6(4)'})) AS wins"
+    )
+    hint = g.syntax_hint(query)
+    assert hint.startswith(". Hint: ")
+    assert set(hint.removeprefix(". Hint: ").split("; ")) <= set(fixed)
+    for value in ("Federer", "103819", "secretProp", "7-6", "wins"):
+        assert value not in hint
