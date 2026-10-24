@@ -1,0 +1,44 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Johan Kriek"
+        },
+        "id": "fc_c2de9377-179c-4ff6-970f-a96af4fea8c7"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_de79b7a2-afbc-4d91-9f67-daf22cd88d79"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "beat_chain",
+        "args": {
+          "from_id": 100532,
+          "max_hops": 6,
+          "to_id": 103819
+        },
+        "id": "fc_2c4c5c2a-cf22-4378-bf70-01d1bad1acbb"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"The shortest win\u2011chain from Johan\u202fKriek to Roger\u202fFederer has 2 steps:\\n1. Johan\u202fKriek defeated Fabrice\u202fSantoro (Lyon, 1991\u201110\u201114, R16, 6\u20114\u202f6\u20114).\\n2. Fabrice\u202fSantoro later defeated Roger\u202fFederer (Madrid Masters, 2002\u201110\u201114, QF, 7\u20115\u202f6\u20113",
+    "generation": "{\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"The shortest win\u2011chain from Johan\u202fKriek to Roger\u202fFederer has 2 steps:\\n1. Johan\u202fKriek defeated Fabrice\u202fSantoro (Lyon, 1991\u201110\u201114, R16, 6\u20114\u202f6\u20114).\\n2. Fabrice\u202fSantoro later defeated Roger\u202fFederer (Madrid Masters, 2002\u201110\u201114, QF, 7\u20115\u202f6\u20113).\\nThus the chain length is 2 wins.\",\n  \"claims\": [\n    {\n      \"text\": \"The shortest win\u2011chain from Johan\u202fKriek to Roger\u202fFederer consists of two steps: Kriek beat Fabrice\u202fSantoro, who later beat Federer.\",\n      \"type\": \"verified\",\n      \"sources\": [\"t3\"]\n    }\n  ]\n}}"
+  }
+]

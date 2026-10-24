@@ -1,0 +1,98 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p:Player {name: 'Roger Federer'})-[:WON|:LOST]->(m:Match)-[:PART_OF]->(t:Tournament {name: 'Wimbledon'}) RETURN m.id AS match_id, m.duration AS minutes, m.round AS round, m.opponent AS opponent_name ORDER BY minutes DESC LIMIT 1"
+        },
+        "id": "fc_56e71327-e8be-448c-b2f4-e1b860e15f78"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p:Player {name: \"Roger Federer\"})-[:WON|:LOST]->(m:Match)-[:PART_OF]->(t:Tournament {name: \"Wimbledon\"}) MATCH (opp:Player)-[:WON|:LOST]->(m) WHERE opp <> p RETURN m.minutes AS minutes, opp.name AS opponent ORDER BY minutes DESC LIMIT 1"
+        },
+        "id": "fc_84ca91d3-11ea-40e8-943a-0b13142999dc"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p:Player {name: \"Roger Federer\"})-[:WON|:LOST]->(m:Match)-[:PART_OF]->(t:Tournament {name: \"Wimbledon\"}) MATCH (opp:Player)-[:WON|:LOST]->(m) WHERE opp <> p RETURN m.minutes AS minutes, opp.name AS opponent ORDER BY minutes DESC LIMIT 1"
+        },
+        "id": "fc_cfff50cb-a972-474c-aff9-571c59a7b6e9"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p:Player {name: \"Roger Federer\"})-[:WON|:LOST]->(m:Match)-[:PART_OF]->(t:Tournament {name: \"Wimbledon\"}) MATCH (opp:Player)-[:WON|:LOST]->(m) WHERE opp <> p RETURN m.id AS matchId, m.minutes AS minutes, opp.name AS opponent ORDER BY minutes DESC LIMIT 5"
+        },
+        "id": "fc_81df01ff-3323-4be7-92f0-36312cab908f"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (m:Match {id: '2015-540-120'}) RETURN m.minutes AS minutes"
+        },
+        "id": "fc_2adddfa0-260a-4066-8b1f-a7dc8666b369"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p:Player {name: \"Roger Federer\"})-[:WON|:LOST]->(m:Match)-[:PART_OF]->(t:Tournament {name: \"Wimbledon\"}) WHERE exists(m.minutes) RETURN m.id AS id, m.minutes AS minutes ORDER BY minutes DESC LIMIT 10"
+        },
+        "id": "fc_ae8715eb-60e2-416e-9f92-d80cb588b609"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (p:Player {name: \"Roger Federer\"})-[:WON|:LOST]->(m:Match)-[:PART_OF]->(t:Tournament {name: \"Wimbledon\"}) WHERE m.minutes IS NOT NULL RETURN m.id AS id, m.minutes AS minutes, m.round AS round ORDER BY minutes DESC LIMIT 10"
+        },
+        "id": "fc_a77db5c8-c44a-4847-a2d0-68d7f39ae0dd"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "run_readonly_cypher",
+        "args": {
+          "query": "MATCH (m:Match {id: '2015-540-120'}) RETURN properties(m) AS props"
+        },
+        "id": "fc_2ddec6b2-c055-4bf4-b564-94036c0aa5b7"
+      }
+    ]
+  }
+]

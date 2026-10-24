@@ -157,9 +157,10 @@ Guardrails:
   or **interpreted** (from the LLM). A number tagged verified must appear in a tool result.
 - Ambiguous player names lead to a clarification question.
 
-<!-- TODO: add the evaluation result from docs/agent_eval.md -->
 The agent is tested on 24 questions with answers computed from the graph. Run it with `make eval`.
-The score of every run is in [docs/agent_eval.md](docs/agent_eval.md).
+On the latest live run (live-5, `openai/gpt-oss-120b`, 24 October 2026) it answered 22 of the 24 questions
+correctly (19 of the original 20) and handled the 3 adversarial ones safely. The score of every run is in
+[docs/agent_eval.md](docs/agent_eval.md).
 `make demo-guardrail` replays a write query through the guardrails without calling the LLM.
 
 > **Disclaimer:** NetRank is a school project. It does not give betting advice, and the agent

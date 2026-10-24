@@ -1,0 +1,30 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger Federer"
+        },
+        "id": "fc_be194e00-2f5d-42c9-9897-af81f92ccae6"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "similar_players",
+        "args": {
+          "player_id": 103819
+        },
+        "id": "fc_dee267f0-a7b5-49f8-8f88-2d4e407e6746"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"The player whose playing style is most similar to Roger Federer is Jannik\u202fSinner (score\u202f0.9797).\",\n  \"claims\": [\n    {\n      \"text\": \"Jannik Sinner has the playing style most similar to Roger Federer.\",\n      \"type\": \"verified\",\n     ",
+    "generation": "{\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"The player whose playing style is most similar to Roger Federer is Jannik\u202fSinner (score\u202f0.9797).\",\n  \"claims\": [\n    {\n      \"text\": \"Jannik Sinner has the playing style most similar to Roger Federer.\",\n      \"type\": \"verified\",\n      \"sources\": [\"t2\"]\n    }\n  ]\n}}"
+  }
+]

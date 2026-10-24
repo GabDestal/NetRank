@@ -1,0 +1,18 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Roger"
+        },
+        "id": "fc_b666805e-4c4d-4ed0-b615-53c9723b61f7"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"clarification\",\n  \"candidates\": [\n    {\n      \"id\": 103819,\n      \"name\": \"Roger Federer\",\n      \"ioc\": \"SUI\"\n    },\n    {\n      \"id\": 104273,\n      \"name\": \"Edouard Roger-Vasselin\",\n      \"ioc\": \"FRA\"\n    },\n    {\n      \"id\": 104297,\n      \"name\": \"Rogerio",
+    "generation": "{\"name\": \"json\", \"arguments\": {\n  \"kind\": \"clarification\",\n  \"candidates\": [\n    {\n      \"id\": 103819,\n      \"name\": \"Roger Federer\",\n      \"ioc\": \"SUI\"\n    },\n    {\n      \"id\": 104273,\n      \"name\": \"Edouard Roger-Vasselin\",\n      \"ioc\": \"FRA\"\n    },\n    {\n      \"id\": 104297,\n      \"name\": \"Rogerio Dutra Silva\",\n      \"ioc\": \"BRA\"\n    },\n    {\n      \"id\": 100997,\n      \"name\": \"Roger Smith\",\n      \"ioc\": \"BAH\"\n    },\n    {\n      \"id\": 101580,\n      \"name\": \"Roger Rasheed\",\n      \"ioc\": \"AUS\"\n    }\n  ],\n  \"summary\": \"The name \\\"Roger\\\" matches multiple players. Please select the intended player from the list.\"\n}}"
+  }
+]

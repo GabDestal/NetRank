@@ -1,0 +1,43 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Novak Djokovic"
+        },
+        "id": "fc_48b97159-b9fb-44d8-88bb-71cd5c8c9260"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Rafael Nadal"
+        },
+        "id": "fc_2d5403cb-a0bd-4eac-8c12-f7eedd6664bd"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "head_to_head",
+        "args": {
+          "player1_id": 104925,
+          "player2_id": 104745
+        },
+        "id": "fc_8fc1d676-dd76-4e15-a540-8daf02d675df"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Novak Djokovic and Rafael Nadal have faced each other 58 times. Djokovic leads the overall head\u2011to\u2011head 30\u201128. By surface: on clay Nadal leads 19\u20118, on hard courts Djokovic leads 20\u20117, and on grass they are tied 2\u20112.\",\n  \"claims\": [\n ",
+    "generation": "{\"name\": \"json\", \"arguments\": {\n  \"kind\": \"answer\",\n  \"summary\": \"Novak Djokovic and Rafael Nadal have faced each other 58 times. Djokovic leads the overall head\u2011to\u2011head 30\u201128. By surface: on clay Nadal leads 19\u20118, on hard courts Djokovic leads 20\u20117, and on grass they are tied 2\u20112.\",\n  \"claims\": [\n    {\n      \"text\": \"Djokovic leads the overall head\u2011to\u2011head 30\u201128.\",\n      \"type\": \"verified\",\n      \"sources\": [\"t3\"]\n    },\n    {\n      \"text\": \"Surface breakdown \u2013 clay: Nadal 19 wins, Djokovic 8; hard: Djokovic 20 wins, Nadal 7; grass: tied 2\u20112.\",\n      \"type\": \"verified\",\n      \"sources\": [\"t3\"]\n    }\n  ]\n}}"
+  }
+]

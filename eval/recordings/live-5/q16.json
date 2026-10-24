@@ -1,0 +1,30 @@
+[
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Daniil Medvedev"
+        },
+        "id": "fc_9995fc60-2651-4521-b409-69bed182a97f"
+      }
+    ]
+  },
+  {
+    "content": "",
+    "tool_calls": [
+      {
+        "name": "search_player",
+        "args": {
+          "name": "Medvedev"
+        },
+        "id": "fc_09d8330c-6827-4d2d-aa41-fd5e519fd0fb"
+      }
+    ]
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'commentary' which was not in request.tools | model output: {\"name\": \"commentary\", \"arguments\": {\n  \"kind\": \"clarification\",\n  \"candidates\": [\n    {\n      \"id\": 106421,\n      \"name\": \"Daniil Medvedev\",\n      \"ioc\": \"RUS\"\n    },\n    {\n      \"id\": 102446,\n      \"name\": \"Andrei Medvedev\",\n      \"ioc\": \"UKR\"\n    }\n  ],\n  \"summary\": \"Which Medvedev do you mean?\"\n",
+    "generation": "{\"name\": \"commentary\", \"arguments\": {\n  \"kind\": \"clarification\",\n  \"candidates\": [\n    {\n      \"id\": 106421,\n      \"name\": \"Daniil Medvedev\",\n      \"ioc\": \"RUS\"\n    },\n    {\n      \"id\": 102446,\n      \"name\": \"Andrei Medvedev\",\n      \"ioc\": \"UKR\"\n    }\n  ],\n  \"summary\": \"Which Medvedev do you mean?\"\n}}"
+  }
+]

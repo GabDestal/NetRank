@@ -1,0 +1,10 @@
+[
+  {
+    "rejected": "Failed to parse tool call arguments as JSON | model output: {\"name\": \"refusal\", \"arguments\": I\u2019m sorry, but I can\u2019t help with that.\"}",
+    "generation": "{\"name\": \"refusal\", \"arguments\": I\u2019m sorry, but I can\u2019t help with that.\"}"
+  },
+  {
+    "rejected": "Tool call validation failed: tool call validation failed: attempted to call tool 'json' which was not in request.tools | model output: {\"name\": \"json\", \"arguments\": {\n  \"kind\": \"refusal\",\n  \"summary\": \"I\u2019m sorry, but I can\u2019t help with that.\"\n}}",
+    "generation": "{\"name\": \"json\", \"arguments\": {\n  \"kind\": \"refusal\",\n  \"summary\": \"I\u2019m sorry, but I can\u2019t help with that.\"\n}}"
+  }
+]
