@@ -176,6 +176,8 @@ salvage: the model often sends its answer to a tool that does not exist, and the
 matches the answer schema and passes the verifier. The score of every run is in
 [docs/agent_eval.md](docs/agent_eval.md).
 `make demo-guardrail` replays a write query through the guardrails without calling the LLM.
+`make quota` checks the Groq window before a live run. Covers make eval sessions only: agent calls
+through the API (POST /api/agent/ask) are not logged.
 
 > **Disclaimer:** NetRank is a school project. It does not give betting advice, and the agent
 > refuses to recommend bets.
@@ -197,7 +199,7 @@ matches the answer schema and passes the verifier. The score of every run is in
 | `make gds` | Compute prestige, style similarity and styles (after `make ingest`) |
 | `make train` | Train and test the match model -> `models/`, `docs/model_report.md` (after `make gds`) |
 | `make eval` | Run the live agent evaluation (needs `GROQ_API_KEY`): `make eval LABEL=live-N` |
-| `make eval-replay` | Re-score a recorded run without calling Groq: `make eval-replay RUN=<label>` |
+| `make eval-replay` | Re-score a recorded run without calling Groq: `make eval-replay RUN=<label>` (`ONLY=q01,q02` for some questions) |
 | `make quota` | Check that Groq's daily quota is fresh (`make eval` refuses to start otherwise) |
 | `make notebook` | Re-run `demo.ipynb` against the running stack (no Groq call) |
 | `make demo-guardrail` | Show the guardrails rejecting recorded Cypher, offline (`REC=<recording>` optional) |

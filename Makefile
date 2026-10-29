@@ -47,8 +47,8 @@ train: ## Train and test the match model -> models/, docs/model_report.md (after
 eval: ## Run the live agent evaluation (needs GROQ_API_KEY): make eval LABEL=live-N
 	$(PY) -m scripts.eval_agent $(if $(LABEL),--label $(LABEL),) --pause $(PAUSE)
 
-eval-replay: ## Re-score a recorded run without calling Groq: make eval-replay RUN=<label>
-	$(PY) -m scripts.eval_agent --replay $(RUN)
+eval-replay: ## Re-score a recorded run without calling Groq: make eval-replay RUN=<label> (ONLY=q01,q02 for some questions)
+	$(PY) -m scripts.eval_agent --replay $(RUN)$(if $(ONLY), --only $(ONLY),)
 
 quota: ## Check that Groq's daily quota is fresh (make eval refuses to start otherwise)
 	$(PY) -m scripts.quota_log

@@ -6,7 +6,8 @@ see the README quick start).
 
 > **Groq quota.** The live agent question in step 6 uses the Groq free tier (200k tokens per rolling
 > 24 h; one question is about 5k prompt tokens). Run **no `make eval` in the 24 hours before the defense**,
-> and check `make quota` the day before. `make demo-guardrail` is the offline backup if Groq fails.
+> and check `make quota` the day before. `make quota` covers `make eval` sessions only: rehearsal calls to the
+> agent API are not logged. If Groq fails, see [If something fails](#if-something-fails).
 
 ## 1. `make help`
 
@@ -134,3 +135,16 @@ starts at #26:
 | #37 | live-5 evaluation (22/24) |
 | #38 | Cypher retry budget, Neo4j 5 syntax hints, steps left, submit-only last step |
 | #39 | `demo.ipynb` re-run |
+
+## If something fails
+
+- **Groq is down or rate-limited:** replay the recorded live-5 answer to the same question, offline:
+  `make eval-replay RUN=live-5 ONLY=q01` (Federer, 103 titles, with its tool calls; nothing is saved).
+  Then `make demo-guardrail` for the guardrails.
+- **Ports are busy** (8080, 7474, 7687): stop the other containers first. n8n runs on this machine:
+  `docker ps` lists what is up, `docker ps --filter publish=8080` shows what holds a port, and
+  `docker compose down` in the other project's folder (or `docker stop <name>`) frees it. `NGINX_PORT` in
+  `.env` moves the API to another port if 8080 cannot be freed.
+- **Before the defense:** start the stack and load the data in advance (`make docker-run`, `make ingest`,
+  `make gds`, `make train`), so nothing has to be downloaded or ingested live. The Neo4j volume keeps
+  the graph across `make docker-down`; check `make test` passes on the morning.
