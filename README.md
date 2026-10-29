@@ -16,8 +16,15 @@ NetRank is a tennis knowledge graph built with Neo4j. It uses ATP matches from 1
 
 Requires: Docker (w/ Compose v2), make and Python 3.11.
 
+- On Windows, run the commands in Git Bash (the Makefile uses `grep`, `awk`, `rm` and `find`).
+- `make install` uses uv when it is installed. Without uv it runs `python3 -m venv`, so `python3` must be
+  Python 3.11 (or run `make install PYTHON=python3.11`).
+- The first `make docker-run` needs internet access: Neo4j downloads the GDS plugin when it first starts.
+- `GROQ_API_KEY` is only needed for the agent (`POST /api/agent/ask`) and `make eval`. Everything else
+  works without it.
+
 ```bash
-cp .env.example .env    # set NEO4J_PASSWORD, ADMIN_API_KEY and GROQ_API_KEY
+cp .env.example .env    # set NEO4J_PASSWORD and ADMIN_API_KEY (GROQ_API_KEY optional)
 make install            # create .venv and install dependencies
 make docker-run         # start neo4j, api and nginx
 make download           # get the Sackmann files
