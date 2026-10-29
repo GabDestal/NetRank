@@ -1,6 +1,7 @@
 """Groq usage log and the freshness gate for live evaluation runs (no Groq call)."""
 
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 
@@ -57,3 +58,18 @@ def test_finish_records_end_and_tokens(log_path):
     assert (entry["promptTokens"], entry["completionTokens"], entry["dailyQuotaHit"]) == (3000, 200, True)
     with pytest.raises(quota_log.StaleQuotaWindowError):
         quota_log.check_fresh(begin + timedelta(hours=24), log_path)
+
+
+@pytest.mark.parametrize(
+    "entries", [[], [{"label": "live-9", "start": "2999-01-01T00:00:00Z", "end": "2999-01-01T01:00:00Z"}]]
+)
+def test_quota_output_says_it_covers_make_eval_only(monkeypatch, capsys, entries):
+    """`make quota` states its scope whether the window is fresh or not, and the README repeats it."""
+    monkeypatch.setattr(quota_log, "load", lambda: entries)
+    try:
+        quota_log.main()
+    except SystemExit:
+        pass
+    assert capsys.readouterr().out.startswith(quota_log.SCOPE + "\n")
+    readme = " ".join((Path(__file__).resolve().parents[2] / "README.md").read_text(encoding="utf-8").split())
+    assert quota_log.SCOPE in readme

@@ -19,6 +19,8 @@ from pathlib import Path
 LOG = Path("eval/quota_log.json")
 WINDOW = timedelta(hours=24)
 STAMP = "%Y-%m-%dT%H:%M:%SZ"
+# Printed by `make quota` and repeated in the README: the log only sees `make eval` sessions.
+SCOPE = "Covers make eval sessions only: agent calls through the API (POST /api/agent/ask) are not logged."
 
 
 class StaleQuotaWindowError(RuntimeError):
@@ -106,6 +108,7 @@ def finish(label: str, now: datetime, rows: list[dict], path: Path = LOG) -> Non
 def main() -> None:
     """Print the state of the window, without calling Groq."""
     now = datetime.now(timezone.utc)
+    sys.stdout.write(f"{SCOPE}\n")
     try:
         fresh = fresh_at(load())
     except StaleQuotaWindowError as exc:
