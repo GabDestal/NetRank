@@ -70,7 +70,29 @@ The project runs as three Docker services:
 
 ### Modeling choices
 
-<!-- TODO: write the modeling rationale (from docs/decision_log.md) -->
+**1. A match is a node, not a relationship between two players.**
+- Rejected: `(Player)-[:PLAYED {score, date}]->(Player)`.
+- Why: a match links two players, a tournament and up to four bookmakers. A relationship can only connect two nodes, so the tournament and the odds would have nowhere to go. With a `Match` node, the winner is given by the type of relationship (`WON` or `LOST`).
+
+**2. Each player's match stats are stored on their own `WON` / `LOST` relationship (D16).**
+- Rejected: a `Performance` node between Player and Match, or flat `w_*` / `l_*` properties on Match.
+- Why: the stats belong to one player in one match, which is exactly what the relationship represents. A `Performance` node would add about 200,000 nodes and an extra hop for no query that needs it. Flat `w_` / `l_` properties would force every query to work out which side the player was on.
+
+**3. `BEAT` is a derived relationship (D32).**
+- Rejected: going through `Match` nodes every time, or one `BEAT` per season.
+- Why: questions like beat chains and triangles only need "who beat whom". On `BEAT`, the cycles query went from 10.0 s to 7 ms (71.2M → 23k database hits). `Match` stays the source of truth, and `BEAT` is rebuilt at every ingest. Era rankings can't use `BEAT` because its win counts cover whole careers, so they are computed from `Match` instead (D40).
+
+**4. Bookmakers are nodes, linked to matches by `PRICED` (D23).**
+- Rejected: odds as properties on Match, keeping every bookmaker in the files, or treating the market maximum and average as bookmakers.
+- Why: comparing bookmakers becomes one simple pattern. I kept only the four bookmakers with at least 10 seasons of odds. The market maximum and average are aggregates, not bookmakers, so they are properties on Match.
+
+**5. A tournament is one yearly edition, and surface is a property (D13, D19).**
+- Rejected: a series node (Wimbledon) linked to its editions, and a `Surface` node.
+- Why: every query works per edition (titles, linking odds by start date), so a series node would add a hop nobody uses. Surface has only four values: as a node, it would be connected to 100,000 matches, and every surface filter would go through that hub. As a property, it's a simple filter.
+
+**6. Playing styles come from match stats, not from the who-beat-whom graph (D41, D42, D48).**
+- Rejected: Louvain on `BEAT`, and `Style` nodes with LLM-generated names.
+- Why: I tested both. Louvain on `BEAT` finds generations, not styles: debut year explains 91% of its grouping, but it explains only 6% of the style features. Louvain on the style KNN graph explains 50% of the style features. Styles are stored as `Player.styleId`, and their names come from fixed rules, so no LLM output ends up in the graph as a fact.
 
 ## Datasets
 
